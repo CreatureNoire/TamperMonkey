@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Script collector auto
 // @namespace    https://github.com/Syfrost/JustWork-Next-Extension
-// @version      1.6.3
+// @version      1.6.4
 // @description  Charge plusieurs scripts distants
 // @author       Cedric G
 // @connect      prod.cloud-collectorplus.mt.sncf.fr
@@ -9,13 +9,14 @@
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/tm_copy_rex.js
+
 // @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_already_pass.js
 // @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_prm_tab.js
 // @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_planner_scan.js
 // @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_unlock_any.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/retour_arriere.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/impression_etiquette.js
+// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/tm_copy_rex.js
 // @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @grant        GM_info
