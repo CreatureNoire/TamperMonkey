@@ -8,7 +8,7 @@
 // @match        https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/*
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
-// @match        https://planner.cloud.microsoft/webui/plan
+// @match        planner.cloud.microsoft/webui/plan/*
 
 
 // @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_already_pass.js
