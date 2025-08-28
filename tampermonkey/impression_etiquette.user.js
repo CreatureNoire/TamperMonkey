@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name        🖨️ Imprimer Étiquette
 // @namespace    https://sncf.fr/
-// @version      3.0
+// @version      3.1
 // @description  Ajoute un bouton d'impression + confirmation après clic "Renvoi vers magasinier"
 // @match        https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/*.html
+// @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/impression_etiquette.user.js
+// @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/impression_etiquette.user.js
 // @grant        none
 // ==/UserScript==
 
