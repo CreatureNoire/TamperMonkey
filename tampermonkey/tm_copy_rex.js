@@ -1,192 +1,134 @@
 (function () {
     'use strict';
 
-    document.addEventListener("DOMContentLoaded", verifierPresenceTitre);
+    const cpPersoValue = (document.getElementById("idUser") || {}).value || "";
 
-    const storageKey = "formCopies";
-
-    // Initialiser les 5 stockages s'ils n'existent pas
-    if (!localStorage.getItem(storageKey)) {
-        resetStorage();
+    function verifierTitrePC() {
+        const span = document.querySelector('.TitrePC');
+        return span && (
+            span.textContent.includes("Plan de contrôle") ||
+            span.textContent.includes("PLAN DE CONTROLE GENERIQUE")
+        );
     }
 
-    function resetStorage() {
-        const vide = {
-            "1": { data: null, label: "1" },
-            "2": { data: null, label: "2" },
-            "3": { data: null, label: "3" },
-            "4": { data: null, label: "4" },
-            "5": { data: null, label: "5" }
-        };
-        localStorage.setItem(storageKey, JSON.stringify(vide));
-    }
+    function afficherBoutons(contenant) {
+        const parent = contenant.parentNode;
 
-    // Fonction pour supprimer toutes les copies (à exécuter dans la console)
-    window.wipejw = function () {
-        console.log("%cSuppression du stockage en cours...", "color: orange; font-weight: bold;");
-        
-        localStorage.removeItem(storageKey); // Supprime les anciennes copies
-        // resetStorage(); // Réinitialise les valeurs
-        
-        console.log("%cStockage effacé avec succès !", "color: green; font-weight: bold;");
-        location.reload(); // Rafraîchit la page pour afficher les boutons mis à jour
-    };
-
-    function verifierPresenceTitre() {
-        return document.querySelector('.control-label')?.textContent.includes("Consistance Réparation");
-    }
-
-    let intervalCheck = setInterval(() => {
-        if (verifierPresenceTitre()) {
-            ajouterBoutons();
-        } else {
-            retirerBoutons();
-        }
-    }, 1000);
-
-    function ajouterBoutons() {
-        const buttonContainer = document.querySelector('div[style*="position: fixed;"][style*="bottom: 10px;"][style*="right: 10px;"]');
-        if (!buttonContainer || document.getElementById("btnCopier")) {
-            return;
+        // Supprimer l'ancien conteneur de boutons s'il existe
+        const ancienContainer = parent.querySelector('#custom_button_container');
+        if (ancienContainer) {
+            ancienContainer.remove();
         }
 
-        let separator = document.createElement("span");
-        separator.id = "separatorTampermonkey";
-        separator.innerHTML = "<i class='fa fa-arrows-alt-h' style='margin: 0 10px; font-size: 16px;'></i>";
-        separator.style.alignSelf = "center";
+        // Styliser le parent
+        parent.style.display = 'flex';
+        parent.style.justifyContent = 'space-between';
+        parent.style.alignItems = 'center';
+        parent.style.paddingRight = '5px';
 
-        let btnCopier = document.createElement("button");
-        btnCopier.id = "btnCopier";
-        btnCopier.innerText = "Copier";
-        btnCopier.onclick = copierFormulaire;
-        styleButton(btnCopier, "#6c757d", "fa-copy");
+        // Créer le conteneur de boutons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.id = 'custom_button_container';
+        buttonContainer.style.display = 'inline-flex';
+        buttonContainer.style.gap = '5px';
 
-        buttonContainer.prepend(separator);
-        buttonContainer.prepend(btnCopier);
-
-        let storedCopies = JSON.parse(localStorage.getItem(storageKey));
-        Object.keys(storedCopies).forEach(key => {
-            const slotData = storedCopies[key];
-            let btnColler = document.createElement("button");
-            btnColler.id = `btnColler-${key}`;
-            btnColler.innerText = slotData.label || key;
-            btnColler.onclick = () => collerFormulaire(key);
-            styleButton(btnColler, "#6c757d", "fa-paste");
-            buttonContainer.prepend(btnColler);
-        });
-    }
-
-    function retirerBoutons() {
-        document.getElementById("btnCopier")?.remove();
-        document.getElementById("separatorTampermonkey")?.remove();
-        Object.keys(JSON.parse(localStorage.getItem(storageKey))).forEach(key => {
-            document.getElementById(`btnColler-${key}`)?.remove();
-        });
-    }
-
-    function styleButton(button, backgroundColor, iconClass) {
-        button.style.margin = '5px';
-        button.style.backgroundColor = backgroundColor;
-        button.style.color = 'white';
-        button.style.padding = '5px 10px';
-        button.style.border = 'none';
-        button.style.borderRadius = '5px';
-        button.style.cursor = 'pointer';
-        button.innerHTML = `<i class='fa ${iconClass}'></i> ` + button.innerText;
-    }
-
-    function copierFormulaire() {
-        const formulaire = document.querySelector('#panel-body-general');
-        if (!formulaire) {
-            alert('Formulaire non trouvé sur cette page.');
-            return;
-        }
-
-        const formData = {};
-        formulaire.querySelectorAll('input, select, textarea').forEach((element) => {
-            if (element.tagName === 'SELECT' && element.multiple) {
-                formData[element.name] = Array.from(element.selectedOptions).map(option => option.value);
-            } else {
-                formData[element.name] = element.value;
-            }
-        });
-
-        let storedCopies = JSON.parse(localStorage.getItem(storageKey));
-        let choix = prompt("Choisissez où sauvegarder: " + Object.keys(storedCopies).join(", "));
-        if (choix && storedCopies.hasOwnProperty(choix)) {
-            let label = prompt("Entrez un nom pour ce preset :", storedCopies[choix]?.label || choix) || choix;
-            storedCopies[choix] = {
-                data: formData,
-                label: label
-            };
-            localStorage.setItem(storageKey, JSON.stringify(storedCopies));
-            alert(`Formulaire copié sous '${label}' !`);
-            location.reload(); // pour mettre à jour les noms sur les boutons
-        } else {
-            alert('Choix invalide.');
-        }
-    }
-
-    
-    function collerFormulaire(slot) {
-        const formulaire = document.querySelector('#panel-body-general');
-        if (!formulaire) {
-            alert('Formulaire non trouvé sur cette page.');
-            return;
-        }
-
-        let storedCopies = JSON.parse(localStorage.getItem(storageKey));
-        const formData = storedCopies[slot]?.data;
-        if (!formData) {
-            alert('Aucune donnée enregistrée pour ' + slot);
-            return;
-        }
-
-        // Répéter plusieurs fois la saisie
-        let repeatCount = 4; // nombre de fois que tu veux injecter les données
-        let delay = 200; // en millisecondes
-
-        let current = 0;
-
-        const remplir = () => {
-            formulaire.querySelectorAll('input, select, textarea').forEach((element) => {
-                const value = formData[element.name];
-                if (value !== undefined) {
-                    if (element.tagName === 'SELECT' && element.multiple) {
-                        Array.from(element.options).forEach(option => {
-                            option.selected = value.includes(option.value);
-                        });
-
-                        const container = element.closest('.bootstrap-select');
-                        if (container) {
-                            const display = container.querySelector('.filter-option-inner-inner');
-                            if (display) {
-                                display.textContent = Array.from(element.selectedOptions).map(opt => opt.textContent).join(', ');
-                            }
-                        }
-
-                    } else {
-                        element.value = value;
-                    }
-
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                    element.dispatchEvent(new Event('blur', { bubbles: true }));
+        // Bouton "Oui"
+        const btnOui = document.createElement('button');
+        btnOui.innerText = 'Oui';
+        btnOui.className = 'btn btn-info';
+        btnOui.style.padding = '2px 10px';
+        btnOui.style.borderRadius = '5px';
+        btnOui.style.cursor = 'pointer';
+        btnOui.onclick = () => {
+            document.querySelectorAll('button[collector-value="1"]').forEach(btn => {
+                if (!btn.title.toLowerCase().includes('conforme')) {
+                    btn.click();
                 }
             });
         };
+        buttonContainer.appendChild(btnOui);
 
-        const loop = () => {
-            if (current < repeatCount) {
-                remplir();
-                current++;
-                setTimeout(loop, delay);
+        // Bouton "Non"
+        const btnNon = document.createElement('button');
+        btnNon.innerText = 'Non';
+        btnNon.className = 'btn btn-danger';
+        btnNon.style.padding = '2px 10px';
+        btnNon.style.borderRadius = '5px';
+        btnNon.style.cursor = 'pointer';
+        btnNon.onclick = () => {
+            document.querySelectorAll('button[collector-value="0"]').forEach(btn => {
+                if (!btn.title.toLowerCase().includes('conforme')) {
+                    btn.click();
+                }
+            });
+        };
+        buttonContainer.appendChild(btnNon);
+
+        // Bouton "Conforme"
+        const btnConforme = document.createElement('button');
+        btnConforme.innerText = 'Conforme';
+        btnConforme.className = 'btn btn-primary';
+        btnConforme.style.padding = '2px 10px';
+        btnConforme.style.borderRadius = '5px';
+        btnConforme.style.cursor = 'pointer';
+        btnConforme.onclick = () => {
+            document.querySelectorAll('button[title="Conforme"]').forEach(btn => btn.click());
+        };
+        buttonContainer.appendChild(btnConforme);
+
+        // Bouton "Signer"
+        const btnSigner = document.createElement('button');
+        btnSigner.id = 'custom_sign_button';
+        btnSigner.innerText = 'Signer';
+        btnSigner.className = 'btn btn-warning';
+        btnSigner.style.padding = '2px 10px';
+        btnSigner.style.borderRadius = '5px';
+        btnSigner.style.cursor = 'pointer';
+        btnSigner.onclick = () => {
+            document.querySelectorAll(`button[cp="${cpPersoValue}"]`).forEach(btn => btn.click());
+        };
+        buttonContainer.appendChild(btnSigner);
+
+        // Bouton "Valider"
+        const btnValider = document.createElement('button');
+        btnValider.id = 'custom_validate_button';
+        btnValider.innerText = 'Valider';
+        btnValider.className = 'btn btn-success';
+        btnValider.style.padding = '2px 10px';
+        btnValider.style.borderRadius = '5px';
+        btnValider.style.cursor = 'pointer';
+        btnValider.onclick = () => {
+            const validerBtn = document.getElementById('fonctionnel_validateAndNext_form') ||
+                               document.getElementById('fonctionnel_validate_form');
+            if (validerBtn) {
+                validerBtn.click();
             } else {
-                console.log(`✅ Formulaire injecté ${repeatCount} fois pour stabilité.`);
+                alert("Bouton 'Valider' introuvable.");
             }
         };
+        buttonContainer.appendChild(btnValider);
 
-        loop();
+        // Ajouter tous les boutons au DOM
+        parent.appendChild(buttonContainer);
     }
 
+    function verifierEtAjouter() {
+        if (!verifierTitrePC()) return;
+
+        const titres = document.querySelectorAll('h3.panel-title');
+        for (const titre of titres) {
+            if (titre.textContent.trim() === "Saisie du plan de contrôle") {
+                const parent = titre.parentNode;
+                const boutonPresent = parent.querySelector('#custom_sign_button');
+
+                if (!boutonPresent) {
+                    afficherBoutons(titre);
+                }
+                break;
+            }
+        }
+    }
+
+    // Vérifie toutes les 1 sec que les boutons sont présents, sinon les ajoute
+    setInterval(verifierEtAjouter, 1000);
 })();
