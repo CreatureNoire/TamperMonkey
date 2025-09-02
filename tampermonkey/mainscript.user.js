@@ -25,6 +25,8 @@
 // @grant        GM_info
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 
