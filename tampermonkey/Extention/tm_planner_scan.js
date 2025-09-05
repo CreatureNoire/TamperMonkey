@@ -141,8 +141,8 @@
             // Puis déclencher le scan après un délai pour laisser le temps au scroll
             setTimeout(() => {
                 console.log('[Bouton Unifié] Lancement du scan après scroll');
-                if (typeof scanContainers === 'function') {
-                    scanContainers();
+                if (window.scanContainers) {
+                    window.scanContainers();
                 } else {
                     console.log('[Bouton Unifié] Fonction scanContainers non disponible');
                 }
@@ -434,27 +434,11 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
 
 // -------------------- SCRIPT PRINCIPAL --------------------
 
-(function () {
-    'use strict';
-
-    const processedSections = new WeakMap();
-    const donneesTaches = []; // tableau global pour stocker les infos extraites
-    let liensEnCours = 0;
-    let postEnCours = 0;
-
-    // Fonction d'initialisation du module scan (supprimée car fusionnée)
-    function initScanModule() {
-        console.log('[Scan Module] Module fusionné avec le scroll - plus d\'initialisation séparée');
-        // Ne plus rien faire ici car tout est géré par le bouton unifié
-    }
-
-    // Démarrer l'initialisation (plus nécessaire car fusionné)
-    // initScanModule();
-
-    function ajouterBoutonScanManuel() {
-        console.log('[Scan Module] Fonction bouton scan manuel désactivée - fusionnée avec le bouton unifié');
-        // Cette fonction n'est plus utilisée car le bouton est unifié
-    }
+// Variables globales pour le scan
+const processedSections = new WeakMap();
+const donneesTaches = []; // tableau global pour stocker les infos extraites
+let liensEnCours = 0;
+let postEnCours = 0;
 
 
     function scanContainers() {
@@ -495,6 +479,9 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
         
         console.log('[Planner Script] Scan terminé');
     }
+
+    // Rendre la fonction scanContainers accessible globalement
+    window.scanContainers = scanContainers;
 
     function ajouterOverlayTaskCard(taskCard, numeroReparation, texteLabel = 'Chargement...') {
         const thumbnail = taskCard.querySelector('.thumbnail.placeholder');
@@ -843,7 +830,3 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
         }
         return 'non trouvé';
     }*/
-
-
-
-})();
