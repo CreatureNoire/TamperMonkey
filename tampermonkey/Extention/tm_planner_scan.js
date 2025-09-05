@@ -88,58 +88,66 @@
         };
     }
 
-    // Fonction pour créer le bouton de scroll automatique
-    function createScrollButton() {
+    // Fonction pour créer le bouton unifié (scroll + scan)
+    function createUnifiedButton() {
         if (scrollButton) return; // Éviter les doublons
 
         scrollButton = document.createElement('button');
-        scrollButton.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l8 8h-4v8h-8v-8H4l8-8z" transform="rotate(180 12 12)"/>
-                </svg>
-                <span>Scroll ▼</span>
-            </div>
-        `;
+        scrollButton.id = 'unified-scan-scroll-button';
+        scrollButton.textContent = 'SCAN';
         
-        // Styles du bouton
+        // Styles du bouton (style du bouton scan)
         Object.assign(scrollButton.style, {
             position: 'fixed',
-            top: CONFIG.buttonPosition.top,
-            right: CONFIG.buttonPosition.right,
+            width: '65px',
+            height: '65px',
+            bottom: '20px',
+            right: '20px',
             zIndex: '9999',
-            padding: '12px 16px',
-            backgroundColor: '#0078d4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
+            padding: '10px 15px',
+            background: 'rgba(0, 0, 0, 0.1)',
+            color: '#fff',
+            border: '2px solid rgb(255, 128, 0)',
+            borderRadius: '50px',
             fontSize: '14px',
-            fontWeight: '600',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            boxShadow: '0 4px 12px rgba(0, 120, 212, 0.3)',
-            transition: 'all 0.3s ease',
-            userSelect: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(255, 104, 0, 0.8)',
+            backdropFilter: 'blur(5px)',
             display: 'flex',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: '8px',
-            minWidth: '140px',
-            justifyContent: 'center'
+            transition: 'all 0.3s ease',
+            userSelect: 'none'
         });
 
         // Effets hover
         scrollButton.addEventListener('mouseenter', () => {
-            scrollButton.style.backgroundColor = '#106ebe';
             scrollButton.style.transform = 'scale(1.05)';
+            scrollButton.style.boxShadow = '0 4px 12px rgba(255, 104, 0, 1)';
         });
 
         scrollButton.addEventListener('mouseleave', () => {
-            scrollButton.style.backgroundColor = '#0078d4';
             scrollButton.style.transform = 'scale(1)';
+            scrollButton.style.boxShadow = '0 2px 8px rgba(255, 104, 0, 0.8)';
         });
 
-        // Événement click
-        scrollButton.addEventListener('click', scrollToBottom);
+        // Événement click unifié (scroll d'abord, puis scan)
+        scrollButton.addEventListener('click', () => {
+            console.log('[Bouton Unifié] Démarrage: Scroll puis Scan');
+            
+            // D'abord faire le scroll
+            scrollToBottom();
+            
+            // Puis déclencher le scan après un délai pour laisser le temps au scroll
+            setTimeout(() => {
+                console.log('[Bouton Unifié] Lancement du scan après scroll');
+                if (typeof scanContainers === 'function') {
+                    scanContainers();
+                } else {
+                    console.log('[Bouton Unifié] Fonction scanContainers non disponible');
+                }
+            }, 2000); // 2 secondes de délai pour laisser le scroll se terminer
+        });
 
         // Ajouter le bouton au DOM
         document.body.appendChild(scrollButton);
@@ -382,9 +390,9 @@
 
         // Délai pour s'assurer que l'interface est complètement rendue
         setTimeout(() => {
-            createScrollButton();
+            createUnifiedButton();
             observeDOMChanges();
-            console.log('Scroll instantané initialisé pour les tâches');
+            console.log('Bouton unifié (Scroll + Scan) initialisé');
         }, 1000);
     }
 
@@ -434,72 +442,18 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
     let liensEnCours = 0;
     let postEnCours = 0;
 
-    // Fonction d'initialisation du module scan
+    // Fonction d'initialisation du module scan (supprimée car fusionnée)
     function initScanModule() {
-        console.log('[Scan Module] Initialisation du module de scan...');
-        
-        // Attendre que le DOM soit complètement chargé
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initScanModule);
-            return;
-        }
-
-        // Délai pour s'assurer que l'interface est complètement rendue
-        setTimeout(() => {
-            console.log('[Scan Module] DOM chargé, démarrage du scan et ajout du bouton...');
-            scanContainers();
-            ajouterBoutonScanManuel();
-        }, 1500); // Délai légèrement plus long pour éviter les conflits
+        console.log('[Scan Module] Module fusionné avec le scroll - plus d\'initialisation séparée');
+        // Ne plus rien faire ici car tout est géré par le bouton unifié
     }
 
-    // Démarrer l'initialisation
-    initScanModule();
+    // Démarrer l'initialisation (plus nécessaire car fusionné)
+    // initScanModule();
 
     function ajouterBoutonScanManuel() {
-        console.log('[Scan Module] Tentative d\'ajout du bouton SCAN...');
-        console.log('[Scan Module] URL actuelle:', location.href);
-        
-        if (!location.href.includes("planner.cloud.microsoft")) {
-            console.log('[Scan Module] Pas sur Microsoft Planner, bouton SCAN non ajouté');
-            return; // Ne pas afficher le bouton si on n'est pas sur Microsoft Planner
-        }
-
-        // Vérifier si le bouton existe déjà
-        if (document.querySelector('#scan-button-manual')) {
-            console.log('[Scan Module] Bouton SCAN déjà présent');
-            return;
-        }
-
-        console.log('[Scan Module] Création du bouton SCAN...');
-        const bouton = document.createElement('button');
-        bouton.id = 'scan-button-manual'; // Ajouter un ID unique
-        bouton.textContent = 'SCAN';
-        bouton.style.position = 'fixed';
-        bouton.style.width = '65px';
-        bouton.style.height = '65px';
-        bouton.style.bottom = '20px';
-        bouton.style.right = '100px'; // Décalé pour éviter la superposition avec le bouton scroll
-        bouton.style.zIndex = '9999';
-        bouton.style.padding = '10px 15px';
-        bouton.style.background = 'rgba(0, 0, 0, 0.1)';
-        bouton.style.color = '#fff';
-        bouton.style.border = '2px solid rgb(255, 128, 0)';
-        bouton.style.borderRadius = '50px';
-        bouton.style.fontSize = '14px';
-        bouton.style.cursor = 'pointer';
-        bouton.style.boxShadow = '0 2px 8px rgba(255, 104, 0, 0.8)';
-        bouton.style.backdropFilter = 'blur(5px)';
-        bouton.style.display = 'flex';
-        bouton.style.justifyContent = 'center';
-        bouton.style.alignItems = 'center';
-
-        bouton.addEventListener('click', () => {
-            console.log('[Scan Module] Bouton SCAN cliqué');
-            scanContainers();
-        });
-
-        document.body.appendChild(bouton);
-        console.log('[Scan Module] Bouton SCAN ajouté avec succès');
+        console.log('[Scan Module] Fonction bouton scan manuel désactivée - fusionnée avec le bouton unifié');
+        // Cette fonction n'est plus utilisée car le bouton est unifié
     }
 
 
