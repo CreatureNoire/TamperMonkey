@@ -5,21 +5,12 @@
 // @description  Charge plusieurs scripts distants
 // @author       Cedric G
 // @connect      prod.cloud-collectorplus.mt.sncf.fr
-// @match        https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/*
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 // @match        planner.cloud.microsoft/webui/plan/*
 
 
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention%20C%C3%A9dric/tm_already_pass.js
-// @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_prm_tab.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/tm_planner_scan.js
-// @require      https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/refs/heads/master/tampermonkey/tm_unlock_any.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/retour_arriere.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/impression_etiquette.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/tm_copy_rex.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/suivant_plan_de_controle.js
-// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Retour_Prema_en_couleur.js
+
 // @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @grant        GM_info
