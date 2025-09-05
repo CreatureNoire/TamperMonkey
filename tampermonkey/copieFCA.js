@@ -2,7 +2,7 @@
     'use strict';
 
     // Define your values
-    let numREL = 'test';
+    let numREL = '';
     let numSer = '';
     let symbole = '';
     let designation = '';
@@ -47,31 +47,30 @@
             position: fixed;
             top: 10px;
             right: 10px;
-            width: 300px;
-            background: white;
-            border: 2px solid #333;
+            width: 110px;
+            background: rgba(255, 0, 0, 0);
+            border: 2px solid #6909b8ff;
             padding: 15px;
             z-index: 10000;
             font-family: Arial, sans-serif;
         `;
-
         panel.innerHTML = `
-            <input type="text" id="collectorLink" placeholder="Lien CollectorPlus" style="width: 100%; margin: 5px 0;">
-            <button id="fetchData" style="width: 100%; padding: 8px; margin: 5px 0;">Récupérer données</button>
-            <button id="toggleEdit" style="width: 100%; padding: 8px; margin: 5px 0;">Edit</button>
+            <input type="text" id="collectorLink" placeholder="Lien CollectorPlus" style="width: 100%; margin: 3px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
+            <button id="fetchData" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #007cba; color: white; cursor: pointer; font-size: 12px;">Récupérer données</button>
+            <button id="toggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Edit</button>
             <div id="editSection" style="display: none;">
             <hr>
-            <label>Numéro REL:</label>
-            <input type="text" id="manualNumREL" value="${numREL}" style="width: 100%; margin: 5px 0;">
-            <label>Numéro Série:</label>
-            <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 5px 0;">
-            <label>Symbole:</label>
-            <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 5px 0;">
-            <label>Désignation:</label>
-            <input type="text" id="manualDesignation" value="${designation}" style="width: 100%; margin: 5px 0;">
-            <label>Lien Original:</label>
-            <input type="text" id="manualOriginalLink" value="${originalLink}" style="width: 100%; margin: 5px 0;">
-            <button id="updateValues" style="width: 100%; padding: 8px; margin: 5px 0;">Mettre à jour</button>
+            <label style="font-size: 11px;">Numéro REL:</label>
+            <input type="text" id="manualNumREL" value="${numREL}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Numéro Série:</label>
+            <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Symbole:</label>
+            <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Désignation:</label>
+            <input type="text" id="manualDesignation" value="${designation}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Lien Original:</label>
+            <input type="text" id="manualOriginalLink" value="${originalLink}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
 
@@ -110,7 +109,7 @@
             const newDesignation = unsafeWindow.document.getElementById('manualDesignation').value;
             const newOriginalLink = unsafeWindow.document.getElementById('manualOriginalLink').value;
 
-            updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, newOriginalLink);
+            updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, commentCri, newOriginalLink);
         });
 
         // Collector fetch button
