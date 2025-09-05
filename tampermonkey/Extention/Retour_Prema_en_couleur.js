@@ -70,6 +70,11 @@ margin-top: -2px;
 
     // ⬇️ Bouton fixe en haut pour ouvrir le panneau
     function addToggleButton() {
+        // Vérifier que nous sommes sur la bonne URL
+        if (!window.location.href.startsWith('https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/')) {
+            return;
+        }
+        
         if (document.getElementById('openColorPanel')) return;
 
         const btn = document.createElement('button');
