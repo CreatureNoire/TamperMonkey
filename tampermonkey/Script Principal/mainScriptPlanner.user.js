@@ -1,10 +1,9 @@
 // ==UserScript==
-// @name         Script collector auto
+// @name         Script Planneur
 // @namespace    https://github.com/Syfrost/JustWork-Next-Extension
-// @version      1.7
+// @version      1.0
 // @description  Charge plusieurs scripts distants
-// @author       Cedric G
-// @connect      prod.cloud-collectorplus.mt.sncf.fr
+// @author       Créaturenoire
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 // @match        planner.cloud.microsoft/webui/plan/*
