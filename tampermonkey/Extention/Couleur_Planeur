@@ -1,0 +1,195 @@
+(function () {
+    'use strict';
+
+    let colorFCA = localStorage.getItem('colorFCA') || '#ffa500';
+    let colorEX000 = localStorage.getItem('colorEX000') || '#ffff00';
+    let colorInProgress = localStorage.getItem('colorInProgress') || '#add8e6';
+    let colorOther = localStorage.getItem('colorOther') || '#ff0000';
+    let borderColor = localStorage.getItem('borderColor') || '#00cc00';
+
+    function createColorSelector() {
+        if (document.getElementById('colorControlPanel')) return;
+
+        const container = document.createElement('div');
+        container.id = 'colorControlPanel';
+        Object.assign(container.style, {
+            position: 'fixed',
+            top: '50px',
+            left: '20px',
+            background: 'white',
+            border: '1px solid #ccc',
+            padding: '10px',
+            zIndex: '9999',
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            borderRadius: '8px',
+            boxShadow: '2px 2px 8px rgba(0,0,0,0.1)'
+        });
+
+        container.innerHTML = `
+            <strong>🎨 Couleurs Planner</strong><br>
+            En cours: <input type="color" id="inProgressColor" value="${colorInProgress}"><br>
+            FCA: <input type="color" id="fcaColor" value="${colorFCA}"><br>
+            EX000: <input type="color" id="exColor" value="${colorEX000}"><br>
+            Autres: <input type="color" id="otherColor" value="${colorOther}"><br>
+            Bordure verte: <input type="color" id="borderColor" value="${borderColor}"><br><br>
+            <button id="saveColors">💾 Sauvegarder</button>
+            <button id="closePanel" style="margin-left: 10px;">❌ Fermer</button>
+        `;
+
+        document.body.appendChild(container);
+
+        document.getElementById('inProgressColor').addEventListener('input', e => {
+            colorInProgress = e.target.value;
+            highlightAllLines();
+        });
+        document.getElementById('fcaColor').addEventListener('input', e => {
+            colorFCA = e.target.value;
+            highlightAllLines();
+        });
+        document.getElementById('exColor').addEventListener('input', e => {
+            colorEX000 = e.target.value;
+            highlightAllLines();
+        });
+        document.getElementById('otherColor').addEventListener('input', e => {
+            colorOther = e.target.value;
+            highlightAllLines();
+        });
+        document.getElementById('borderColor').addEventListener('input', e => {
+            borderColor = e.target.value;
+            highlightAllLines();
+        });
+
+        document.getElementById('saveColors').addEventListener('click', () => {
+            localStorage.setItem('colorFCA', colorFCA);
+            localStorage.setItem('colorEX000', colorEX000);
+            localStorage.setItem('colorInProgress', colorInProgress);
+            localStorage.setItem('colorOther', colorOther);
+            localStorage.setItem('borderColor', borderColor);
+            alert('✅ Couleurs sauvegardées !');
+            container.style.display = 'none';
+        });
+
+        document.getElementById('closePanel').addEventListener('click', () => {
+            container.style.display = 'none';
+        });
+    }
+
+    function addToggleButton() {
+        const tryAdd = () => {
+            const header = document.querySelector('.header');
+            if (header && !document.getElementById('toggleColorButton')) {
+                const button = document.createElement('button');
+                button.id = 'toggleColorButton';
+                button.innerText = '🎨 Couleurs';
+                Object.assign(button.style, {
+                    marginRight: '20px',
+                    padding: '3px 8px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    backgroundColor: '#444444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    zIndex: '9999'
+                });
+
+                button.onclick = () => {
+                    const panel = document.getElementById('colorControlPanel');
+                    if (panel) {
+                        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+                    } else {
+                        createColorSelector();
+                    }
+                };
+
+                header.prepend(button);
+            } else {
+                setTimeout(tryAdd, 500);
+            }
+        };
+
+        tryAdd();
+    }
+
+    function applyGreenBorder(element) {
+        if (element) {
+            element.style.border = `2px solid ${borderColor}`;
+            element.style.borderRadius = '6px';
+            element.style.padding = '2px';
+        }
+    }
+
+    function highlightAllLines() {
+        const rows = document.querySelectorAll('div[role="row"]');
+
+        rows.forEach(row => {
+            if (row.id === 'ColumnHeaderCell_title' || row.querySelector('#ColumnHeaderCell_title')) return;
+
+            let hasFCA = false;
+            let hasEX000 = false;
+            let isInProgress = false;
+
+            const fcaButton = [...row.querySelectorAll('button.editableLabelText')].find(btn => btn.textContent.includes('FCA'));
+            if (fcaButton) hasFCA = true;
+
+            const taskTitle = row.querySelector('div.taskTitleCell[title]');
+            if (taskTitle && taskTitle.getAttribute('title').includes('EX000')) hasEX000 = true;
+
+            const inProgressDiv = row.querySelector('div[title="En cours"]');
+            if (inProgressDiv) isInProgress = true;
+
+            if (isInProgress) {
+                row.style.backgroundColor = colorInProgress;
+            } else if (hasFCA) {
+                row.style.backgroundColor = colorFCA;
+            } else if (hasEX000) {
+                row.style.backgroundColor = colorEX000;
+            } else {
+                row.style.backgroundColor = colorOther;
+            }
+
+            const quickAction = row.querySelector('.quickaction-wrapper');
+            if (quickAction) {
+                quickAction.style.display = 'flex';
+                quickAction.style.visibility = 'visible';
+                quickAction.style.opacity = '1';
+                quickAction.style.position = 'absolute';
+                quickAction.style.right = '8px';
+                quickAction.style.top = '50%';
+                quickAction.style.transform = 'translateY(-50%)';
+                quickAction.style.zIndex = '10000';
+                quickAction.style.backgroundColor = 'transparent';
+            }
+
+            row.style.position = 'relative';
+
+            const progressCell = row.querySelector('div[role="gridcell"][aria-label*="Progression"]');
+            const titleCell = row.querySelector('div[role="gridcell"][aria-label*="Nom de la tâche"]');
+            const quickLookCell = row.querySelector('div[role="gridcell"][aria-label*="Aperçu rapide"]');
+            const labelCell = row.querySelector('div[role="gridcell"][aria-label*="Étiquettes"]');
+
+            if (progressCell) applyGreenBorder(progressCell);
+            if (titleCell) applyGreenBorder(titleCell);
+            if (quickLookCell) applyGreenBorder(quickLookCell);
+            if (labelCell) applyGreenBorder(labelCell);
+        });
+    }
+
+    function observeGrid() {
+        const grid = document.querySelector('div[role="grid"]');
+        if (grid) {
+            const observer = new MutationObserver(() => highlightAllLines());
+            observer.observe(grid, { childList: true, subtree: true });
+            highlightAllLines();
+        } else {
+            setTimeout(observeGrid, 1000);
+        }
+    }
+
+    window.addEventListener('load', () => {
+        addToggleButton();
+        observeGrid();
+        setInterval(highlightAllLines, 1000);
+    });
+})();
