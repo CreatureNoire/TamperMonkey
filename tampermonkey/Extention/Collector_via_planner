@@ -1,0 +1,109 @@
+(function () {
+    'use strict';
+
+    const addRepaButton = (row, refNumber) => {
+        if (row.querySelector('.btn-repa-of')) return;
+
+        const button = document.createElement('button');
+        button.className = 'btn-repa-of';
+        button.style.cursor = 'pointer';
+        button.style.border = '1px solid #444';
+        button.style.borderRadius = '10px';
+        button.style.padding = '2px';
+        button.style.marginLeft = '-10px';
+        button.style.backgroundColor = '#1d1c1c'; // fond personnalisé
+        button.title = 'Ouvrir la réparation PRM pour ' + refNumber;
+
+        const img = document.createElement('img');
+        img.src = 'https://prod.cloud-collectorplus.mt.sncf.fr/assets/images/sprite_src/pictos/Collector_accueil.png';
+        img.alt = 'Collector+';
+        img.width = 24;
+        img.height = 24;
+        img.style.verticalAlign = 'middle';
+        img.style.backgroundColor = '#1d1c1c'; // même fond
+        img.style.padding = '2px';
+        img.style.borderRadius = '4px';
+
+        button.appendChild(img);
+
+        button.addEventListener('click', () => {
+            if (!refNumber) {
+                alert("Aucun numéro OF/EX détecté.");
+                return;
+            }
+
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://prod.cloud-collectorplus.mt.sncf.fr/Prm/MesReparationsV2/getDataPrm",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                data: "data=%5B%7B%22name%22%3A%22select_multiple_equipe%22%2C%22value%22%3A%22109%22%7D%2C%7B%22name%22%3A%22prmMother%22%2C%22value%22%3A%22on%22%7D%2C%7B%22name%22%3A%22ongletAction%22%2C%22value%22%3A%22inProgress%22%7D%5D&filtre=MyRepairs_Filters&test=ok",
+                onload: function (response) {
+                    try {
+                        if (response.responseText.startsWith('<!DOCTYPE')) {
+                            alert("❌ Session expirée. Connecte-toi sur https://prod.cloud-collectorplus.mt.sncf.fr puis réessaie.");
+                            return;
+                        }
+
+                        const json = JSON.parse(response.responseText);
+                        const items = json.data || [];
+
+                        const found = items.find(item =>
+                            item.S_num?.replace(/\s/g, '') === refNumber.replace(/\s/g, '') &&
+                            item.DT_RowId
+                        );
+
+                        if (found) {
+                            const url = `https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/${found.DT_RowId}.html`;
+                            window.open(url, '_blank');
+                        } else {
+                            alert(`Aucune réparation trouvée pour ${refNumber}.`);
+                        }
+                    } catch (e) {
+                        console.error("[OF/EX Répa] Erreur JSON :", e);
+                        alert("Erreur de lecture de la réponse PRM.");
+                    }
+                }
+            });
+        });
+
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.appendChild(button);
+        row.insertBefore(wrapper, row.firstChild);
+    };
+
+    const processRows = () => {
+        const rows = document.querySelectorAll('div.grid-row');
+        rows.forEach(row => {
+            if (row.querySelector('.btn-repa-of')) return;
+
+            const ofElem = row.querySelector('.taskTitleCell span');
+            if (!ofElem) return;
+
+            const match = ofElem.textContent.match(/(OF|EX)\d{8}/);
+            if (!match) return;
+
+            const refNumber = match[0];
+            addRepaButton(row, refNumber);
+        });
+    };
+
+    const observer = new MutationObserver(() => {
+        processRows();
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            processRows();
+            setInterval(processRows, 2000);
+        }, 1000);
+    });
+})();
