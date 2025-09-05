@@ -1,19 +1,3 @@
-// ==UserScript==
-// @name         Auto Fill Input
-// @namespace    https://github.com/Syfrost
-// @version      1.27
-// @description  Auto fill input
-// @author       Cedric G
-// @match        runtime-app.powerplatform.com/*
-// @grant        unsafeWindow
-// @grant        GM_xmlhttpRequest
-// @updateURL    https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/0e7d5c481b9ee0bd9364cbf8293ab6b47c887181/tampermonkey/fca_auto_fill.user.js
-// @downloadURL  https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/0e7d5c481b9ee0bd9364cbf8293ab6b47c887181/tampermonkey/fca_auto_fill.user.js
-// @homepageURL  https://github.com/Syfrost
-// @supportURL   https://github.com/Syfrost/JustWork-Next-Extension/issues
-// ==/UserScript==
-
-
 (function() {
     'use strict';
 
