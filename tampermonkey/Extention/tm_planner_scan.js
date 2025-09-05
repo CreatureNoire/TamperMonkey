@@ -92,6 +92,13 @@
     function createUnifiedButton() {
         if (scrollButton) return; // Éviter les doublons
 
+        // Vérifier si on est sur Microsoft Planner
+        if (!location.href.includes("planner.cloud.microsoft")) {
+            console.log('[Bouton Unifié] Pas sur Microsoft Planner, bouton non créé');
+            return; // Ne pas afficher le bouton si on n'est pas sur Microsoft Planner
+        }
+
+        console.log('[Bouton Unifié] Création du bouton sur Microsoft Planner');
         scrollButton = document.createElement('button');
         scrollButton.id = 'unified-scan-scroll-button';
         scrollButton.textContent = 'SCAN';
