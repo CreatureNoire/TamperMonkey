@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Script collector auto
+// @name         Script Collector
 // @namespace    https://github.com/Syfrost/JustWork-Next-Extension
 // @version      1.7
 // @description  Charge plusieurs scripts distants
