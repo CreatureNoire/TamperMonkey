@@ -4,18 +4,16 @@
 // @version      1.0
 // @description  Charge plusieurs scripts distants
 // @author       CréatureNoire
-// @connect      prod.cloud-collectorplus.mt.sncf.fr
-// @match        
-
-
-
+// @match       
 // @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
+// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/copieFCA.js
 // @grant        GM_info
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        unsafeWindow
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 
