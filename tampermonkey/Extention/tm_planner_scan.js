@@ -1,3 +1,406 @@
+// -------------------- MODULE SCROLL --------------------
+
+(function() {
+    'use strict';
+
+    // Configuration
+    const CONFIG = {
+        scrollSpeed: 'instant', // Scroll instantané vers le bas
+        buttonPosition: {
+            top: '20px',
+            right: '20px'
+        },
+        autoScrollClass: 'scrollable', // Classe principale à cibler
+        targetSelectors: [
+            '.scrollable.scrollable-265',
+            '.scrollable[data-can-drag-to-scroll="true"]',
+            '.listBoxGroup',
+            '.primarySection.taskBoardColumnGroup'
+        ]
+    };
+
+    // Variables globales
+    let scrollButton = null;
+    let targetContainer = null;
+    let debugMode = false;
+
+    // Fonction de debug pour analyser le comportement du scroll
+    function enableDebugMode() {
+        debugMode = true;
+        console.log('=== MODE DEBUG ACTIVÉ ===');
+        
+        // Surveiller tous les événements de scroll
+        if (targetContainer) {
+            targetContainer.addEventListener('scroll', function(e) {
+                if (debugMode) {
+                    console.log(`📜 SCROLL EVENT - Position: ${this.scrollTop}, Hauteur: ${this.scrollHeight}, Client: ${this.clientHeight}`);
+                    console.log(`📏 Distance du bas: ${this.scrollHeight - this.scrollTop - this.clientHeight}px`);
+                }
+            });
+        }
+
+        // Surveiller les changements dans le DOM du conteneur
+        if (targetContainer) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList') {
+                        console.log(`🔄 DOM CHANGE - Ajouté: ${mutation.addedNodes.length}, Supprimé: ${mutation.removedNodes.length}`);
+                        if (mutation.addedNodes.length > 0) {
+                            console.log('📋 Nouveaux éléments:', mutation.addedNodes);
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(targetContainer, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // Surveiller les requêtes réseau
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            console.log('🌐 FETCH REQUEST:', args[0]);
+            return originalFetch.apply(this, arguments).then(response => {
+                console.log('✅ FETCH RESPONSE:', response.status, args[0]);
+                return response;
+            });
+        };
+
+        // Surveiller XMLHttpRequest
+        const originalXHR = window.XMLHttpRequest;
+        window.XMLHttpRequest = function() {
+            const xhr = new originalXHR();
+            const originalOpen = xhr.open;
+            const originalSend = xhr.send;
+            
+            xhr.open = function(method, url, ...args) {
+                console.log(`🌐 XHR ${method}:`, url);
+                return originalOpen.apply(this, [method, url, ...args]);
+            };
+            
+            xhr.addEventListener('load', function() {
+                console.log('✅ XHR RESPONSE:', this.status, this.responseURL);
+            });
+            
+            return xhr;
+        };
+    }
+
+    // Fonction pour créer le bouton de scroll automatique
+    function createScrollButton() {
+        if (scrollButton) return; // Éviter les doublons
+
+        scrollButton = document.createElement('button');
+        scrollButton.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l8 8h-4v8h-8v-8H4l8-8z" transform="rotate(180 12 12)"/>
+                </svg>
+                <span>Scroll ▼</span>
+            </div>
+        `;
+        
+        // Styles du bouton
+        Object.assign(scrollButton.style, {
+            position: 'fixed',
+            top: CONFIG.buttonPosition.top,
+            right: CONFIG.buttonPosition.right,
+            zIndex: '9999',
+            padding: '12px 16px',
+            backgroundColor: '#0078d4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            boxShadow: '0 4px 12px rgba(0, 120, 212, 0.3)',
+            transition: 'all 0.3s ease',
+            userSelect: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            minWidth: '140px',
+            justifyContent: 'center'
+        });
+
+        // Effets hover
+        scrollButton.addEventListener('mouseenter', () => {
+            scrollButton.style.backgroundColor = '#106ebe';
+            scrollButton.style.transform = 'scale(1.05)';
+        });
+
+        scrollButton.addEventListener('mouseleave', () => {
+            scrollButton.style.backgroundColor = '#0078d4';
+            scrollButton.style.transform = 'scale(1)';
+        });
+
+        // Événement click
+        scrollButton.addEventListener('click', scrollToBottom);
+
+        // Ajouter le bouton au DOM
+        document.body.appendChild(scrollButton);
+    }
+
+    // Fonction pour analyser la structure DOM et les éléments
+    function analyzeScrollStructure() {
+        console.log('🔍 === ANALYSE DE LA STRUCTURE DE SCROLL ===');
+        
+        const container = findScrollContainer();
+        if (!container) {
+            console.log('❌ Aucun conteneur trouvé');
+            return;
+        }
+
+        console.log('📦 Conteneur trouvé:', container);
+        console.log('📐 Dimensions:', {
+            scrollHeight: container.scrollHeight,
+            clientHeight: container.clientHeight,
+            scrollTop: container.scrollTop
+        });
+
+        // Analyser les éléments enfants
+        const children = container.children;
+        console.log(`👶 Nombre d'enfants directs: ${children.length}`);
+        
+        // Trouver les éléments de tâches
+        const taskElements = container.querySelectorAll('[class*="taskBoardCard"], [class*="card"], [data-index]');
+        console.log(`📋 Éléments de tâches trouvés: ${taskElements.length}`);
+        
+        // Analyser les attributs data
+        const elementsWithDataIndex = container.querySelectorAll('[data-index]');
+        if (elementsWithDataIndex.length > 0) {
+            const indices = Array.from(elementsWithDataIndex).map(el => el.getAttribute('data-index'));
+            console.log('🔢 Indices des tâches:', indices);
+            console.log(`📊 Range des indices: ${Math.min(...indices)} à ${Math.max(...indices)}`);
+        }
+
+        // Chercher des indicateurs de pagination/lazy loading
+        const loadingElements = container.querySelectorAll('[class*="loading"], [class*="spinner"], [class*="loader"]');
+        console.log(`⏳ Éléments de chargement: ${loadingElements.length}`);
+        
+        // Chercher des zones de drop ou de contenu dynamique
+        const dropZones = container.querySelectorAll('[data-dnd-role], [class*="dropZone"]');
+        console.log(`🎯 Zones de drop: ${dropZones.length}`);
+
+        // Analyser la position et l'état du scroll
+        const isAtBottom = container.scrollTop >= (container.scrollHeight - container.clientHeight - 10);
+        console.log(`📍 Position: ${isAtBottom ? 'En bas' : 'Pas en bas'}`);
+        
+        // Vérifier s'il y a des éléments invisibles en bas
+        const containerRect = container.getBoundingClientRect();
+        const elementsBelow = Array.from(taskElements).filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.top > containerRect.bottom;
+        });
+        console.log(`👻 Éléments invisibles en bas: ${elementsBelow.length}`);
+
+        return container;
+    }
+
+    // Fonction pour attendre que le contenu se stabilise
+    function waitForContentStabilization(container, callback, timeout = 1000) { // Réduit de 2000ms à 1000ms
+        let lastHeight = container.scrollHeight;
+        let stableCount = 0;
+        const requiredStableChecks = 2; // Réduit de 3 à 2 vérifications
+        const checkInterval = 100; // Réduit de 200ms à 100ms
+        let totalWaited = 0;
+
+        function checkStability() {
+            const currentHeight = container.scrollHeight;
+            
+            if (currentHeight === lastHeight) {
+                stableCount++;
+                console.log(`📏 Hauteur stable (${stableCount}/${requiredStableChecks}): ${currentHeight}px`);
+                
+                if (stableCount >= requiredStableChecks) {
+                    console.log('✅ Contenu stabilisé');
+                    callback(true);
+                    return;
+                }
+            } else {
+                console.log(`📈 Hauteur changée: ${lastHeight}px → ${currentHeight}px`);
+                lastHeight = currentHeight;
+                stableCount = 0;
+            }
+
+            totalWaited += checkInterval;
+            if (totalWaited >= timeout) {
+                console.log('⏰ Timeout atteint pour la stabilisation');
+                callback(false);
+                return;
+            }
+
+            setTimeout(checkStability, checkInterval);
+        }
+
+        checkStability();
+    }
+
+    // Fonction pour trouver le conteneur de scroll
+    function findScrollContainer() {
+        // Essayer de trouver le conteneur par différents sélecteurs
+        for (const selector of CONFIG.targetSelectors) {
+            const container = document.querySelector(selector);
+            if (container && container.scrollHeight > container.clientHeight) {
+                console.log(`Conteneur trouvé avec le sélecteur: ${selector}`);
+                return container;
+            }
+        }
+
+        // Fallback: chercher tout élément avec la classe scrollable
+        const scrollableElements = document.querySelectorAll('[class*="scrollable"]');
+        for (const element of scrollableElements) {
+            if (element.scrollHeight > element.clientHeight) {
+                console.log('Conteneur trouvé via fallback:', element.className);
+                return element;
+            }
+        }
+
+        console.warn('Aucun conteneur scrollable trouvé');
+        return null;
+    }
+
+    // Fonction de scroll progressif pour déclencher le lazy loading
+    function scrollToBottom() {
+        let attempts = 0;
+        const maxAttempts = 50; // Réduit car on a une meilleure logique maintenant
+        const scrollStep = 5000; // Augmenté pour un scroll plus rapide
+
+        function performProgressiveScroll() {
+            // Récupérer une nouvelle référence du conteneur à chaque tentative
+            const container = findScrollContainer();
+            if (!container) {
+                console.error('❌ Conteneur perdu lors de la tentative', attempts + 1);
+                return;
+            }
+
+            const currentScrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            const maxScrollTop = scrollHeight - clientHeight;
+
+            console.log(`🔄 Tentative ${attempts + 1}: Position ${currentScrollTop}/${maxScrollTop}, Hauteur totale: ${scrollHeight}`);
+
+            // Vérifier si on est déjà au bas
+            if (currentScrollTop >= maxScrollTop - 10) {
+                console.log('📍 Atteint le bas, vérification de la stabilisation...');
+                
+                // Utiliser la nouvelle fonction de stabilisation
+                waitForContentStabilization(container, (isStable) => {
+                    if (!isStable && attempts < maxAttempts) {
+                        console.log('🔄 Contenu encore en chargement, tentative suivante...');
+                        attempts++;
+                        setTimeout(performProgressiveScroll, 50); // Réduit à 50ms pour quasi-instantané
+                    } else {
+                        const finalContainer = findScrollContainer();
+                        if (finalContainer) {
+                            console.log(`🎯 Scroll terminé ! Tentatives: ${attempts + 1}`);
+                            console.log(`📊 Hauteur finale: ${finalContainer.scrollHeight}px`);
+                            console.log(`📍 Position finale: ${finalContainer.scrollTop}px`);
+                            
+                            // Dernière analyse pour confirmer
+                            const taskElements = finalContainer.querySelectorAll('[data-index]');
+                            if (taskElements.length > 0) {
+                                const indices = Array.from(taskElements).map(el => parseInt(el.getAttribute('data-index')));
+                                console.log(`📋 Total des tâches chargées: ${taskElements.length}`);
+                                console.log(`📊 Range final: ${Math.min(...indices)} à ${Math.max(...indices)}`);
+                            }
+                        }
+                    }
+                }, 800); // Réduit de 1500ms à 800ms pour plus de rapidité
+            } else {
+                // Pas encore au bas, scroller par étapes
+                const targetScroll = Math.min(currentScrollTop + scrollStep, maxScrollTop);
+                container.scrollTop = targetScroll;
+                
+                // Déclencher des événements pour s'assurer que les listeners se déclenchent
+                container.dispatchEvent(new Event('scroll', { bubbles: true }));
+                
+                // Simuler aussi un événement wheel pour certains lazy loaders
+                container.dispatchEvent(new WheelEvent('wheel', { 
+                    deltaY: scrollStep,
+                    bubbles: true 
+                }));
+                
+                attempts++;
+                if (attempts < maxAttempts) {
+                    setTimeout(performProgressiveScroll, 50); // Réduit à 50ms pour quasi-instantané
+                } else {
+                    console.log('⚠️ Limite de tentatives atteinte sans atteindre le bas.');
+                }
+            }
+        }
+
+        // Vérification initiale
+        const initialContainer = findScrollContainer();
+        if (!initialContainer) {
+            alert('❌ Aucun conteneur scrollable trouvé sur cette page.');
+            return;
+        }
+
+        console.log('🚀 === DÉMARRAGE DU SCROLL AMÉLIORÉ ===');
+        console.log(`📐 Dimensions initiales: ${initialContainer.scrollHeight}px (visible: ${initialContainer.clientHeight}px)`);
+        
+        // Compter les tâches initiales
+        const initialTasks = initialContainer.querySelectorAll('[data-index]');
+        console.log(`📋 Tâches initialement visibles: ${initialTasks.length}`);
+        
+        performProgressiveScroll();
+    }
+
+    // Fonction pour surveiller les changements dans le DOM
+    function observeDOMChanges() {
+        const observer = new MutationObserver((mutations) => {
+            // Observer les changements pour maintenir la référence au conteneur à jour
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Réinitialiser la référence du conteneur si nécessaire
+                    setTimeout(() => {
+                        targetContainer = null;
+                    }, 100);
+                }
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // Fonction d'initialisation du module scroll
+    function initScrollModule() {
+        // Attendre que le DOM soit complètement chargé
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initScrollModule);
+            return;
+        }
+
+        // Délai pour s'assurer que l'interface est complètement rendue
+        setTimeout(() => {
+            createScrollButton();
+            observeDOMChanges();
+            console.log('Scroll instantané initialisé pour les tâches');
+        }, 1000);
+    }
+
+    // Raccourci clavier pour scroll instantané (Ctrl + Shift + S)
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            scrollToBottom();
+        }
+    });
+
+    // Initialiser le module scroll
+    initScrollModule();
+
+})();
+
 // -------------------- MODULE LISTE --------------------
 
 // Liste configurable par l'utilisateur
@@ -23,7 +426,6 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
 
 // -------------------- SCRIPT PRINCIPAL --------------------
 
-
 (function () {
     'use strict';
 
@@ -32,28 +434,51 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
     let liensEnCours = 0;
     let postEnCours = 0;
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+    // Fonction d'initialisation du module scan
+    function initScanModule() {
+        console.log('[Scan Module] Initialisation du module de scan...');
+        
+        // Attendre que le DOM soit complètement chargé
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initScanModule);
+            return;
+        }
+
+        // Délai pour s'assurer que l'interface est complètement rendue
+        setTimeout(() => {
+            console.log('[Scan Module] DOM chargé, démarrage du scan et ajout du bouton...');
             scanContainers();
             ajouterBoutonScanManuel();
-        });
-    } else {
-        scanContainers();
-        ajouterBoutonScanManuel();
+        }, 1500); // Délai légèrement plus long pour éviter les conflits
     }
 
+    // Démarrer l'initialisation
+    initScanModule();
+
     function ajouterBoutonScanManuel() {
+        console.log('[Scan Module] Tentative d\'ajout du bouton SCAN...');
+        console.log('[Scan Module] URL actuelle:', location.href);
+        
         if (!location.href.includes("planner.cloud.microsoft")) {
+            console.log('[Scan Module] Pas sur Microsoft Planner, bouton SCAN non ajouté');
             return; // Ne pas afficher le bouton si on n'est pas sur Microsoft Planner
         }
 
+        // Vérifier si le bouton existe déjà
+        if (document.querySelector('#scan-button-manual')) {
+            console.log('[Scan Module] Bouton SCAN déjà présent');
+            return;
+        }
+
+        console.log('[Scan Module] Création du bouton SCAN...');
         const bouton = document.createElement('button');
+        bouton.id = 'scan-button-manual'; // Ajouter un ID unique
         bouton.textContent = 'SCAN';
         bouton.style.position = 'fixed';
         bouton.style.width = '65px';
         bouton.style.height = '65px';
         bouton.style.bottom = '20px';
-        bouton.style.right = '20px';
+        bouton.style.right = '100px'; // Décalé pour éviter la superposition avec le bouton scroll
         bouton.style.zIndex = '9999';
         bouton.style.padding = '10px 15px';
         bouton.style.background = 'rgba(0, 0, 0, 0.1)';
@@ -68,34 +493,53 @@ GM_registerMenuCommand("📋 Afficher la liste", showList);
         bouton.style.justifyContent = 'center';
         bouton.style.alignItems = 'center';
 
-        bouton.addEventListener('click', scanContainers);
+        bouton.addEventListener('click', () => {
+            console.log('[Scan Module] Bouton SCAN cliqué');
+            scanContainers();
+        });
 
         document.body.appendChild(bouton);
+        console.log('[Scan Module] Bouton SCAN ajouté avec succès');
     }
 
 
     function scanContainers() {
         console.log('[Planner Script] Démarrage avec scan des conteneurs...');
         const containers = document.querySelectorAll('div.ms-FocusZone');
-        console.log(containers);
-        containers.forEach(container => {
+        console.log('[Planner Script] Nombre de conteneurs ms-FocusZone trouvés:', containers.length);
+        
+        if (containers.length === 0) {
+            console.log('[Planner Script] Aucun conteneur ms-FocusZone trouvé, tentative avec d\'autres sélecteurs...');
+            // Essayer d'autres sélecteurs possibles
+            const alternateContainers = document.querySelectorAll('.taskCard, [class*="taskCard"], [class*="task-card"]');
+            console.log('[Planner Script] Conteneurs alternatifs trouvés:', alternateContainers.length);
+        }
+        
+        containers.forEach((container, index) => {
+            console.log(`[Planner Script] Traitement du conteneur ${index + 1}`);
             const taskCard = container.querySelector('div.taskCard');
             if (!taskCard) {
-                console.log("return");
+                console.log(`[Planner Script] Pas de taskCard dans le conteneur ${index + 1}`);
                 return;
             }
 
             const lienElement = container.querySelector('a.referencePreviewDescription');
             let lien = lienElement?.getAttribute('href') || lienElement?.getAttribute('title');
-            console.log(lien);
+            console.log(`[Planner Script] Lien trouvé pour le conteneur ${index + 1}:`, lien);
 
             if (lien && !lien.endsWith('.html')) lien += '.html';
-            if (!lien || !lien.includes('.html')) return;
+            if (!lien || !lien.includes('.html')) {
+                console.log(`[Planner Script] Lien invalide pour le conteneur ${index + 1}, ignoré`);
+                return;
+            }
 
             const numeroReparation = lien.match(/\/(\d+)(?:\.html)?$/)?.[1] || 'inconnu';
+            console.log(`[Planner Script] Numéro de réparation: ${numeroReparation}`);
             ajouterOverlayTaskCard(taskCard, numeroReparation, 'Chargement...');
             testerLienHttp(lien, taskCard);
         });
+        
+        console.log('[Planner Script] Scan terminé');
     }
 
     function ajouterOverlayTaskCard(taskCard, numeroReparation, texteLabel = 'Chargement...') {
