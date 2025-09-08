@@ -9,7 +9,7 @@
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 // @match        planner.cloud.microsoft/webui/plan/*
-// @match        https://apps.powerapps.com/*
+// @match        runtime-app.powerplatform.com/*
 
 
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/copieFCA.js
