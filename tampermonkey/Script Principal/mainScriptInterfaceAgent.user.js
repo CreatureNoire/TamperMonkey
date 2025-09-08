@@ -22,7 +22,7 @@
     'use strict';
 
     const versionLocale = GM_info.script.version;
-    const scriptURL = "https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/master/tampermonkey/mainscript.user.js";
+    const scriptURL = "https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Script%20Principal/mainScriptInterfaceAgent.user.js";
 
     console.log("[Script Collector Auto] Version locale :", versionLocale);
 
