@@ -2,12 +2,8 @@
     'use strict';
 
     // Define your values
-    let numREL = '';
     let numSer = '';
     let symbole = '';
-    let designation = '';
-    let originalLink = '';
-    let commentCri = '';
 
     function fillPowerAppsInput(selector, value) {
         const input = unsafeWindow.document.querySelector(selector);
@@ -19,12 +15,8 @@
     }
 
     function fillInput() {
-        fillPowerAppsInput("input[appmagic-control='TextInput20textbox']", numREL);
-        fillPowerAppsInput("input[appmagic-control='TextInput20_2textbox']", numSer);
-        fillPowerAppsInput("input[appmagic-control='TextInput13_2textbox']", symbole);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_8textbox']", designation);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_11textbox']", originalLink);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_6textbox']", commentCri);
+        fillPowerAppsInput("input[appmagic-control='TextInput8_3textbox']", numSer);
+        fillPowerAppsInput("input[appmagic-control='TextInput8_2textbox']", symbole);
     }
 
     // Try to fill immediately
@@ -60,16 +52,10 @@
             <button id="toggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Edit</button>
             <div id="editSection" style="display: none;">
             <hr>
-            <label style="font-size: 11px;">Numéro REL:</label>
-            <input type="text" id="manualNumREL" value="${numREL}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Numéro Série:</label>
             <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Symbole:</label>
             <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Désignation:</label>
-            <input type="text" id="manualDesignation" value="${designation}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Lien Original:</label>
-            <input type="text" id="manualOriginalLink" value="${originalLink}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
@@ -83,33 +69,23 @@
         });
 
         // Update values function
-        function updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, newCommentCri = '', newOriginalLink = '') {
-            numREL = newNumREL;
+        function updateConstants(newNumSer, newSymbole) {
             numSer = newNumSer;
             symbole = newSymbole;
-            designation = newDesignation;
-            if (newCommentCri) commentCri = newCommentCri;
-            if (newOriginalLink) originalLink = newOriginalLink;
 
             // Update UI inputs
-            unsafeWindow.document.getElementById('manualNumREL').value = numREL;
             unsafeWindow.document.getElementById('manualNumSer').value = numSer;
             unsafeWindow.document.getElementById('manualSymbole').value = symbole;
-            unsafeWindow.document.getElementById('manualDesignation').value = designation;
-            unsafeWindow.document.getElementById('manualOriginalLink').value = originalLink;
 
             fillInput();
         }
 
         // Manual update button
         unsafeWindow.document.getElementById('updateValues').addEventListener('click', () => {
-            const newNumREL = unsafeWindow.document.getElementById('manualNumREL').value;
             const newNumSer = unsafeWindow.document.getElementById('manualNumSer').value;
             const newSymbole = unsafeWindow.document.getElementById('manualSymbole').value;
-            const newDesignation = unsafeWindow.document.getElementById('manualDesignation').value;
-            const newOriginalLink = unsafeWindow.document.getElementById('manualOriginalLink').value;
 
-            updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, commentCri, newOriginalLink);
+            updateConstants(newNumSer, newSymbole);
         });
 
         // Collector fetch button
@@ -118,8 +94,6 @@
 
         button.addEventListener('click', () => {
             let lien = input.value.trim();
-            const originalLinkValue = lien;
-            originalLink = originalLinkValue;
             if (!lien) return alert("Merci de mettre le lien CollectorPlus");
 
             lien = lien.replace(/^.*\/(\d+)(\.html)?$/, '$1');
@@ -134,12 +108,10 @@
 
                     const h1 = doc.querySelector('h1.border-bottom.text-center.mx-auto.mt-4.text-info.border-info');
                     let newSymbole = "";
-                    let newDesignation = "";
                     if (h1) {
                         const txt = h1.textContent.trim();
                         const parts = txt.split(' - ');
                         newSymbole = parts[0] ? parts[0].trim() : "";
-                        newDesignation = parts[1] ? parts[1].trim() : "";
                     }
 
                     let newNumSer = "";
@@ -150,27 +122,8 @@
                         if (valueDiv) newNumSer = valueDiv.textContent.trim();
                     }
 
-                    let newNumREL = "";
-                    const relBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
-                        .find(div => div.textContent.includes("Numéro FCA :"));
-                    if (relBlock) {
-                        const valueDiv = relBlock.querySelector('.ml-3');
-                        if (valueDiv) newNumREL = valueDiv.textContent.trim();
-                    }
-
-                    let commentCri = "";
-                    const commentBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
-                        .find(div => {
-                            const boldDiv = div.querySelector('div.font-weight-bold');
-                            return boldDiv && boldDiv.textContent.includes("Commentaire :");
-                        });
-                    if (commentBlock) {
-                        const valueDiv = commentBlock.querySelector('.ml-3');
-                        if (valueDiv) commentCri = valueDiv.textContent.trim();
-                    }
-
-                    updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, commentCri);
-                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nDésignation: ${newDesignation}\nNuméro de série: ${newNumSer}\nNuméro REL: ${newNumREL}`);
+                    updateConstants(newNumSer, newSymbole);
+                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}`);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
@@ -190,7 +143,7 @@
             let foundFormulaireFCA = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
+                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
                     foundFormulaireFCA = true;
                     break;
                 }
