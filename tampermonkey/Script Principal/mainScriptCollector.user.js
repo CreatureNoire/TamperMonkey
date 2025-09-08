@@ -22,8 +22,8 @@
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/boutonPlanDeControle.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/suivant_plan_de_controle.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Retour_Prema_en_couleur.js
-// @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
-// @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
+// @updateURL    https://github.com/CreatureNoire/TamperMonkey/edit/master/tampermonkey/Script%20Principal/mainCollector.user.js
+// @downloadURL  https://github.com/CreatureNoire/TamperMonkey/edit/master/tampermonkey/Script%20Principal/mainCollector.user.js
 // @grant        GM_info
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
