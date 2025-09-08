@@ -9,6 +9,7 @@
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 // @match        planner.cloud.microsoft/webui/plan/*
+// @match        https://apps.powerapps.com/
 
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Commande_Composant_SY.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/copieFCA.js
