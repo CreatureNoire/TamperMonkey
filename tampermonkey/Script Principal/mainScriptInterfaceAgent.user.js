@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Charge plusieurs scripts distants
 // @author       CréatureNoire
-// @match       https://apps.powerapps.com/*
+// @match        runtime-app.powerplatform.com/*
 // @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Commande_Composant_SY.js
