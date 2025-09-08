@@ -4,6 +4,7 @@
     // Define your values
     let numSer = '';
     let symbole = '';
+    let numOF = '';
 
     function fillPowerAppsInput(selector, value) {
         const input = unsafeWindow.document.querySelector(selector);
@@ -21,6 +22,7 @@
         }
         fillPowerAppsInput("input[appmagic-control='TextInput8_3textbox']", numSer);
         fillPowerAppsInput("input[appmagic-control='TextInput8_2textbox']", symbole);
+     fillPowerAppsInput("input[appmagic-control='TextInput8textbox']", numOF);
     }
 
     // Try to fill immediately with delay
@@ -66,6 +68,8 @@
             <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Symbole:</label>
             <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Numéro OF:</label>
+            <input type="text" id="manualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
@@ -79,13 +83,15 @@
         });
 
         // Update values function
-        function updateConstants(newNumSer, newSymbole) {
+        function updateConstants(newNumSer, newSymbole, newNumOF) {
             numSer = newNumSer;
             symbole = newSymbole;
+            numOF = newNumOF || '';
 
             // Update UI inputs
             unsafeWindow.document.getElementById('manualNumSer').value = numSer;
             unsafeWindow.document.getElementById('manualSymbole').value = symbole;
+            unsafeWindow.document.getElementById('manualNumOF').value = numOF;
 
             fillInput();
         }
@@ -94,8 +100,9 @@
         unsafeWindow.document.getElementById('updateValues').addEventListener('click', () => {
             const newNumSer = unsafeWindow.document.getElementById('manualNumSer').value;
             const newSymbole = unsafeWindow.document.getElementById('manualSymbole').value;
+            const newNumOF = unsafeWindow.document.getElementById('manualNumOF').value;
 
-            updateConstants(newNumSer, newSymbole);
+            updateConstants(newNumSer, newSymbole, newNumOF);
         });
 
         // Collector fetch button
@@ -132,8 +139,16 @@
                         if (valueDiv) newNumSer = valueDiv.textContent.trim();
                     }
 
-                    updateConstants(newNumSer, newSymbole);
-                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}`);
+                    let newNumOF = "";
+                    const ofBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
+                        .find(div => div.textContent.includes("Numéro OF :"));
+                    if (ofBlock) {
+                        const valueDiv = ofBlock.querySelector('.ml-3');
+                        if (valueDiv) newNumOF = valueDiv.textContent.trim();
+                    }
+
+                    updateConstants(newNumSer, newSymbole, newNumOF);
+                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}\nNuméro OF: ${newNumOF}`);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
