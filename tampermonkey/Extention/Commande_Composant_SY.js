@@ -15,19 +15,29 @@
     }
 
     function fillInput() {
+        // Only fill if we're on the correct form
+        if (!document.querySelector("body") || !document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
+            return;
+        }
         fillPowerAppsInput("input[appmagic-control='TextInput8_3textbox']", numSer);
         fillPowerAppsInput("input[appmagic-control='TextInput8_2textbox']", symbole);
     }
 
-    // Try to fill immediately
-    fillInput();
+    // Try to fill immediately with delay
+    setTimeout(() => {
+        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
+            fillInput();
+        }
+    }, 500);
 
-    // Also try after DOM changes
-    const observer = new unsafeWindow.MutationObserver(() => {
-        fillInput();
+    // Also try after DOM changes with renamed observer
+    const commandeObserver = new unsafeWindow.MutationObserver(() => {
+        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
+            fillInput();
+        }
     });
 
-    observer.observe(unsafeWindow.document.body, {
+    commandeObserver.observe(unsafeWindow.document.body, {
         childList: true,
         subtree: true
     });
@@ -130,9 +140,9 @@
         });
     }
 
-    // Only create UI panel if in iframe and "Formulaire FCA" text is found
+    // Only create UI panel if in iframe and correct form is found
     if (unsafeWindow !== unsafeWindow.top) {
-        const observer = new unsafeWindow.MutationObserver(() => {
+        const pageObserver = new unsafeWindow.MutationObserver(() => {
             const walker = unsafeWindow.document.createTreeWalker(
                 unsafeWindow.document.body,
                 NodeFilter.SHOW_TEXT,
@@ -140,34 +150,38 @@
                 false
             );
 
-            let foundFormulaireFCA = false;
+            let foundCorrectForm = false;
             let node;
             while (node = walker.nextNode()) {
                 if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
-                    foundFormulaireFCA = true;
+                    foundCorrectForm = true;
                     break;
                 }
             }
 
-            const existingPanel = unsafeWindow.document.querySelector('[data-autofill-panel]');
+            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="CommandeComposantSY"]');
 
-            if (foundFormulaireFCA && !existingPanel) {
+            // Only create panel if correct form is found and no existing panel
+            if (foundCorrectForm && !existingPanel) {
                 createUIPanel();
                 // Mark panel as created to avoid duplicates
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
-                if (panel) panel.setAttribute('data-autofill-panel', 'true');
-            } else if (!foundFormulaireFCA && existingPanel) {
-                // Remove UI panel if "Formulaire FCA" is no longer detected
+                if (panel) {
+                    panel.setAttribute('data-autofill-panel', 'true');
+                    panel.setAttribute('data-script-type', 'CommandeComposantSY');
+                }
+            } else if (!foundCorrectForm && existingPanel) {
+                // Remove UI panel if correct form is no longer detected
                 existingPanel.remove();
             }
         });
 
-        observer.observe(unsafeWindow.document.body, {
+        pageObserver.observe(unsafeWindow.document.body, {
             childList: true,
             subtree: true
         });
 
-        // Also check immediately if content is already loaded
+        // Also check immediately if content is already loaded with delay
         setTimeout(() => {
             const walker = unsafeWindow.document.createTreeWalker(
                 unsafeWindow.document.body,
@@ -176,18 +190,23 @@
                 false
             );
 
-            let foundFormulaireFCA = false;
+            let foundCorrectForm = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
-                    foundFormulaireFCA = true;
+                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
+                    foundCorrectForm = true;
                     break;
                 }
             }
 
-            if (foundFormulaireFCA) {
+            if (foundCorrectForm) {
                 createUIPanel();
+                const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
+                if (panel) {
+                    panel.setAttribute('data-autofill-panel', 'true');
+                    panel.setAttribute('data-script-type', 'CommandeComposantSY');
+                }
             }
-        }, 1000);
+        }, 1500);
     }
 })();
