@@ -71,7 +71,7 @@
         };
     
         // Récupérer le message du dernier commit via l’API GitHub
-        fetch("https://api.github.com/repos/Syfrost/JustWork-Next-Extension/commits?path=tampermonkey/mainscript.user.js&page=1&per_page=1")
+        fetch("https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Script%20Principal/mainScriptInterfaceAgent.user.js")
             .then(res => res.json())
             .then(data => {
                 if (data && data[0] && data[0].commit && data[0].commit.message) {
