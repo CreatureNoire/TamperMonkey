@@ -1,3 +1,16 @@
+// ==UserScript==
+// @name         CopieFCA
+// @namespace    https://github.com/Syfrost
+// @version      1.27
+// @description  Auto fill input
+// @author       Cedric G
+// @match        runtime-app.powerplatform.com/*
+// @grant        unsafeWindow
+// @grant        GM_xmlhttpRequest
+
+// ==/UserScript==
+
+
 (function() {
     'use strict';
 
@@ -19,6 +32,10 @@
     }
 
     function fillInput() {
+        // Only fill if we're on the correct form
+        if (!document.querySelector("body") || !document.body.textContent.includes('Formulaire FCA')) {
+            return;
+        }
         fillPowerAppsInput("input[appmagic-control='TextInput20textbox']", numREL);
         fillPowerAppsInput("input[appmagic-control='TextInput20_2textbox']", numSer);
         fillPowerAppsInput("input[appmagic-control='TextInput13_2textbox']", symbole);
@@ -27,15 +44,21 @@
         fillPowerAppsInput("input[appmagic-control='TextInput2_6textbox']", commentCri);
     }
 
-    // Try to fill immediately
-    fillInput();
+    // Try to fill immediately with delay
+    setTimeout(() => {
+        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+            fillInput();
+        }
+    }, 500);
 
-    // Also try after DOM changes
-    const observer = new unsafeWindow.MutationObserver(() => {
-        fillInput();
+    // Also try after DOM changes with renamed observer
+    const fcaObserver = new unsafeWindow.MutationObserver(() => {
+        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+            fillInput();
+        }
     });
 
-    observer.observe(unsafeWindow.document.body, {
+    fcaObserver.observe(unsafeWindow.document.body, {
         childList: true,
         subtree: true
     });
@@ -179,7 +202,7 @@
 
     // Only create UI panel if in iframe and "Formulaire FCA" text is found
     if (unsafeWindow !== unsafeWindow.top) {
-        const observer = new unsafeWindow.MutationObserver(() => {
+        const fcaPageObserver = new unsafeWindow.MutationObserver(() => {
             const walker = unsafeWindow.document.createTreeWalker(
                 unsafeWindow.document.body,
                 NodeFilter.SHOW_TEXT,
@@ -196,25 +219,29 @@
                 }
             }
 
-            const existingPanel = unsafeWindow.document.querySelector('[data-autofill-panel]');
+            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="CopieFCA"]');
 
+            // Only create panel if correct form is found and no existing panel
             if (foundFormulaireFCA && !existingPanel) {
                 createUIPanel();
                 // Mark panel as created to avoid duplicates
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
-                if (panel) panel.setAttribute('data-autofill-panel', 'true');
+                if (panel) {
+                    panel.setAttribute('data-autofill-panel', 'true');
+                    panel.setAttribute('data-script-type', 'CopieFCA');
+                }
             } else if (!foundFormulaireFCA && existingPanel) {
                 // Remove UI panel if "Formulaire FCA" is no longer detected
                 existingPanel.remove();
             }
         });
 
-        observer.observe(unsafeWindow.document.body, {
+        fcaPageObserver.observe(unsafeWindow.document.body, {
             childList: true,
             subtree: true
         });
 
-        // Also check immediately if content is already loaded
+        // Also check immediately if content is already loaded with delay
         setTimeout(() => {
             const walker = unsafeWindow.document.createTreeWalker(
                 unsafeWindow.document.body,
@@ -234,6 +261,11 @@
 
             if (foundFormulaireFCA) {
                 createUIPanel();
+                const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
+                if (panel) {
+                    panel.setAttribute('data-autofill-panel', 'true');
+                    panel.setAttribute('data-script-type', 'CopieFCA');
+                }
             }
         }, 1000);
     }
