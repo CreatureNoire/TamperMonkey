@@ -5,6 +5,7 @@
     let numSer = '';
     let symbole = '';
     let numOF = '';
+    let numAttenteSy = '';
 
     function fillPowerAppsInput(selector, value) {
         const input = unsafeWindow.document.querySelector(selector);
@@ -22,7 +23,8 @@
         }
         fillPowerAppsInput("input[appmagic-control='TextInput8_3textbox']", numSer);
         fillPowerAppsInput("input[appmagic-control='TextInput8_2textbox']", symbole);
-     fillPowerAppsInput("input[appmagic-control='TextInput8textbox']", numOF);
+        fillPowerAppsInput("input[appmagic-control='TextInput8textbox']", numOF);
+        fillPowerAppsInput("input[appmagic-control='TextInput8_4textbox']", numAttenteSy);
     }
 
     // Try to fill immediately with delay
@@ -70,6 +72,8 @@
             <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Numéro OF:</label>
             <input type="text" id="manualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Numéro Réparation:</label>
+            <input type="text" id="manualNumReparation" value="${numAttenteSy}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
@@ -83,15 +87,17 @@
         });
 
         // Update values function
-        function updateConstants(newNumSer, newSymbole, newNumOF) {
+        function updateConstants(newNumSer, newSymbole, newNumOF, newNumReparation) {
             numSer = newNumSer;
             symbole = newSymbole;
             numOF = newNumOF || '';
+            numAttenteSy = newNumReparation || '';
 
             // Update UI inputs
             unsafeWindow.document.getElementById('manualNumSer').value = numSer;
             unsafeWindow.document.getElementById('manualSymbole').value = symbole;
             unsafeWindow.document.getElementById('manualNumOF').value = numOF;
+            unsafeWindow.document.getElementById('manualNumReparation').value = numAttenteSy;
 
             fillInput();
         }
@@ -101,8 +107,9 @@
             const newNumSer = unsafeWindow.document.getElementById('manualNumSer').value;
             const newSymbole = unsafeWindow.document.getElementById('manualSymbole').value;
             const newNumOF = unsafeWindow.document.getElementById('manualNumOF').value;
+            const newNumReparation = unsafeWindow.document.getElementById('manualNumReparation').value;
 
-            updateConstants(newNumSer, newSymbole, newNumOF);
+            updateConstants(newNumSer, newSymbole, newNumOF, newNumReparation);
         });
 
         // Collector fetch button
@@ -112,6 +119,13 @@
         button.addEventListener('click', () => {
             let lien = input.value.trim();
             if (!lien) return alert("Merci de mettre le lien CollectorPlus");
+
+            // Extraire le numéro de réparation directement du lien
+            let newNumReparation = "";
+            const linkMatch = lien.match(/\/(\d{8})\.html$/);
+            if (linkMatch) {
+                newNumReparation = linkMatch[1];
+            }
 
             lien = lien.replace(/^.*\/(\d+)(\.html)?$/, '$1');
 
@@ -147,8 +161,21 @@
                         if (valueDiv) newNumOF = valueDiv.textContent.trim();
                     }
 
-                    updateConstants(newNumSer, newSymbole, newNumOF);
-                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}\nNuméro OF: ${newNumOF}`);
+                    // Si pas trouvé dans le lien, chercher dans le contenu HTML
+                    if (!newNumReparation) {
+                        const reparationBlock = Array.from(doc.querySelectorAll('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin'))
+                            .find(div => {
+                                const text = div.textContent.trim();
+                                return /\d{8}/.test(text);
+                            });
+                        if (reparationBlock) {
+                            const match = reparationBlock.textContent.match(/(\d{8})/);
+                            if (match) newNumReparation = match[1];
+                        }
+                    }
+
+                    updateConstants(newNumSer, newSymbole, newNumOF, newNumReparation);
+                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}\nNuméro OF: ${newNumOF}\nNuméro Réparation: ${newNumReparation}`);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
