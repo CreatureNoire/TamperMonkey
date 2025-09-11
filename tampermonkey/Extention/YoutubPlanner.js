@@ -8,6 +8,9 @@
   function injectBackgroundWithBlur() {
     const container = document.querySelector(".appContent");
     if (!container) return;
+    
+    // Vérifier si le background n'est pas déjà injecté
+    if (document.getElementById("youtube-bg-wrapper")) return;
 
     // Créer le wrapper vidéo + overlay
     const wrapper = document.createElement("div");
@@ -42,7 +45,7 @@
       }
 
       .textContent {
-      border-radius: 5px
+      border-radius: 5px;
       }
 
       /*.textContent:hover {
@@ -152,12 +155,12 @@
 
   // Attente de l'élément cible via MutationObserver
   const observer = new MutationObserver(() => {
-    const container = document.getElementById("main-content-container");
+    const container = document.querySelector(".appContent");
     if (container) {
       injectBackgroundWithBlur();
       observer.disconnect();
     }
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
