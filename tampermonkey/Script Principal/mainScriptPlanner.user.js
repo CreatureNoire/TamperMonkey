@@ -10,6 +10,7 @@
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Collector_via_planner
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/DocMat_via_planner
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Couleur_Planeur
+// @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/changementSonPlanner.js
 // @updateURL    https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @downloadURL  https://github.com/CreatureNoire/TamperMonkey/raw/refs/heads/master/tampermonkey/mainscript.user.js
 // @grant        GM_info
