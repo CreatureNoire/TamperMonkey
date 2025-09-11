@@ -1,3 +1,13 @@
+// ==UserScript==
+// @name         Son au clic sur Planner
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Joue un son quand on clique sur le bouton de Planner
+// @author       Toi
+// @match        https://planner.cloud.microsoft/*
+// @grant        none
+// ==/UserScript==
+
 (function() {
     'use strict';
 
@@ -36,5 +46,5 @@
         };
             return xhr;
         };
-
+    
     })();
