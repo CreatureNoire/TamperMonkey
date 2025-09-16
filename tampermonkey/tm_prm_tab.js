@@ -42,7 +42,32 @@
 
 
     function monitorTable() {
+        // Vérification simplifiée : chercher l'onglet "PRM Fille(s)" OU la table directement
+        let hasPrmFilleContext = false;
+        
+        // Option 1: Chercher l'onglet "PRM Fille(s)"
+        const allSpans = document.querySelectorAll('span');
+        for (let span of allSpans) {
+            if (span.textContent && span.textContent.includes('PRM Fille(s)')) {
+                hasPrmFilleContext = true;
+                console.log('✅ Onglet PRM Fille(s) détecté');
+                break;
+            }
+        }
+        
+        // Option 2: Si la table PRM Filles existe, c'est qu'on est sur la bonne page
         const table = document.getElementById('dataTablePrmFilles');
+        if (table) {
+            hasPrmFilleContext = true;
+            console.log('✅ Table dataTablePrmFilles détectée');
+        }
+
+        // Si aucun contexte PRM Fille(s) détecté, ne pas créer les boutons
+        if (!hasPrmFilleContext) {
+            console.log('⏸️ Contexte PRM Fille(s) non détecté, boutons non créés');
+            return;
+        }
+
         if (!table) return;
 
         const rows = table.querySelectorAll('tr[idreparation]');
@@ -78,35 +103,51 @@
             processedRows.add(row);
         });
 
-        const toolbar = document.querySelector('#dataTablePrmFilles_wrapper .dt-buttons');
-        if (toolbar && !document.getElementById('btnOpenAllIframes')) {
-            createOpenAllButton();
-        }
+        // Créer tous les boutons seulement si l'onglet PRM Fille(s) est présent
+        createOpenAllButton();
+        createCopyFormButton();
+        createPasteAllButton();
+        createTriggerAllButton();
 
         const iframes = document.querySelectorAll('tr.iframe-row iframe');
 
         if (iframes.length > 0) {
-            createPasteAllButton();
-            createTriggerAllButton();
             hideElementsInIframes();
             checkRedirectErrorsInIframes();
             makeErrorAlertsClosableInIframes();
-        } else {
-            removeFloatingButton('btnPasteAllIframes');
-            removeFloatingButton('btnTriggerAllIframes');
         }
     }
 
 
     function createOpenAllButton() {
-        const container = document.querySelector('#dataTablePrmFilles_wrapper .dt-buttons');
-        if (!container) return;
+        // Vérifier si le bouton existe déjà
+        if (document.getElementById('btnOpenAllIframes')) return;
+
+        // Créer un conteneur fixe indépendant pour ce bouton
+        let container = document.getElementById('fixed-buttons-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'fixed-buttons-container';
+            container.style.position = 'fixed';
+            container.style.top = '10px';
+            container.style.left = '10px';
+            container.style.zIndex = '10000';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '5px';
+            document.body.appendChild(container);
+        }
 
         const button = document.createElement('button');
         button.id = 'btnOpenAllIframes';
         button.className = 'btn btn-success btn-border-radius';
         button.innerHTML = '<span>Tout ouvrir</span>';
-        button.style.marginLeft = '8px';
+        button.style.padding = '8px 12px';
+        button.style.backgroundColor = '#28a745';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
         button.title = 'Ouvrir toutes les réparations';
 
         button.addEventListener('click', () => {
@@ -156,44 +197,122 @@
         });
 
         container.appendChild(button);
-        console.log('✅ Bouton "Tout ouvrir" ajouté');
+        console.log('✅ Bouton "Tout ouvrir" ajouté de manière permanente');
+    }
+
+    function createCopyFormButton() {
+        // Vérifier si le bouton existe déjà
+        if (document.getElementById("btnCopyForm")) return;
+
+        // Utiliser le conteneur fixe indépendant
+        let container = document.getElementById('fixed-buttons-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'fixed-buttons-container';
+            container.style.position = 'fixed';
+            container.style.top = '10px';
+            container.style.left = '10px';
+            container.style.zIndex = '10000';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '5px';
+            document.body.appendChild(container);
+        }
+
+        const button = document.createElement("button");
+        button.id = "btnCopyForm";
+        button.innerText = "Copier Formulaire";
+        button.onclick = copyFormData;
+        button.style.padding = '8px 12px';
+        button.style.backgroundColor = '#28a745';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
+        button.innerHTML = `<i class='fa fa-copy'></i> ` + button.innerText;
+
+        container.appendChild(button);
+        console.log("✅ Bouton 'Copier Formulaire' ajouté de manière permanente");
     }
 
     function createPasteAllButton() {
-        const container = getFloatingButtonArea();
-        if (!container || document.getElementById("btnPasteAllIframes")) return;
+        // Vérifier si le bouton existe déjà
+        if (document.getElementById("btnPasteAllIframes")) return;
+
+        // Utiliser le conteneur fixe indépendant
+        let container = document.getElementById('fixed-buttons-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'fixed-buttons-container';
+            container.style.position = 'fixed';
+            container.style.top = '10px';
+            container.style.left = '10px';
+            container.style.zIndex = '10000';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '5px';
+            document.body.appendChild(container);
+        }
 
         const button = document.createElement("button");
         button.id = "btnPasteAllIframes";
         button.innerText = "Coller Iframe";
         button.onclick = pasteIntoIframes;
-        styleFloatingButton(button, "#17a2b8", "fa-paste");
+        button.style.padding = '8px 12px';
+        button.style.backgroundColor = '#17a2b8';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
+        button.innerHTML = `<i class='fa fa-paste'></i> ` + button.innerText;
 
-        container.prepend(button);
-        console.log("✅ Bouton 'Coller Iframe' ajouté");
+        container.appendChild(button);
+        console.log("✅ Bouton 'Coller Iframe' ajouté de manière permanente");
     }
 
     function createTriggerAllButton() {
-        const container = getFloatingButtonArea();
-        if (!container || document.getElementById("btnTriggerAllIframes")) return;
+        // Vérifier si le bouton existe déjà
+        if (document.getElementById("btnTriggerAllIframes")) return;
+
+        // Utiliser le conteneur fixe indépendant
+        let container = document.getElementById('fixed-buttons-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'fixed-buttons-container';
+            container.style.position = 'fixed';
+            container.style.top = '10px';
+            container.style.left = '10px';
+            container.style.zIndex = '10000';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '5px';
+            document.body.appendChild(container);
+        }
 
         const button = document.createElement("button");
         button.id = "btnTriggerAllIframes";
         button.innerText = "Traiter Iframe";
         button.onclick = triggerButtonsInIframes;
-        styleFloatingButton(button, "#007bff", "fa-bolt");
+        button.style.padding = '8px 12px';
+        button.style.backgroundColor = '#007bff';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
+        button.innerHTML = `<i class='fa fa-bolt'></i> ` + button.innerText;
 
-        container.prepend(button);
-        console.log("✅ Bouton 'Traiter Iframe' ajouté");
+        container.appendChild(button);
+        console.log("✅ Bouton 'Traiter Iframe' ajouté de manière permanente");
     }
 
-    function removeFloatingButton(id) {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.remove();
-            console.log(`❌ Bouton '${id}' retiré`);
-        }
-    }
+    // Fonction supprimée car les boutons sont maintenant permanents
+    // function removeFloatingButton(id) {
+    //     const btn = document.getElementById(id);
+    //     if (btn) {
+    //         btn.remove();
+    //         console.log(`❌ Bouton '${id}' retiré`);
+    //     }
+    // }
 
     function getFloatingButtonArea() {
         return document.querySelector('div[style*="position: fixed;"][style*="bottom: 10px;"][style*="right: 10px;"]');
@@ -208,6 +327,66 @@
         button.style.borderRadius = '5px';
         button.style.cursor = 'pointer';
         button.innerHTML = `<i class='fa ${iconClass}'></i> ` + button.innerText;
+    }
+
+    function copyFormData() {
+        // Chercher d'abord dans la page principale
+        let form = document.querySelector('#panel-body-groupe_saisie_cri');
+        let sourceType = "page principale";
+        
+        // Si pas trouvé dans la page principale, chercher dans les iframes
+        if (!form) {
+            const iframes = document.querySelectorAll('tr.iframe-row iframe');
+            for (let iframe of iframes) {
+                try {
+                    const doc = iframe.contentWindow.document;
+                    form = doc.querySelector('#panel-body-groupe_saisie_cri');
+                    if (form) {
+                        sourceType = "iframe";
+                        break;
+                    }
+                } catch (err) {
+                    console.error("⚠️ Erreur d'accès à une iframe :", err);
+                }
+            }
+        }
+
+        if (!form) {
+            alert("Aucun formulaire trouvé. Assurez-vous qu'une réparation est ouverte.");
+            return;
+        }
+
+        const formData = {};
+        const elements = form.querySelectorAll('input, select, textarea');
+        
+        elements.forEach(el => {
+            if (el.name) {
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    formData[el.name] = el.checked;
+                } else {
+                    formData[el.name] = el.value;
+                }
+            }
+        });
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('formulaireCopie', JSON.stringify(formData));
+        
+        const fieldsCount = Object.keys(formData).length;
+        console.log(`📋 Formulaire copié depuis ${sourceType} (${fieldsCount} champs)`);
+        
+        // Feedback visuel
+        const button = document.getElementById("btnCopyForm");
+        const originalText = button.innerHTML;
+        button.innerHTML = `<i class='fa fa-check'></i> Copié (${fieldsCount} champs)`;
+        button.style.backgroundColor = '#28a745';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.backgroundColor = '#28a745';
+        }, 2000);
+        
+        alert(`Formulaire copié avec succès !\n${fieldsCount} champs sauvegardés depuis ${sourceType}.`);
     }
 
     function pasteIntoIframes() {
