@@ -18,7 +18,7 @@
 
     function fillInput() {
         // Only fill if we're on the correct form
-        if (!document.querySelector("body") || !document.body.textContent.includes('Demande d'impression étiquette')) {
+        if (!document.querySelector("body") || !document.body.textContent.includes('Demande d\'impression étiquette')) {
             return;
         }
         fillPowerAppsInput("input[appmagic-control='TextInput2_10textbox']", numSer);
