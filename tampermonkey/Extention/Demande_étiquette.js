@@ -20,7 +20,7 @@
 
     function fillInput() {
         // Only fill if we're on the correct form
-        if (!document.querySelector("body") || !document.body.textContent.includes('Formulaire FCA')) {
+        if (!document.querySelector("body") || !document.body.textContent.includes('Demande d'impression étiquette')) {
             return;
         }
         fillPowerAppsInput("input[appmagic-control='TextInput20textbox']", numREL);
