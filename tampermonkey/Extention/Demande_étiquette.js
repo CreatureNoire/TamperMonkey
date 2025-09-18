@@ -2,12 +2,10 @@
     'use strict';
 
     // Define your values
-    let numREL = '';
     let numSer = '';
     let symbole = '';
-    let designation = '';
-    let originalLink = '';
-    let commentCri = '';
+    let numOF = '';
+    let infoAgent = '';
 
     function fillPowerAppsInput(selector, value) {
         const input = unsafeWindow.document.querySelector(selector);
@@ -23,29 +21,27 @@
         if (!document.querySelector("body") || !document.body.textContent.includes('Demande d'impression étiquette')) {
             return;
         }
-        fillPowerAppsInput("input[appmagic-control='TextInput20textbox']", numREL);
-        fillPowerAppsInput("input[appmagic-control='TextInput20_2textbox']", numSer);
-        fillPowerAppsInput("input[appmagic-control='TextInput13_2textbox']", symbole);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_8textbox']", designation);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_11textbox']", originalLink);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_6textbox']", commentCri);
+        fillPowerAppsInput("input[appmagic-control='TextInput2_10textbox']", numSer);
+        fillPowerAppsInput("input[appmagic-control='TextInput2_5textbox']", symbole);
+        fillPowerAppsInput("input[appmagic-control='TextInput2_1textbox']", numOF);
+    
     }
 
     // Try to fill immediately with delay
     setTimeout(() => {
-        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
             fillInput();
         }
     }, 500);
 
     // Also try after DOM changes with renamed observer
-    const fcaObserver = new unsafeWindow.MutationObserver(() => {
-        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+    const commandeObserver = new unsafeWindow.MutationObserver(() => {
+        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
             fillInput();
         }
     });
 
-    fcaObserver.observe(unsafeWindow.document.body, {
+    commandeObserver.observe(unsafeWindow.document.body, {
         childList: true,
         subtree: true
     });
@@ -70,16 +66,14 @@
             <button id="toggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Edit</button>
             <div id="editSection" style="display: none;">
             <hr>
-            <label style="font-size: 11px;">Numéro REL:</label>
-            <input type="text" id="manualNumREL" value="${numREL}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Numéro Série:</label>
             <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Symbole:</label>
             <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Désignation:</label>
-            <input type="text" id="manualDesignation" value="${designation}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Lien Original:</label>
-            <input type="text" id="manualOriginalLink" value="${originalLink}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Numéro OF:</label>
+            <input type="text" id="manualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
+            <label style="font-size: 11px;">Info Agent:</label>
+            <input type="text" id="manualInfoAgent" value="${infoAgent}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
@@ -93,33 +87,29 @@
         });
 
         // Update values function
-        function updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, newCommentCri = '', newOriginalLink = '') {
-            numREL = newNumREL;
+        function updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent) {
             numSer = newNumSer;
             symbole = newSymbole;
-            designation = newDesignation;
-            if (newCommentCri) commentCri = newCommentCri;
-            if (newOriginalLink) originalLink = newOriginalLink;
+            numOF = newNumOF || '';
+            infoAgent = newInfoAgent || '';
 
             // Update UI inputs
-            unsafeWindow.document.getElementById('manualNumREL').value = numREL;
             unsafeWindow.document.getElementById('manualNumSer').value = numSer;
             unsafeWindow.document.getElementById('manualSymbole').value = symbole;
-            unsafeWindow.document.getElementById('manualDesignation').value = designation;
-            unsafeWindow.document.getElementById('manualOriginalLink').value = originalLink;
+            unsafeWindow.document.getElementById('manualNumOF').value = numOF;
+            unsafeWindow.document.getElementById('manualInfoAgent').value = infoAgent;
 
             fillInput();
         }
 
         // Manual update button
         unsafeWindow.document.getElementById('updateValues').addEventListener('click', () => {
-            const newNumREL = unsafeWindow.document.getElementById('manualNumREL').value;
             const newNumSer = unsafeWindow.document.getElementById('manualNumSer').value;
             const newSymbole = unsafeWindow.document.getElementById('manualSymbole').value;
-            const newDesignation = unsafeWindow.document.getElementById('manualDesignation').value;
-            const newOriginalLink = unsafeWindow.document.getElementById('manualOriginalLink').value;
+            const newNumOF = unsafeWindow.document.getElementById('manualNumOF').value;
+            const newInfoAgent = unsafeWindow.document.getElementById('manualInfoAgent').value;
 
-            updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, commentCri, newOriginalLink);
+            updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent);
         });
 
         // Collector fetch button
@@ -128,68 +118,298 @@
 
         button.addEventListener('click', () => {
             let lien = input.value.trim();
-            const originalLinkValue = lien;
-            originalLink = originalLinkValue;
             if (!lien) return alert("Merci de mettre le lien CollectorPlus");
 
-            lien = lien.replace(/^.*\/(\d+)(\.html)?$/, '$1');
-
-            const urlImpression = `https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Impression/print/PV/${lien}`;
+            // Utiliser directement l'URL fournie sans conversion
+            console.log('[CollectorPlus Script] URL utilisée:', lien);
+            
             GM_xmlhttpRequest({
                 method: 'GET',
-                url: urlImpression,
+                url: lien,
                 onload: function(resp) {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(resp.responseText, 'text/html');
 
-                    const h1 = doc.querySelector('h1.border-bottom.text-center.mx-auto.mt-4.text-info.border-info');
+                    console.log('[CollectorPlus Script] Début de l\'extraction des données...');
+
+                    // Récupération du symbole - cibler la structure spécifique
                     let newSymbole = "";
-                    let newDesignation = "";
-                    if (h1) {
-                        const txt = h1.textContent.trim();
-                        const parts = txt.split(' - ');
-                        newSymbole = parts[0] ? parts[0].trim() : "";
-                        newDesignation = parts[1] ? parts[1].trim() : "";
+                    console.log('[CollectorPlus Script] Recherche du symbole...');
+                    
+                    // Chercher dans .col-xs-7.text-center.panel-title
+                    const symboleContainer = doc.querySelector('.col-xs-7.text-center.panel-title');
+                    if (symboleContainer) {
+                        const symboleRow = symboleContainer.querySelector('.row');
+                        if (symboleRow) {
+                            const fullText = symboleRow.textContent.trim();
+                            console.log(`[CollectorPlus Script] Texte symbole trouvé: "${fullText}"`);
+                            // Extraire juste le numéro (avant le " - ")
+                            if (fullText.includes(' - ')) {
+                                newSymbole = fullText.split(' - ')[0].trim();
+                                console.log(`[CollectorPlus Script] ✅ Symbole extrait: "${newSymbole}"`);
+                            } else {
+                                newSymbole = fullText;
+                                console.log(`[CollectorPlus Script] ✅ Symbole complet: "${newSymbole}"`);
+                            }
+                        }
                     }
-
-                    let newNumSer = "";
-                    const serieBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
-                        .find(div => div.textContent.includes("Numéro de série :"));
-                    if (serieBlock) {
-                        const valueDiv = serieBlock.querySelector('.ml-3');
-                        if (valueDiv) newNumSer = valueDiv.textContent.trim();
-                    }
-
-                    let newNumREL = "";
-                    const relBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
-                        .find(div => div.textContent.includes("Numéro FCA :"));
-                    if (relBlock) {
-                        const valueDiv = relBlock.querySelector('.ml-3');
-                        if (valueDiv) newNumREL = valueDiv.textContent.trim();
-                    }
-
-                    let commentCri = "";
-                    const commentBlock = Array.from(doc.querySelectorAll('div.d-flex.flex-row'))
-                        .find(div => {
-                            const boldDiv = div.querySelector('div.font-weight-bold');
-                            return boldDiv && boldDiv.textContent.includes("Commentaire :");
+                    
+                    // Fallback pour symbole si pas trouvé
+                    if (!newSymbole) {
+                        console.log('[CollectorPlus Script] Recherche symbole avec méthode alternative...');
+                        const allRows = doc.querySelectorAll('div.row');
+                        allRows.forEach((row, index) => {
+                            if (!newSymbole && row.textContent.includes(' - ') && /\d{8}/.test(row.textContent)) {
+                                const text = row.textContent.trim();
+                                if (text.includes(' - ')) {
+                                    newSymbole = text.split(' - ')[0].trim();
+                                    console.log(`[CollectorPlus Script] ✅ Symbole trouvé (fallback): "${newSymbole}"`);
+                                }
+                            }
                         });
-                    if (commentBlock) {
-                        const valueDiv = commentBlock.querySelector('.ml-3');
-                        if (valueDiv) commentCri = valueDiv.textContent.trim();
                     }
 
-                    updateConstants(newNumREL, newNumSer, newSymbole, newDesignation, commentCri);
-                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nDésignation: ${newDesignation}\nNuméro de série: ${newNumSer}\nNuméro REL: ${newNumREL}`);
+                    // Récupération du numéro de série - cibler la structure spécifique
+                    let newNumSer = "";
+                    console.log('[CollectorPlus Script] Recherche du numéro de série...');
+                    
+                    const allRowsForSerie = doc.querySelectorAll('div.row');
+                    allRowsForSerie.forEach((row, index) => {
+                        if (!newNumSer && row.textContent.includes("N° série :")) {
+                            console.log(`[CollectorPlus Script] Row ${index + 1} contient "N° série :"`);
+                            console.log(`[CollectorPlus Script] HTML de la row série:`, row.innerHTML);
+                            
+                            // Cibler exactement la div avec la classe spécifiée pour la série
+                            const serieDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
+                            if (serieDiv) {
+                                let serieText = serieDiv.textContent.trim();
+                                console.log(`[CollectorPlus Script] Texte brut série: "${serieText}"`);
+                                
+                                // Règle spéciale pour extraire le bon numéro de série
+                                // Chercher un numéro long (20+ caractères) qui ressemble à 8004361455400000000006133431
+                                const longSerialMatch = serieText.match(/\d{20,}/);
+                                if (longSerialMatch) {
+                                    newNumSer = longSerialMatch[0];
+                                    console.log(`[CollectorPlus Script] ✅ Numéro de série long trouvé: "${newNumSer}"`);
+                                } else {
+                                    // Si pas de numéro long, traitement normal
+                                    // Extraire le numéro après la flèche (si présent)
+                                    if (serieText.includes('→') || serieText.includes('»')) {
+                                        const parts = serieText.split(/→|»/);
+                                        if (parts.length > 1) {
+                                            const afterArrow = parts[1].trim();
+                                            // Chercher encore un numéro long dans la partie après la flèche
+                                            const longInArrow = afterArrow.match(/\d{20,}/);
+                                            if (longInArrow) {
+                                                newNumSer = longInArrow[0];
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série long trouvé après flèche: "${newNumSer}"`);
+                                            } else {
+                                                newNumSer = afterArrow;
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série après flèche: "${newNumSer}"`);
+                                            }
+                                        }
+                                    } else {
+                                        // Chercher le span avec id repair_details_organ_serial
+                                        const spanElement = serieDiv.querySelector('#repair_details_organ_serial, span[id*="repair"]');
+                                        if (spanElement) {
+                                            const spanText = spanElement.textContent.trim();
+                                            // Chercher un numéro long dans le span
+                                            const longInSpan = spanText.match(/\d{20,}/);
+                                            if (longInSpan) {
+                                                newNumSer = longInSpan[0];
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série long trouvé dans span: "${newNumSer}"`);
+                                            } else {
+                                                newNumSer = spanText;
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série du span: "${newNumSer}"`);
+                                            }
+                                        } else {
+                                            // Dernière option: chercher dans tout le texte
+                                            const anyLong = serieText.match(/\d{15,}/); // Un peu plus souple
+                                            if (anyLong) {
+                                                newNumSer = anyLong[0];
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série long trouvé (fallback): "${newNumSer}"`);
+                                            } else {
+                                                newNumSer = serieText;
+                                                console.log(`[CollectorPlus Script] ✅ Numéro de série complet: "${newNumSer}"`);
+                                            }
+                                        }
+                                    }
+                                }
+                                console.log(`[CollectorPlus Script] ✅ Numéro de série final: "${newNumSer}"`);
+                            }
+                        }
+                    });
+
+                    // Récupération du numéro OF - cibler la structure spécifique
+                    let newNumOF = "";
+                    console.log('[CollectorPlus Script] Recherche du numéro OF...');
+                    
+                    const allRowsForOF = doc.querySelectorAll('div.row');
+                    console.log(`[CollectorPlus Script] Recherche OF - ${allRowsForOF.length} rows à examiner`);
+                    
+                    allRowsForOF.forEach((row, index) => {
+                        if (!newNumOF && row.textContent.includes("N° OF ")) {
+                            console.log(`[CollectorPlus Script] *** ATTENTION *** Row ${index + 1} contient "N° OF "`);
+                            console.log(`[CollectorPlus Script] Texte complet de cette row:`, row.textContent.trim());
+                            console.log(`[CollectorPlus Script] HTML de la row OF:`, row.innerHTML);
+                            
+                            // Vérifier si c'est vraiment une row OF et pas série
+                            if (row.textContent.includes("N° série")) {
+                                console.log(`[CollectorPlus Script] ⚠️ ERREUR: Cette row contient aussi "N° série", on passe`);
+                                return; // Skip cette row
+                            }
+                            
+                            // Cibler exactement la div avec la classe spécifiée pour OF
+                            const ofDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
+                            if (ofDiv) {
+                                newNumOF = ofDiv.textContent.trim();
+                                console.log(`[CollectorPlus Script] ✅ Numéro OF trouvé: "${newNumOF}"`);
+                            } else {
+                                console.log(`[CollectorPlus Script] ❌ Div OF avec classes exactes non trouvée, recherche alternative...`);
+                                
+                                // Essayer différents sélecteurs alternatifs pour OF
+                                const possibleOFSelectors = [
+                                    'div.col-lg-5',
+                                    'div[class*="col-lg-5"]',
+                                    'div[class*="text-left"]',
+                                    'div[class*="no-margin"]'
+                                ];
+                                
+                                for (const selector of possibleOFSelectors) {
+                                    const alternateDiv = row.querySelector(selector);
+                                    if (alternateDiv && alternateDiv.textContent.trim() && !alternateDiv.textContent.includes("N° OF") && !alternateDiv.textContent.includes("N° série")) {
+                                        newNumOF = alternateDiv.textContent.trim();
+                                        console.log(`[CollectorPlus Script] ✅ Numéro OF trouvé avec sélecteur "${selector}": "${newNumOF}"`);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Si toujours pas trouvé, recherche spécifique pour OF
+                    if (!newNumOF) {
+                        console.log('[CollectorPlus Script] Recherche OF alternative...');
+                        allRowsForOF.forEach((row, index) => {
+                            if (!newNumOF && row.innerHTML.includes("N° OF") && !row.innerHTML.includes("N° série")) {
+                                console.log(`[CollectorPlus Script] Row ${index + 1} contient "N° OF" mais pas "N° série"`);
+                                const ofDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
+                                if (ofDiv) {
+                                    newNumOF = ofDiv.textContent.trim();
+                                    console.log(`[CollectorPlus Script] ✅ Numéro OF trouvé (méthode alternative): "${newNumOF}"`);
+                                }
+                            }
+                        });
+                    }
+
+                    let newInfoAgent = "";
+                    console.log('[CollectorPlus Script] Recherche Info Agent...');
+                    console.log('[CollectorPlus Script] HTML reçu:', resp.responseText.substring(0, 500) + '...');
+                    
+                    // Méthode ciblée pour récupérer l'info agent dans la structure spécifique
+                    const allRows = doc.querySelectorAll('div.row');
+                    console.log('[CollectorPlus Script] Nombre de rows trouvées:', allRows.length);
+                    
+                    allRows.forEach((row, index) => {
+                        if (row.textContent.includes("Info Agent :")) {
+                            console.log(`[CollectorPlus Script] Row ${index + 1} contient "Info Agent :"`);
+                            console.log(`[CollectorPlus Script] HTML de la row:`, row.innerHTML);
+                            
+                            // Cibler exactement la div avec la classe spécifiée
+                            const infoAgentDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
+                            if (infoAgentDiv) {
+                                newInfoAgent = infoAgentDiv.textContent.trim();
+                                console.log(`[CollectorPlus Script] ✅ Info Agent trouvé avec sélecteur exact: "${newInfoAgent}"`);
+                            } else {
+                                console.log(`[CollectorPlus Script] ❌ Div avec classes exactes non trouvée, recherche alternative...`);
+                                
+                                // Essayer différents sélecteurs alternatifs
+                                const possibleSelectors = [
+                                    'div.col-lg-5',
+                                    'div[class*="col-lg-5"]',
+                                    'div[class*="text-left"]',
+                                    'div[class*="no-margin"]'
+                                ];
+                                
+                                for (const selector of possibleSelectors) {
+                                    const alternateDiv = row.querySelector(selector);
+                                    if (alternateDiv && alternateDiv.textContent.trim() && !alternateDiv.textContent.includes("Info Agent :")) {
+                                        newInfoAgent = alternateDiv.textContent.trim();
+                                        console.log(`[CollectorPlus Script] ✅ Info Agent trouvé avec sélecteur "${selector}": "${newInfoAgent}"`);
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Si toujours pas trouvé, afficher tous les divs de la row pour debug
+                            if (!newInfoAgent) {
+                                console.log(`[CollectorPlus Script] 🔍 Tous les divs dans cette row:`);
+                                const allDivsInRow = row.querySelectorAll('div');
+                                allDivsInRow.forEach((div, divIndex) => {
+                                    if (div.textContent.trim() && !div.textContent.includes("Info Agent :")) {
+                                        console.log(`  Div ${divIndex}: classe="${div.className}" contenu="${div.textContent.trim()}"`);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    
+                    // Affichage final dans la console
+                    if (newInfoAgent) {
+                        console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT - Info Agent récupéré: "${newInfoAgent}"`);
+                        
+                        // Extraire seulement les 8 chiffres consécutifs
+                        const eightDigitsMatch = newInfoAgent.match(/\d{8}/);
+                        if (eightDigitsMatch) {
+                            newInfoAgent = eightDigitsMatch[0];
+                            console.log(`[CollectorPlus Script] 🎯 RÉSULTAT FINAL - 8 chiffres extraits: "${newInfoAgent}"`);
+                        } else {
+                            console.log(`[CollectorPlus Script] ⚠️ Aucune séquence de 8 chiffres trouvée dans: "${newInfoAgent}"`);
+                            // Chercher d'autres patterns de chiffres
+                            const allDigits = newInfoAgent.match(/\d+/g);
+                            if (allDigits) {
+                                console.log(`[CollectorPlus Script] 🔍 Séquences de chiffres trouvées:`, allDigits);
+                                // Prendre la plus longue séquence de chiffres
+                                const longestDigits = allDigits.reduce((a, b) => a.length > b.length ? a : b);
+                                console.log(`[CollectorPlus Script] 📏 Plus longue séquence: "${longestDigits}"`);
+                            }
+                        }
+                    } else {
+                        console.log('[CollectorPlus Script] ❌ ÉCHEC - Info Agent non trouvé');
+                        
+                        // Dernière tentative: recherche globale dans le document
+                        console.log('[CollectorPlus Script] Tentative de recherche globale...');
+                        const allText = doc.body.textContent;
+                        if (allText.includes("Info Agent :")) {
+                            console.log('[CollectorPlus Script] "Info Agent :" trouvé dans le texte global');
+                            // Recherche par regex pour extraire ce qui suit "Info Agent :"
+                            const regex = /Info Agent\s*:\s*([^\s\n]+)/;
+                            const match = allText.match(regex);
+                            if (match && match[1]) {
+                                let tempInfoAgent = match[1].trim();
+                                console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT par regex: "${tempInfoAgent}"`);
+                                
+                                // Extraire les 8 chiffres de ce résultat
+                                const eightDigitsMatch = tempInfoAgent.match(/\d{8}/);
+                                if (eightDigitsMatch) {
+                                    newInfoAgent = eightDigitsMatch[0];
+                                    console.log(`[CollectorPlus Script] ✅ 8 chiffres extraits par regex: "${newInfoAgent}"`);
+                                }
+                            }
+                        }
+                    }
+
+                    updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent);
+                    //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}\nNuméro OF: ${newNumOF}`);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
         });
     }
 
-    // Only create UI panel if in iframe and "Formulaire FCA" text is found
+    // Only create UI panel if in iframe and correct form is found
     if (unsafeWindow !== unsafeWindow.top) {
-        const fcaPageObserver = new unsafeWindow.MutationObserver(() => {
+        const pageObserver = new unsafeWindow.MutationObserver(() => {
             const walker = unsafeWindow.document.createTreeWalker(
                 unsafeWindow.document.body,
                 NodeFilter.SHOW_TEXT,
@@ -197,33 +417,33 @@
                 false
             );
 
-            let foundFormulaireFCA = false;
+            let foundCorrectForm = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
-                    foundFormulaireFCA = true;
+                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
+                    foundCorrectForm = true;
                     break;
                 }
             }
 
-            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="CopieFCA"]');
+            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="CommandeComposantSY"]');
 
             // Only create panel if correct form is found and no existing panel
-            if (foundFormulaireFCA && !existingPanel) {
+            if (foundCorrectForm && !existingPanel) {
                 createUIPanel();
                 // Mark panel as created to avoid duplicates
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
                 if (panel) {
                     panel.setAttribute('data-autofill-panel', 'true');
-                    panel.setAttribute('data-script-type', 'CopieFCA');
+                    panel.setAttribute('data-script-type', 'CommandeComposantSY');
                 }
-            } else if (!foundFormulaireFCA && existingPanel) {
-                // Remove UI panel if "Formulaire FCA" is no longer detected
+            } else if (!foundCorrectForm && existingPanel) {
+                // Remove UI panel if correct form is no longer detected
                 existingPanel.remove();
             }
         });
 
-        fcaPageObserver.observe(unsafeWindow.document.body, {
+        pageObserver.observe(unsafeWindow.document.body, {
             childList: true,
             subtree: true
         });
@@ -237,23 +457,23 @@
                 false
             );
 
-            let foundFormulaireFCA = false;
+            let foundCorrectForm = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
-                    foundFormulaireFCA = true;
+                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
+                    foundCorrectForm = true;
                     break;
                 }
             }
 
-            if (foundFormulaireFCA) {
+            if (foundCorrectForm) {
                 createUIPanel();
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
                 if (panel) {
                     panel.setAttribute('data-autofill-panel', 'true');
-                    panel.setAttribute('data-script-type', 'CopieFCA');
+                    panel.setAttribute('data-script-type', 'CommandeComposantSY');
                 }
             }
-        }, 1000);
+        }, 1500);
     }
 })();
