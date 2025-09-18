@@ -72,8 +72,6 @@
             <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <label style="font-size: 11px;">Numéro OF:</label>
             <input type="text" id="manualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Info Agent:</label>
-            <input type="text" id="manualInfoAgent" value="${infoAgent}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
             <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
             </div>
         `;
@@ -87,17 +85,15 @@
         });
 
         // Update values function
-        function updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent) {
+        function updateConstants(newNumSer, newSymbole, newNumOF) {
             numSer = newNumSer;
             symbole = newSymbole;
             numOF = newNumOF || '';
-            infoAgent = newInfoAgent || '';
 
             // Update UI inputs
             unsafeWindow.document.getElementById('manualNumSer').value = numSer;
             unsafeWindow.document.getElementById('manualSymbole').value = symbole;
             unsafeWindow.document.getElementById('manualNumOF').value = numOF;
-            unsafeWindow.document.getElementById('manualInfoAgent').value = infoAgent;
 
             fillInput();
         }
@@ -107,9 +103,8 @@
             const newNumSer = unsafeWindow.document.getElementById('manualNumSer').value;
             const newSymbole = unsafeWindow.document.getElementById('manualSymbole').value;
             const newNumOF = unsafeWindow.document.getElementById('manualNumOF').value;
-            const newInfoAgent = unsafeWindow.document.getElementById('manualInfoAgent').value;
 
-            updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent);
+            updateConstants(newNumSer, newSymbole, newNumOF);
         });
 
         // Collector fetch button
@@ -302,104 +297,7 @@
                         });
                     }
 
-                    let newInfoAgent = "";
-                    console.log('[CollectorPlus Script] Recherche Info Agent...');
-                    console.log('[CollectorPlus Script] HTML reçu:', resp.responseText.substring(0, 500) + '...');
-                    
-                    // Méthode ciblée pour récupérer l'info agent dans la structure spécifique
-                    const allRows = doc.querySelectorAll('div.row');
-                    console.log('[CollectorPlus Script] Nombre de rows trouvées:', allRows.length);
-                    
-                    allRows.forEach((row, index) => {
-                        if (row.textContent.includes("Info Agent :")) {
-                            console.log(`[CollectorPlus Script] Row ${index + 1} contient "Info Agent :"`);
-                            console.log(`[CollectorPlus Script] HTML de la row:`, row.innerHTML);
-                            
-                            // Cibler exactement la div avec la classe spécifiée
-                            const infoAgentDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
-                            if (infoAgentDiv) {
-                                newInfoAgent = infoAgentDiv.textContent.trim();
-                                console.log(`[CollectorPlus Script] ✅ Info Agent trouvé avec sélecteur exact: "${newInfoAgent}"`);
-                            } else {
-                                console.log(`[CollectorPlus Script] ❌ Div avec classes exactes non trouvée, recherche alternative...`);
-                                
-                                // Essayer différents sélecteurs alternatifs
-                                const possibleSelectors = [
-                                    'div.col-lg-5',
-                                    'div[class*="col-lg-5"]',
-                                    'div[class*="text-left"]',
-                                    'div[class*="no-margin"]'
-                                ];
-                                
-                                for (const selector of possibleSelectors) {
-                                    const alternateDiv = row.querySelector(selector);
-                                    if (alternateDiv && alternateDiv.textContent.trim() && !alternateDiv.textContent.includes("Info Agent :")) {
-                                        newInfoAgent = alternateDiv.textContent.trim();
-                                        console.log(`[CollectorPlus Script] ✅ Info Agent trouvé avec sélecteur "${selector}": "${newInfoAgent}"`);
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // Si toujours pas trouvé, afficher tous les divs de la row pour debug
-                            if (!newInfoAgent) {
-                                console.log(`[CollectorPlus Script] 🔍 Tous les divs dans cette row:`);
-                                const allDivsInRow = row.querySelectorAll('div');
-                                allDivsInRow.forEach((div, divIndex) => {
-                                    if (div.textContent.trim() && !div.textContent.includes("Info Agent :")) {
-                                        console.log(`  Div ${divIndex}: classe="${div.className}" contenu="${div.textContent.trim()}"`);
-                                    }
-                                });
-                            }
-                        }
-                    });
-                    
-                    // Affichage final dans la console
-                    if (newInfoAgent) {
-                        console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT - Info Agent récupéré: "${newInfoAgent}"`);
-                        
-                        // Extraire seulement les 8 chiffres consécutifs
-                        const eightDigitsMatch = newInfoAgent.match(/\d{8}/);
-                        if (eightDigitsMatch) {
-                            newInfoAgent = eightDigitsMatch[0];
-                            console.log(`[CollectorPlus Script] 🎯 RÉSULTAT FINAL - 8 chiffres extraits: "${newInfoAgent}"`);
-                        } else {
-                            console.log(`[CollectorPlus Script] ⚠️ Aucune séquence de 8 chiffres trouvée dans: "${newInfoAgent}"`);
-                            // Chercher d'autres patterns de chiffres
-                            const allDigits = newInfoAgent.match(/\d+/g);
-                            if (allDigits) {
-                                console.log(`[CollectorPlus Script] 🔍 Séquences de chiffres trouvées:`, allDigits);
-                                // Prendre la plus longue séquence de chiffres
-                                const longestDigits = allDigits.reduce((a, b) => a.length > b.length ? a : b);
-                                console.log(`[CollectorPlus Script] 📏 Plus longue séquence: "${longestDigits}"`);
-                            }
-                        }
-                    } else {
-                        console.log('[CollectorPlus Script] ❌ ÉCHEC - Info Agent non trouvé');
-                        
-                        // Dernière tentative: recherche globale dans le document
-                        console.log('[CollectorPlus Script] Tentative de recherche globale...');
-                        const allText = doc.body.textContent;
-                        if (allText.includes("Info Agent :")) {
-                            console.log('[CollectorPlus Script] "Info Agent :" trouvé dans le texte global');
-                            // Recherche par regex pour extraire ce qui suit "Info Agent :"
-                            const regex = /Info Agent\s*:\s*([^\s\n]+)/;
-                            const match = allText.match(regex);
-                            if (match && match[1]) {
-                                let tempInfoAgent = match[1].trim();
-                                console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT par regex: "${tempInfoAgent}"`);
-                                
-                                // Extraire les 8 chiffres de ce résultat
-                                const eightDigitsMatch = tempInfoAgent.match(/\d{8}/);
-                                if (eightDigitsMatch) {
-                                    newInfoAgent = eightDigitsMatch[0];
-                                    console.log(`[CollectorPlus Script] ✅ 8 chiffres extraits par regex: "${newInfoAgent}"`);
-                                }
-                            }
-                        }
-                    }
-
-                    updateConstants(newNumSer, newSymbole, newNumOF, newInfoAgent);
+                    updateConstants(newNumSer, newSymbole, newNumOF);
                     //alert(`Données récupérées:\nSymbole: ${newSymbole}\nNuméro de série: ${newNumSer}\nNuméro OF: ${newNumOF}`);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
