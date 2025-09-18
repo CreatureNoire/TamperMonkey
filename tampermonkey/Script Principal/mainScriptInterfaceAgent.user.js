@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Script Interface Agent
 // @namespace    https://github.com/Syfrost/JustWork-Next-Extension
-// @version      1.0
+// @version      1.1
 // @description  Charge plusieurs scripts distants
 // @author       CréatureNoire
 // @match        runtime-app.powerplatform.com/*
