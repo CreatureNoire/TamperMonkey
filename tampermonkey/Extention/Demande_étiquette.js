@@ -5,7 +5,7 @@
     let numSer = '';
     let symbole = '';
     let numOF = '';
-    let infoAgent = '';
+ 
 
     function fillPowerAppsInput(selector, value) {
         const input = unsafeWindow.document.querySelector(selector);
