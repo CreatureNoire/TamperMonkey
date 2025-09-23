@@ -35,10 +35,6 @@
     }
 
     function fillInput() {
-        // Only fill if we're on the correct form
-        if (!document.querySelector("body") || !document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
-            return;
-        }
         fillPowerAppsInput("input[appmagic-control='TextInputNewDemSerietextbox']", numSer);
         fillPowerAppsInput("input[appmagic-control='TextInputNewDemSymboletextbox']", symbole);
         fillPowerAppsInput("input[appmagic-control='TextInputNewDemOFtextbox']", numOF);
@@ -236,7 +232,6 @@
     function testPowerAppsFields() {
         console.log('[DEBUG TEST] === Vérification de tous les champs PowerApps ===');
         console.log(`[DEBUG TEST] Page actuelle: ${window.location.href}`);
-        console.log(`[DEBUG TEST] Texte de la page contient "Saisie pièce en attente symbolisé": ${document.body.textContent.includes('Saisie pièce en attente symbolisé')}`);
 
         const selectors = [
             "input[appmagic-control='TextInputNewDemSerietextbox']",  // Numéro série
@@ -326,10 +321,8 @@
 
     // Try to fill immediately with delay - avec vérification de l'existence des champs
     setTimeout(() => {
-        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
-            console.log('[AUTO FILL] Page détectée, attente du chargement des champs...');
-            waitForFieldsAndFill();
-        }
+        console.log('[AUTO FILL] Page détectée, attente du chargement des champs...');
+        waitForFieldsAndFill();
     }, 500);
 
     // Fonction d'attente intelligente pour les champs
@@ -357,16 +350,14 @@
 
     // Also try after DOM changes with renamed observer - avec vérification intelligente
     const commandeObserver = new MutationObserver(() => {
-        if (document.body && document.body.textContent.includes('Saisie pièce en attente symbolisé')) {
-            // Attendre un peu pour que les changements DOM se stabilisent
-            setTimeout(() => {
-                const testInput = document.querySelector("input[appmagic-control='TextInputNewDemOFtextbox']");
-                if (testInput) {
-                    console.log('[AUTO FILL] Champs détectés via MutationObserver - Remplissage...');
-                    fillInput();
-                }
-            }, 300);
-        }
+        // Attendre un peu pour que les changements DOM se stabilisent
+        setTimeout(() => {
+            const testInput = document.querySelector("input[appmagic-control='TextInputNewDemOFtextbox']");
+            if (testInput) {
+                console.log('[AUTO FILL] Champs détectés via MutationObserver - Remplissage...');
+                fillInput();
+            }
+        }, 300);
     });
 
     commandeObserver.observe(document.body, {
@@ -384,47 +375,339 @@
         const panel = document.createElement('div');
         panel.id = 'tampermonkey-panel';
 
-        // Intégrer votre interface complète dans le panel
+        // Intégrer votre interface complète dans le panel avec le style cyberpunk
         panel.innerHTML = `
-            <div style="margin-bottom: 10px; font-weight: bold; text-align: center;">Interface Commande Composant</div>
-            <input type="text" id="collectorLink" placeholder="Lien CollectorPlus" style="width: 100%; margin: 3px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
-            <button id="fetchData" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #007cba; color: white; cursor: pointer; font-size: 12px;">🔍 Récupérer et Valider</button>
-            <button id="toggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Editer</button>
-            <div id="editSection" style="display: none;">
-            <hr>
-            <label style="font-size: 11px;">Numéro Série:</label>
-            <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Symbole:</label>
-            <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Numéro OF:</label>
-            <input type="text" id="manualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Composant:</label>
-            <input type="text" id="manualComposant" value="${composant}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
+            <div class="glitch-form-wrapper">
+                <div class="glitch-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6"/>
+                                <path d="m9 9 3 3 3-3"/>
+                            </svg>
+                            Interface Commande
+                        </div>
+                        <div class="card-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <input type="text" id="collectorLink" placeholder=" " />
+                            <label class="form-label" data-text="Lien CollectorPlus">Lien CollectorPlus</label>
+                        </div>
+
+                        <button id="fetchData" class="submit-btn" data-text="Récupérer">
+                            <span class="btn-text">🔍 Récupérer</span>
+                        </button>
+
+                        <button id="toggleEdit" class="submit-btn" data-text="Éditer" style="margin-top: 0.3rem;">
+                            <span class="btn-text">✏️ Éditer</span>
+                        </button>
+
+                        <div id="editSection" style="display: none; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid rgba(0, 242, 234, 0.2);">
+                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                                <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " />
+                                <label class="form-label" data-text="N° Série">N° Série</label>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                                <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " />
+                                <label class="form-label" data-text="Symbole">Symbole</label>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                                <input type="text" id="manualNumOF" value="${numOF}" placeholder=" " />
+                                <label class="form-label" data-text="N° OF">N° OF</label>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                                <input type="text" id="manualComposant" value="${composant}" placeholder=" " />
+                                <label class="form-label" data-text="Composant">Composant</label>
+                            </div>
+
+                            <button id="updateValues" class="submit-btn" data-text="Update">
+                                <span class="btn-text">💾 Update</span>
+                            </button>
+                        </div>
+
+                        <button id="closePanel" class="submit-btn" data-text="Fermer" style="margin-top: 0.8rem; border-color: #dc3545; color: #dc3545;">
+                            <span class="btn-text">❌ Fermer</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <button id="closePanel" style="width: 100%; padding: 4px; margin: 10px 0 3px 0; border-radius: 4px; border: none; background: #dc3545; color: white; cursor: pointer; font-size: 12px;">Fermer</button>
         `;
 
-        // Styles pour le panel
+        // Styles pour le panel avec le thème cyberpunk (taille réduite)
         panel.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 250px;
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid #6909b8;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            width: 280px;
             z-index: 10000;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
             animation: slideIn 0.3s ease-out;
         `;
 
-        // Ajouter une animation CSS
+        // Ajouter les styles CSS cyberpunk complets
         const style = document.createElement('style');
         style.textContent = `
+            /* --- Root Variables for the component --- */
+            .glitch-form-wrapper {
+              --bg-color: #0d0d0d;
+              --primary-color: #00f2ea;
+              --secondary-color: #a855f7;
+              --text-color: #e5e5e5;
+              --font-family: "Fira Code", Consolas, "Courier New", Courier, monospace;
+              --glitch-anim-duration: 0.5s;
+            }
+
+            .glitch-form-wrapper {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-family: var(--font-family);
+              background-color: #050505;
+            }
+
+            /* --- Card Structure (Compact) --- */
+            .glitch-card {
+              background-color: var(--bg-color);
+              width: 100%;
+              max-width: 280px;
+              border: 1px solid rgba(0, 242, 234, 0.2);
+              box-shadow:
+                0 0 15px rgba(0, 242, 234, 0.1),
+                inset 0 0 8px rgba(0, 0, 0, 0.5);
+              overflow: hidden;
+              margin: 0.5rem;
+            }
+
+            .card-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background-color: rgba(0, 0, 0, 0.3);
+              padding: 0.4em 0.8em;
+              border-bottom: 1px solid rgba(0, 242, 234, 0.2);
+            }
+
+            .card-title {
+              color: var(--primary-color);
+              font-size: 0.7rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              display: flex;
+              align-items: center;
+              gap: 0.3em;
+            }
+
+            .card-title svg {
+              width: 1em;
+              height: 1em;
+              stroke: var(--primary-color);
+            }
+
+            .card-dots span {
+              display: inline-block;
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+              background-color: #333;
+              margin-left: 3px;
+            }
+
+            .card-body {
+              padding: 1rem;
+            }
+
+            /* --- Form Elements (Compact) --- */
+            .form-group {
+              position: relative;
+              margin-bottom: 1rem;
+            }
+
+            .form-label {
+              position: absolute;
+              top: 0.6em;
+              left: 0;
+              font-size: 0.8rem;
+              color: var(--primary-color);
+              opacity: 0.6;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              pointer-events: none;
+              transition: all 0.3s ease;
+            }
+
+            .form-group input {
+              width: 100%;
+              background: transparent;
+              border: none;
+              border-bottom: 2px solid rgba(0, 242, 234, 0.3);
+              padding: 0.6em 0;
+              font-size: 0.9rem;
+              color: var(--text-color);
+              font-family: inherit;
+              outline: none;
+              transition: border-color 0.3s ease;
+            }
+
+            .form-group input:focus {
+              border-color: var(--primary-color);
+            }
+
+            .form-group input:focus + .form-label,
+            .form-group input:not(:placeholder-shown) + .form-label {
+              top: -1em;
+              font-size: 0.7rem;
+              opacity: 1;
+            }
+
+            .form-group input:focus + .form-label::before,
+            .form-group input:focus + .form-label::after {
+              content: attr(data-text);
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-color: var(--bg-color);
+            }
+
+            .form-group input:focus + .form-label::before {
+              color: var(--secondary-color);
+              animation: glitch-anim var(--glitch-anim-duration)
+                cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            }
+
+            .form-group input:focus + .form-label::after {
+              color: var(--primary-color);
+              animation: glitch-anim var(--glitch-anim-duration)
+                cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both;
+            }
+
+            @keyframes glitch-anim {
+              0% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+              }
+              20% {
+                transform: translate(-5px, 3px);
+                clip-path: inset(50% 0 20% 0);
+              }
+              40% {
+                transform: translate(3px, -2px);
+                clip-path: inset(20% 0 60% 0);
+              }
+              60% {
+                transform: translate(-4px, 2px);
+                clip-path: inset(80% 0 5% 0);
+              }
+              80% {
+                transform: translate(4px, -3px);
+                clip-path: inset(30% 0 45% 0);
+              }
+              100% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+              }
+            }
+
+            /* --- Button Styling (Compact) --- */
+            .submit-btn {
+              width: 100%;
+              padding: 0.6em;
+              margin-top: 0.8rem;
+              background-color: transparent;
+              border: 2px solid var(--primary-color);
+              color: var(--primary-color);
+              font-family: inherit;
+              font-size: 0.8rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              cursor: pointer;
+              position: relative;
+              transition: all 0.3s;
+              overflow: hidden;
+            }
+
+            .submit-btn:hover,
+            .submit-btn:focus {
+              background-color: var(--primary-color);
+              color: var(--bg-color);
+              box-shadow: 0 0 25px var(--primary-color);
+              outline: none;
+            }
+
+            .submit-btn:active {
+              transform: scale(0.97);
+            }
+
+            /* --- Glitch Effect for Button --- */
+            .submit-btn .btn-text {
+              position: relative;
+              z-index: 1;
+              transition: opacity 0.2s ease;
+            }
+
+            .submit-btn:hover .btn-text {
+              opacity: 0;
+            }
+
+            .submit-btn::before,
+            .submit-btn::after {
+              content: attr(data-text);
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              opacity: 0;
+              background-color: var(--primary-color);
+              transition: opacity 0.2s ease;
+            }
+
+            .submit-btn:hover::before,
+            .submit-btn:focus::before {
+              opacity: 1;
+              color: var(--secondary-color);
+              animation: glitch-anim var(--glitch-anim-duration)
+                cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            }
+
+            .submit-btn:hover::after,
+            .submit-btn:focus::after {
+              opacity: 1;
+              color: var(--bg-color);
+              animation: glitch-anim var(--glitch-anim-duration)
+                cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              .form-group input:focus + .form-label::before,
+              .form-group input:focus + .form-label::after,
+              .submit-btn:hover::before,
+              .submit-btn:focus::before,
+              .submit-btn:hover::after,
+              .submit-btn:focus::after {
+                animation: none;
+                opacity: 0;
+              }
+
+              .submit-btn:hover .btn-text {
+                opacity: 1;
+              }
+            }
+
             @keyframes slideIn {
                 from {
                     transform: translateX(100%);
@@ -749,22 +1032,19 @@
                     if (newComposant) {
                         console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT - Composant récupéré: "${newComposant}"`);
 
-                        // Chercher l'information après "Attente composant" avec pattern flexible
-                        // Pattern insensible à la casse, avec ou sans ":" et espaces optionnels
-                        const attentePattern = /attente\s+composant\s*:?\s*(.+)/i;
+                        // Chercher l'information après le pattern "JH -- 05/09/2025 -- " ou similaire
+                        // Pattern flexible : [Lettres] -- [date] -- [info]
+                        const datePattern = /[A-Z]{2}\s*--\s*\d{2}\/\d{2}\/\d{4}\s*--\s*(.+)/i;
 
-                        const match = newComposant.match(attentePattern);
+                        const match = newComposant.match(datePattern);
                         if (match && match[1]) {
                             let extractedInfo = match[1].trim();
 
-                            // Supprimer les ":" au début si présents
-                            extractedInfo = extractedInfo.replace(/^:+\s*/, '');
-
-                            console.log(`[CollectorPlus Script] ✅ Information trouvée après "Attente composant": "${extractedInfo}"`);
+                            console.log(`[CollectorPlus Script] ✅ Information trouvée après le pattern date: "${extractedInfo}"`);
                             newComposant = extractedInfo;
                             console.log(`[CollectorPlus Script] 🎯 RÉSULTAT FINAL - Composant après extraction: "${newComposant}"`);
                         } else {
-                            console.log(`[CollectorPlus Script] ⚠️ "Attente composant" non trouvé, garde la valeur complète: "${newComposant}"`);
+                            console.log(`[CollectorPlus Script] ⚠️ Pattern date non trouvé, garde la valeur complète: "${newComposant}"`);
                         }
                     } else {
                         console.log('[CollectorPlus Script] ❌ ÉCHEC - Composant non trouvé');
@@ -781,18 +1061,15 @@
                                 newComposant = match[1].trim();
                                 console.log(`[CollectorPlus Script] 🎯 RÉSULTAT BRUT par regex: "${newComposant}"`);
 
-                                // Chercher l'information après "Attente composant" avec pattern flexible
-                                // Pattern insensible à la casse, avec ou sans ":" et espaces optionnels
-                                const attentePattern = /attente\s+composant\s*:?\s*(.+)/i;
+                                // Chercher l'information après le pattern "JH -- 05/09/2025 -- " ou similaire
+                                // Pattern flexible : [Lettres] -- [date] -- [info]
+                                const datePattern = /[A-Z]{2}\s*--\s*\d{2}\/\d{2}\/\d{4}\s*--\s*(.+)/i;
 
-                                const matchAttente = newComposant.match(attentePattern);
+                                const matchAttente = newComposant.match(datePattern);
                                 if (matchAttente && matchAttente[1]) {
                                     let extractedInfo = matchAttente[1].trim();
 
-                                    // Supprimer les ":" au début si présents
-                                    extractedInfo = extractedInfo.replace(/^:+\s*/, '');
-
-                                    console.log(`[CollectorPlus Script] ✅ Information trouvée après "Attente composant" (regex): "${extractedInfo}"`);
+                                    console.log(`[CollectorPlus Script] ✅ Information trouvée après pattern date (regex): "${extractedInfo}"`);
                                     newComposant = extractedInfo;
                                     console.log(`[CollectorPlus Script] ✅ Composant final par regex: "${newComposant}"`);
                                 } else {
@@ -869,214 +1146,7 @@
 
     console.log('Script Tampermonkey PowerApps Panel avec Commande Composant chargé');
 
-    // Fonctionnalité de remplissage automatique (ancienne logique conservée)
-    // Only create permanent UI panel if in iframe and correct form is found
-    if (window !== window.top) {
-        const pageObserver = new MutationObserver(() => {
-            const walker = document.createTreeWalker(
-                document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
 
-            let foundCorrectForm = false;
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
-                    foundCorrectForm = true;
-                    break;
-                }
-            }
 
-            const existingPanel = document.querySelector('[data-script-type="CommandeComposantSY"]');
 
-            // Only create permanent panel if correct form is found and no existing panel
-            if (foundCorrectForm && !existingPanel) {
-                createPermanentUIPanel();
-            } else if (!foundCorrectForm && existingPanel) {
-                // Remove UI panel if correct form is no longer detected
-                existingPanel.remove();
-            }
-        });
-
-        pageObserver.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        // Also check immediately if content is already loaded with delay - avec vérification
-        setTimeout(() => {
-            const walker = document.createTreeWalker(
-                document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
-            let foundCorrectForm = false;
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
-                    foundCorrectForm = true;
-                    break;
-                }
-            }
-
-            if (foundCorrectForm) {
-                console.log('[PERMANENT PANEL] Formulaire détecté, création du panel permanent...');
-                createPermanentUIPanel();
-                // Essayer aussi de remplir automatiquement si les champs existent
-                const testInput = document.querySelector("input[appmagic-control='TextInputNewDemOFtextbox']");
-                if (testInput && numOF !== 'TEST-OF-123') {
-                    console.log('[PERMANENT PANEL] Champs détectés et données disponibles - Remplissage...');
-                    fillInput();
-                }
-            }
-        }, 1500);
-    }
-
-    // Fonction pour créer le panel permanent (pour la page de saisie)
-    function createPermanentUIPanel() {
-        const panel = document.createElement('div');
-        panel.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 110px;
-            background: rgba(255, 0, 0,0.1);
-            border: 2px solid #6909b8;
-            padding: 15px;
-            z-index: 10000;
-            font-family: Arial, sans-serif;
-        `;
-        panel.innerHTML = `
-            <input type="text" id="permanentCollectorLink" placeholder="Lien CollectorPlus" style="width: 100%; margin: 3px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
-            <button id="permanentFetchData" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #007cba; color: white; cursor: pointer; font-size: 12px;">Récupérer et Valider</button>
-            <button id="permanentToggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Edit</button>
-            <div id="permanentEditSection" style="display: none;">
-            <hr>
-            <label style="font-size: 11px;">Numéro Série:</label>
-            <input type="text" id="permanentManualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Symbole:</label>
-            <input type="text" id="permanentManualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Numéro OF:</label>
-            <input type="text" id="permanentManualNumOF" value="${numOF}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Composant:</label>
-            <input type="text" id="permanentManualComposant" value="${composant}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <button id="permanentUpdateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
-            </div>
-        `;
-
-        document.body.appendChild(panel);
-        panel.setAttribute('data-script-type', 'CommandeComposantSY');
-
-        // Event listeners pour le panel permanent
-        document.getElementById('permanentToggleEdit').addEventListener('click', () => {
-            const editSection = document.getElementById('permanentEditSection');
-            editSection.style.display = editSection.style.display === 'none' ? 'block' : 'none';
-        });
-
-        document.getElementById('permanentUpdateValues').addEventListener('click', () => {
-            const newNumSer = document.getElementById('permanentManualNumSer').value;
-            const newSymbole = document.getElementById('permanentManualSymbole').value;
-            const newNumOF = document.getElementById('permanentManualNumOF').value;
-            const newComposant = document.getElementById('permanentManualComposant').value;
-
-            numSer = newNumSer;
-            symbole = newSymbole;
-            numOF = newNumOF || '';
-            composant = newComposant || '';
-
-            document.getElementById('permanentManualNumSer').value = numSer;
-            document.getElementById('permanentManualSymbole').value = symbole;
-            document.getElementById('permanentManualNumOF').value = numOF;
-            document.getElementById('permanentManualComposant').value = composant;
-
-            fillInput();
-
-            // Ajouter la même fonction de test après un délai
-            console.log('[DEBUG] Démarrage du test automatique après mise à jour depuis le panel permanent');
-            setTimeout(() => {
-                testPowerAppsFields();
-            }, 500);
-        });
-
-        // Collector fetch pour le panel permanent avec la même logique
-        const permanentInput = document.getElementById('permanentCollectorLink');
-        const permanentButton = document.getElementById('permanentFetchData');
-
-        permanentButton.addEventListener('click', () => {
-            let lien = permanentInput.value.trim();
-            if (!lien) return alert("Merci de mettre le lien CollectorPlus");
-
-            console.log('[CollectorPlus Script] URL utilisée:', lien);
-
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: lien,
-                onload: function(resp) {
-                    // Ici on peut réutiliser la même logique d'extraction que dans la fonction principale
-                    // Pour simplifier, je vais juste appeler la même logique
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(resp.responseText, 'text/html');
-
-                    // Récupération du symbole
-                    let newSymbole = "";
-                    const symboleContainer = doc.querySelector('.col-xs-7.text-center.panel-title');
-                    if (symboleContainer) {
-                        const symboleRow = symboleContainer.querySelector('.row');
-                        if (symboleRow) {
-                            const fullText = symboleRow.textContent.trim();
-                            if (fullText.includes(' - ')) {
-                                newSymbole = fullText.split(' - ')[0].trim();
-                            } else {
-                                newSymbole = fullText;
-                            }
-                        }
-                    }
-
-                    // Récupération du numéro de série (logique simplifiée)
-                    let newNumSer = "";
-                    const allRowsForSerie = doc.querySelectorAll('div.row');
-                    allRowsForSerie.forEach((row) => {
-                        if (!newNumSer && row.textContent.includes("N° série :")) {
-                            const serieDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
-                            if (serieDiv) {
-                                let serieText = serieDiv.textContent.trim();
-                                const longSerialMatch = serieText.match(/\d{20,}/);
-                                if (longSerialMatch) {
-                                    newNumSer = longSerialMatch[0];
-                                }
-                            }
-                        }
-                    });
-
-                    // Récupération OF et Info Agent avec logique similaire...
-                    let newNumOF = "";
-                    let newComposant = "";
-                    // (logique simplifiée pour l'exemple)
-
-                    // Mettre à jour les valeurs
-                    numSer = newNumSer;
-                    symbole = newSymbole;
-                    numOF = newNumOF || '';
-                    composant = newComposant || '';
-
-                    document.getElementById('permanentManualNumSer').value = numSer;
-                    document.getElementById('permanentManualSymbole').value = symbole;
-                    document.getElementById('permanentManualNumOF').value = numOF;
-                    document.getElementById('permanentManualComposant').value = composant;
-
-                    fillInput();
-
-                    // Valider automatiquement après la récupération
-                    setTimeout(() => {
-                        testPowerAppsFields();
-                    }, 2000);
-                },
-                onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
-            });
-        });
-    }
 })();
