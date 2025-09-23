@@ -63,37 +63,189 @@
         subtree: true
     });
 
+    // Add glitch CSS styles
+    function addGlitchStyles() {
+        const style = unsafeWindow.document.createElement('style');
+        style.textContent = `
+            .glitch-form-wrapper {
+                --bg-color: #0d0d0d;
+                --primary-color: #00f2ea;
+                --secondary-color: #a855f7;
+                --text-color: #e5e5e5;
+                --font-family: "Fira Code", Consolas, "Courier New", Courier, monospace;
+                --glitch-anim-duration: 0.5s;
+                font-family: var(--font-family);
+            }
+
+            .glitch-card {
+                background-color: var(--bg-color);
+                border: 1px solid rgba(0, 242, 234, 0.2);
+                box-shadow: 0 0 20px rgba(0, 242, 234, 0.1), inset 0 0 10px rgba(0, 0, 0, 0.5);
+                overflow: hidden;
+                opacity: 0.75;
+                backdrop-filter: blur(5px);
+                border-radius: 12px;
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background-color: rgba(0, 0, 0, 0.3);
+                padding: 0.5em 1em;
+                border-bottom: 1px solid rgba(0, 242, 234, 0.2);
+            }
+
+            .card-title {
+                color: var(--primary-color);
+                font-size: 0.8rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                margin: 0;
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+
+            .form-group {
+                position: relative;
+                margin-bottom: 1rem;
+            }
+
+            .form-label {
+                position: absolute;
+                top: 0.75em;
+                left: 0;
+                font-size: 0.8rem;
+                color: var(--primary-color);
+                opacity: 0.6;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                pointer-events: none;
+                transition: all 0.3s ease;
+            }
+
+            .glitch-input {
+                width: 100%;
+                background: transparent;
+                border: none;
+                border-bottom: 2px solid rgba(0, 242, 234, 0.3);
+                padding: 0.75em 0;
+                font-size: 0.9rem;
+                color: var(--text-color);
+                font-family: inherit;
+                outline: none;
+                transition: border-color 0.3s ease;
+            }
+
+            .glitch-input:focus {
+                border-color: var(--primary-color);
+            }
+
+            .glitch-input:focus + .form-label,
+            .glitch-input:not(:placeholder-shown) + .form-label {
+                top: -1.2em;
+                font-size: 0.7rem;
+                opacity: 1;
+            }
+
+            .submit-btn {
+                width: 100%;
+                padding: 0.6em;
+                margin: 0.5rem 0;
+                background-color: transparent;
+                border: 2px solid var(--primary-color);
+                color: var(--primary-color);
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                cursor: pointer;
+                transition: all 0.3s;
+                overflow: hidden;
+                border-radius: 8px;
+            }
+
+            .submit-btn:hover,
+            .submit-btn:focus {
+                background-color: var(--primary-color);
+                color: var(--bg-color);
+                box-shadow: 0 0 15px var(--primary-color);
+                outline: none;
+            }
+
+            .submit-btn:active {
+                transform: scale(0.97);
+            }
+
+            .edit-section {
+                border-top: 1px solid rgba(0, 242, 234, 0.2);
+                margin-top: 1rem;
+                padding-top: 1rem;
+            }
+        `;
+        unsafeWindow.document.head.appendChild(style);
+    }
+
     // Create UI panel for input modification
     function createUIPanel() {
+        // Add CSS styles first
+        addGlitchStyles();
+
         const panel = unsafeWindow.document.createElement('div');
+        panel.className = 'glitch-form-wrapper';
         panel.style.cssText = `
             position: fixed;
             top: 10px;
             right: 10px;
-            width: 110px;
-            background: rgba(255, 0, 0, 0);
-            border: 2px solid #6909b8ff;
-            padding: 15px;
+            width: 200px;
             z-index: 10000;
-            font-family: Arial, sans-serif;
         `;
         panel.innerHTML = `
-            <input type="text" id="collectorLink" placeholder="Lien CollectorPlus" style="width: 100%; margin: 3px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
-            <button id="fetchData" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #007cba; color: white; cursor: pointer; font-size: 12px;">Récupérer données</button>
-            <button id="toggleEdit" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #666; color: white; cursor: pointer; font-size: 12px;">Edit</button>
-            <div id="editSection" style="display: none;">
-            <hr>
-            <label style="font-size: 11px;">Numéro REL:</label>
-            <input type="text" id="manualNumREL" value="${numREL}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Numéro Série:</label>
-            <input type="text" id="manualNumSer" value="${numSer}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Symbole:</label>
-            <input type="text" id="manualSymbole" value="${symbole}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Désignation:</label>
-            <input type="text" id="manualDesignation" value="${designation}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <label style="font-size: 11px;">Lien Original:</label>
-            <input type="text" id="manualOriginalLink" value="${originalLink}" style="width: 100%; margin: 2px 0; padding: 2px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px;">
-            <button id="updateValues" style="width: 100%; padding: 4px; margin: 3px 0; border-radius: 4px; border: none; background: #28a745; color: white; cursor: pointer; font-size: 12px;">Mettre à jour</button>
+            <div class="glitch-card">
+                <div class="card-header">
+                    <h3 class="card-title">🔧 FCA Copie/Colle</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <input type="text" id="collectorLink" placeholder=" " class="glitch-input">
+                        <label class="form-label" data-text="Lien CollectorPlus">Lien CollectorPlus</label>
+                    </div>
+                    <button id="fetchData" class="submit-btn" data-text="Récupérer données">
+                        <span class="btn-text">Récupérer données</span>
+                    </button>
+                    <button id="toggleEdit" class="submit-btn" data-text="Édition manuelle">
+                        <span class="btn-text">Édition manuelle</span>
+                    </button>
+                    <div id="editSection" class="edit-section" style="display: none;">
+                        <div class="form-group">
+                            <input type="text" id="manualNumREL" value="${numREL}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Numéro REL">Numéro REL</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Numéro Série">Numéro Série</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Symbole">Symbole</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualDesignation" value="${designation}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Désignation">Désignation</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualOriginalLink" value="${originalLink}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Lien Original">Lien Original</label>
+                        </div>
+                        <button id="updateValues" class="submit-btn" data-text="Mettre à jour">
+                            <span class="btn-text">Mettre à jour</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
 
