@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         CopieComposantSY
-// @namespace    https://github.com/Syfrost
-// @version      1.28
-// @description  Auto fill input pour saisie pièce en attente symbolisé
-// @author       Cedric G
-// @match        runtime-app.powerplatform.com/*
-// @grant        unsafeWindow
-// @grant        GM_xmlhttpRequest
-
-// ==/UserScript==
-
-
 (function() {
     'use strict';
 
