@@ -198,17 +198,23 @@
                     <div id="editSection" class="edit-section" style="display: none;">
 
                         <div class="form-group">
-                            <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " class="glitch-input">
-                            <label class="form-label" data-text="Numéro Série">Numéro Série</label>
+                            <input type="text" id="manualNumOF" value="${numOF}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Numéro OF">Numéro OF</label>
                         </div>
-                        <div class="form-group">
+                          <div class="form-group">
                             <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Symbole">Symbole</label>
                         </div>
                         <div class="form-group">
+                            <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Numéro Série">Numéro Série</label>
+                        </div>
+
+                        <div class="form-group">
                             <input type="text" id="manualComposant" value="${composant}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Composant">Composant</label>
                         </div>
+
                         <button id="updateValues" class="submit-btn" data-text="Mettre à jour">
                             <span class="btn-text">Mettre à jour</span>
                         </button>
@@ -247,6 +253,7 @@
                 if (unsafeWindow.document.getElementById('manualNumSer')) unsafeWindow.document.getElementById('manualNumSer').value = numSer;
                 if (unsafeWindow.document.getElementById('manualSymbole')) unsafeWindow.document.getElementById('manualSymbole').value = symbole;
                 if (unsafeWindow.document.getElementById('manualComposant')) unsafeWindow.document.getElementById('manualComposant').value = composant;
+                if (unsafeWindow.document.getElementById('manualNumOF')) unsafeWindow.document.getElementById('manualNumOF').value = numOF;
             }
             fillInput();
         }
@@ -260,11 +267,13 @@
             const manualNumSerInput = unsafeWindow.document.getElementById('manualNumSer');
             const manualSymboleInput = unsafeWindow.document.getElementById('manualSymbole');
             const manualComposantInput = unsafeWindow.document.getElementById('manualComposant');
+            const manualNumOFInput = unsafeWindow.document.getElementById('manualNumOF');
             const newNumSer = manualNumSerInput ? manualNumSerInput.value : '';
             const newSymbole = manualSymboleInput ? manualSymboleInput.value : '';
             const newComposant = manualComposantInput ? manualComposantInput.value : '';
-            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newSymbole, newComposant });
-            updateConstants(newNumSer, newSymbole, newComposant);
+            const newNumOF = manualNumOFInput ? manualNumOFInput.value : '';
+            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newSymbole, newComposant, newNumOF });
+            updateConstants(newNumSer, newSymbole, newComposant, newNumOF);
         });
 
         // Collector fetch button
