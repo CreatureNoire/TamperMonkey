@@ -29,7 +29,7 @@
 
         boutonRenvoi.click();
         log("✅ Clique sur 'Renvoi Qualité Industrielle'");
-        await delay(10001);
+        await delay(1000);
 
         const ok1 = await cliquerSurBoutonAvecTexte("Remise en production");
         if (!ok1) return;
