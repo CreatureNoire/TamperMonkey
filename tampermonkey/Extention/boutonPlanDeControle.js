@@ -7,7 +7,7 @@
         const span = document.querySelector('.TitrePC');
         return span && (
             span.textContent.includes("Plan de contrôle") ||
-            span.textContent.includes("PLAN DE CONTROLE GENERIQUE")
+            span.textContent.includes("PLAN DE CONTROLE GENERIQUE") ||
             span.textContent.includes("Tiroir EMC 846")
         );
     }
