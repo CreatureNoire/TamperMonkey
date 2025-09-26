@@ -1,11 +1,9 @@
-
 (function() {
     'use strict';
 
     // Define your values
 
     let numSer = '';
-    let symbole = '';
     let causeRebut = '';
     let numOF = '';
 
@@ -22,14 +20,17 @@
     }
 
     function fillInput() {
+        console.log('[DEBUG] fillInput() appelée');
         // Only fill if we're on the correct form
         if (!document.querySelector("body") || !document.body.textContent.includes('Demande de mise en rebut d\'une PRM')) {
+            console.log('[DEBUG] Forme incorrecte détectée, remplissage ignoré');
             return;
         }
+        console.log('[DEBUG] Forme correcte détectée, valeurs:', { numSer, causeRebut, numOF });
         // Remplir uniquement si les valeurs ne sont pas vides
-        if (numSer || symbole || causeRebut || numOF) {
+        if (numSer || causeRebut || numOF) {
+            console.log('[DEBUG] Remplissage des inputs PowerApps');
             fillPowerAppsInput("input[appmagic-control='TextInput7_3textbox']", numSer);
-            fillPowerAppsInput("input[appmagic-control='TextInput7_2textbox']", symbole);
             fillPowerAppsInput("input[appmagic-control='TextInput7_5textbox']", causeRebut);
             fillPowerAppsInput("input[appmagic-control='TextInput7textbox']", numOF);
         } else {
@@ -202,13 +203,14 @@
                             <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Numéro Série">Numéro Série</label>
                         </div>
-                        <div class="form-group">
-                            <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " class="glitch-input">
-                            <label class="form-label" data-text="Symbole">Symbole</label>
-                        </div>
+                        <!-- Suppression du champ Symbole -->
                         <div class="form-group">
                             <input type="text" id="manualCauseRebut" value="${causeRebut}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Cause Rebut">Cause Rebut</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualNumOF" value="${numOF}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Numéro OF">Numéro OF</label>
                         </div>
                         <button id="updateValues" class="submit-btn" data-text="Mettre à jour">
                             <span class="btn-text">Mettre à jour</span>
@@ -219,6 +221,7 @@
         `;
 
         unsafeWindow.document.body.appendChild(panel);
+        console.log('[DEBUG] Panneau créé et ajouté au DOM');
 
         // Toggle edit section
         unsafeWindow.document.getElementById('toggleEdit').addEventListener('click', () => {
@@ -227,45 +230,46 @@
         });
 
         // Update values function
-        function updateConstants(newNumSer, newSymbole, newCauseRebut = '', newNumOF = '') {
-            console.log('[DEBUG] updateConstants appelé avec:', {
+        function updateConstants(newNumSer, newCauseRebut, newNumOF) {
+            console.log('[DEBUG] updateConstants appelée avec:', {
                 newNumSer,
-                newSymbole,
                 newCauseRebut,
                 newNumOF
             });
             console.trace('[DEBUG] Stack trace updateConstants');
             numSer = newNumSer;
-            symbole = newSymbole;
             causeRebut = newCauseRebut;
             numOF = newNumOF;
-            console.log('[DEBUG] Variables mises à jour:', { numSer, symbole, causeRebut, numOF });
+            console.log('[DEBUG] Variables mises à jour:', { numSer, causeRebut, numOF });
             // Si l'appel vient du bouton manuel, ne jamais écraser le champ
             if (unsafeWindow.document.activeElement && unsafeWindow.document.activeElement.id === 'updateValues') {
+                console.log('[DEBUG] Edition manuelle détectée, champs HTML non écrasés');
                 // Edition manuelle : on ne touche pas aux champs HTML
             } else {
+                console.log('[DEBUG] Synchronisation CollectorPlus, mise à jour des champs HTML');
                 // Synchronisation CollectorPlus : on met à jour tous les champs
                 if (unsafeWindow.document.getElementById('manualNumSer')) unsafeWindow.document.getElementById('manualNumSer').value = numSer;
-                if (unsafeWindow.document.getElementById('manualSymbole')) unsafeWindow.document.getElementById('manualSymbole').value = symbole;
                 if (unsafeWindow.document.getElementById('manualCauseRebut')) unsafeWindow.document.getElementById('manualCauseRebut').value = causeRebut;
+                if (unsafeWindow.document.getElementById('manualNumOF')) unsafeWindow.document.getElementById('manualNumOF').value = numOF;
             }
             fillInput();
         }
 
         // Manual update button
         unsafeWindow.document.getElementById('updateValues').addEventListener('click', () => {
+            console.log('[DEBUG] Bouton Mettre à jour cliqué');
             // Protection contre double appel
             if (window._updateValuesClicked) return;
             window._updateValuesClicked = true;
             setTimeout(() => { window._updateValuesClicked = false; }, 500);
             const manualNumSerInput = unsafeWindow.document.getElementById('manualNumSer');
-            const manualSymboleInput = unsafeWindow.document.getElementById('manualSymbole');
             const manualCauseRebutInput = unsafeWindow.document.getElementById('manualCauseRebut');
+            const manualNumOFInput = unsafeWindow.document.getElementById('manualNumOF');
             const newNumSer = manualNumSerInput ? manualNumSerInput.value : '';
-            const newSymbole = manualSymboleInput ? manualSymboleInput.value : '';
             const newCauseRebut = manualCauseRebutInput ? manualCauseRebutInput.value : '';
-            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newSymbole, newCauseRebut });
-            updateConstants(newNumSer, newSymbole, newCauseRebut);
+            const newNumOF = manualNumOFInput ? manualNumOFInput.value : '';
+            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newCauseRebut, newNumOF });
+            updateConstants(newNumSer, newCauseRebut, newNumOF);
         });
 
         // Collector fetch button
@@ -283,13 +287,14 @@
                 method: 'GET',
                 url: urlImpression,
                 onload: function(resp) {
+                    console.log('[DEBUG] Réponse HTTP reçue, parsing du HTML');
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(resp.responseText, 'text/html');
 
                     console.log('[DEBUG] Début extraction Info Agent');
-                    let newComposant = "";
+
                     let newNumSer = "";
-                    let newSymbole = "";
+                    let newCauseRebut = "";
                     let newNumOF = "";
                     const allRows = doc.querySelectorAll('div.row');
                     console.log('[DEBUG] Nombre de div.row trouvées:', allRows.length);
@@ -325,63 +330,57 @@
                                 console.log('[DEBUG] Extraction numéro de série row[0]:', newNumSer);
                             }
                         }
-                        // Extraction du symbole : nombre avant le tiret dans row[0] textContent
-                            let txt = allRows[0].textContent;
-                            // Nettoyage des espaces et retours à la ligne
-                            txt = txt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
-                            // Regex robuste : nombre avant le tiret, même avec espaces
-                            const matchSymbole = txt.match(/(\d{5,})\s*-\s*[^\s]+/);
-                            if (matchSymbole && matchSymbole[1]) {
-                                newSymbole = matchSymbole[1].trim();
-                                console.log('[DEBUG] Extraction symbole row[0]:', newSymbole);
-                            } else {
-                                console.log('[DEBUG] Extraction symbole row[0] échouée, txt:', txt);
-                            }
+                        // Extraction du causeRebut comme symbole (ancienne logique)
+                        let txt = allRows[0].textContent;
+                        // Nettoyage des espaces et retours à la ligne
+                        txt = txt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                        // Regex pour le premier nombre dans le texte
+                        const matchCauseRebut = txt.match(/(\d+)/);
+                        if (matchCauseRebut && matchCauseRebut[1]) {
+                            newCauseRebut = matchCauseRebut[1].trim();
+                            console.log('[DEBUG] Extraction causeRebut comme premier nombre row[0]:', newCauseRebut);
+                        } else {
+                            console.log('[DEBUG] Extraction causeRebut comme premier nombre row[0] échouée, txt:', txt);
+                        }
                     }
-                    // Extraction de la causeRebut (Info Agent) comme avant
+                    // Extraction de la causeRebut depuis les rows avec ' -- ', prendre après le dernier --
                     allRows.forEach((row, idx) => {
-                        const label = row.querySelector('span.pull-right.labelsPRM.editionReparation');
-                        const valueDiv = row.querySelector('div.col-lg-5.col-sm-7.col-xs-6.text-left.no-margin');
-                        if (label && label.textContent.includes('Info Agent') && valueDiv) {
-                            let causeRebutText = valueDiv.textContent.trim();
-                            // Extraction du nombre à 8 chiffres
-                            const matchCauseRebut = causeRebutText.match(/(\d{8})/);
-                            if (matchCauseRebut && matchCauseRebut[1]) {
-                                newCauseRebut = matchCauseRebut[1];
-                                console.log(`[DEBUG] Extraction 8 chiffres causeRebut:`, newCauseRebut);
-                            } else {
-                                newCauseRebut = '';
-                                console.log(`[DEBUG] Aucun 8 chiffres trouvé, causeRebut vide.`);
+                        if (row.textContent.includes(' -- ')) {
+                            let txt = row.textContent.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                            let parts = txt.split(' -- ');
+                            if (parts.length > 2) {
+                                newCauseRebut = parts[parts.length - 1].trim();
+                                console.log(`[DEBUG] Extraction causeRebut depuis row ${idx} après dernier -- :`, newCauseRebut);
                             }
                         }
                     });
-                    if (!newCauseRebut) {
-                        console.log('[DEBUG] Info Agent non trouvé dans les rows, fallback global...');
-                        const allText = doc.body.textContent;
-                        if (allText.includes('Info Agent :')) {
-                            const regex = /Info Agent\s*:\s*([^\n]+)/;
-                            const match = allText.match(regex);
-                            if (match && match[1]) {
-                                let causeRebutText = match[1].trim();
-                                const matchCauseRebut = causeRebutText.match(/(\d{8})/);
-                                if (matchCauseRebut && matchCauseRebut[1]) {
-                                    newCauseRebut = matchCauseRebut[1];
-                                    console.log('[DEBUG] Extraction fallback 8 chiffres Info Agent:', newCauseRebut);
-                                } else {
-                                    newCauseRebut = '';
-                                    console.log('[DEBUG] Aucun 8 chiffres trouvé en fallback, causeRebut vide.');
-                                }
+                    // Extraction de la causeRebut depuis Info Agent global, priorité
+                    const allText = doc.body.textContent;
+                    if (allText.includes('Info Agent :')) {
+                        const regex = /Info Agent\s*:\s*([^\n]+)/;
+                        const match = allText.match(regex);
+                        if (match && match[1]) {
+                            let causeRebutText = match[1].trim();
+                            // Regex pour extraire après "XX -- DD/MM/YYYY -- "
+                            const pattern = /([A-Z]{2})\s*--\s*(\d{2}\/\d{2}\/\d{4})\s*--\s*(.+)/;
+                            const matchPattern = causeRebutText.match(pattern);
+                            if (matchPattern && matchPattern[3]) {
+                                newCauseRebut = matchPattern[3].trim();
+                            } else {
+                                newCauseRebut = causeRebutText;
                             }
+                            console.log('[DEBUG] Extraction causeRebut depuis Info Agent global (priorité):', newCauseRebut);
                         }
                     }
-                    updateConstants(newNumSer, newSymbole, newCauseRebut, newNumOF);
+                    console.log('[DEBUG] Valeurs extraites:', { newNumSer, newCauseRebut, newNumOF });
+                    updateConstants(newNumSer, newCauseRebut, newNumOF);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
         });
     }
 
-    // Only create UI panel if in iframe and "Saisie pièce en attente symbolisé" text is found
+    // ...existing code...
     if (unsafeWindow !== unsafeWindow.top) {
         const pageObserver = new unsafeWindow.MutationObserver(() => {
             const walker = unsafeWindow.document.createTreeWalker(
@@ -394,26 +393,34 @@
             let foundTargetForm = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
+                if (node.textContent.includes('Demande de mise en rebut d\'une PRM')) {
                     foundTargetForm = true;
+                    console.log('[DEBUG] Texte cible trouvé dans le DOM (observer)');
                     break;
                 }
             }
+            if (!foundTargetForm) {
+                console.log('[DEBUG] Texte cible non trouvé dans le DOM (observer)');
+            }
 
-            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="ComposantSY"]');
+            const existingPanel = unsafeWindow.document.querySelector('[data-script-type="causeRebut"]');
 
-            // Only create panel if correct form is found and no existing panel
+             // Only create panel if correct form is found and no existing panel
             if (foundTargetForm && !existingPanel) {
+                console.log('[DEBUG] Forme cible trouvée, création du panneau');
                 createUIPanel();
                 // Mark panel as created to avoid duplicates
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
                 if (panel) {
                     panel.setAttribute('data-autofill-panel', 'true');
-                    panel.setAttribute('data-script-type', 'ComposantSY');
+                    panel.setAttribute('data-script-type', 'causeRebut');
                 }
             } else if (!foundTargetForm && existingPanel) {
-                // Remove UI panel if "Saisie pièce en attente symbolisé" is no longer detected
+                console.log('[DEBUG] Forme cible perdue, suppression du panneau');
+                // Remove UI panel if "Demande de mise en rebut d'une PRM" is no longer detected
                 existingPanel.remove();
+            } else {
+                console.log('[DEBUG] État inchangé: foundTargetForm=', foundTargetForm, ', existingPanel=', !!existingPanel);
             }
         });
 
@@ -434,19 +441,26 @@
             let foundTargetForm = false;
             let node;
             while (node = walker.nextNode()) {
-                if (node.textContent.includes('Saisie pièce en attente symbolisé')) {
+                if (node.textContent.includes('Demande de mise en rebut d\'une PRM')) {
                     foundTargetForm = true;
+                    console.log('[DEBUG] Texte cible trouvé dans le DOM (setTimeout)');
                     break;
                 }
             }
+            if (!foundTargetForm) {
+                console.log('[DEBUG] Texte cible non trouvé dans le DOM (setTimeout)');
+            }
 
-            if (foundTargetForm) {
+              if (foundTargetForm) {
+                console.log('[DEBUG] Forme cible trouvée au chargement, création du panneau');
                 createUIPanel();
                 const panel = unsafeWindow.document.querySelector('div[style*="position: fixed"]');
                 if (panel) {
                     panel.setAttribute('data-autofill-panel', 'true');
-                    panel.setAttribute('data-script-type', 'ComposantSY');
+                    panel.setAttribute('data-script-type', 'causeRebut');
                 }
+            } else {
+                console.log('[DEBUG] Forme cible non trouvée au chargement');
             }
         }, 1000);
     }
