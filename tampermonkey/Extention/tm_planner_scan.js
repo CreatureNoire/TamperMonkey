@@ -177,10 +177,6 @@
                 }, 1000);
             } else {
                 console.log('[Bouton Unifié] 🚀 DÉMARRAGE: Lancement du cycle complet (Scroll → Scan → Actions)...');
-                scrollButton.textContent = 'RUNNING';
-                scrollButton.style.backgroundColor = 'rgba(0, 255, 0, 0.2)'; // Vert
-                scrollButton.style.borderColor = 'rgb(0, 255, 0)';
-                scrollButton.style.animation = ''; // Supprimer l'animation pulse
 
                 startCompleteScrollAndScanCycle();
             }
@@ -467,7 +463,6 @@
         // Vérification initiale
         const initialContainer = findScrollContainer();
         if (!initialContainer) {
-            alert('❌ Aucun conteneur scrollable trouvé sur cette page.');
             return;
         }
 
