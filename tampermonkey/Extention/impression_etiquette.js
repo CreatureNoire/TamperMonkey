@@ -4,7 +4,7 @@
     // Injection du CSS pour les toasts
     const toastCSS = `
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
-
+        
         :root {
             --tr: all 0.5s ease 0s;
             --ch1: #05478a;
@@ -20,11 +20,11 @@
             --ce2: #db3056;
             --ce3: #db305640;
             /* Geometry vars for the decorative plate (::before) and the badge (::after) */
-            --plate-w: 28rem;
-            --plate-h: 28rem;
-            --plate-left: -0.15rem;
-            --plate-bottom: -0.15rem;
-            --badge: 16rem;
+            --plate-w: 28px;
+            --plate-h: 28px;
+            --plate-left: -1.5px;
+            --plate-bottom: -1.5px;
+            --badge: 16px;
         }
 
         @property --bg-help {
@@ -59,31 +59,31 @@
 
         .sytoast-container {
             position: fixed;
-            top: 40px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10000;
             display: flex;
             flex-direction: column;
-            gap: 100px;
-            max-width: 8000px;
+            gap: 10px;
+            max-width: 400px;
             font-family: "Varela Round", sans-serif;
         }
 
         .sytoast {
             background: linear-gradient(90deg, #1f2333, #22232b);
             color: #f5f5f5;
-            padding: 24rem 40rem 24rem 112rem;
+            padding: 12px 20px 12px 56px;
             text-align: left;
-            border-radius: 0.5rem;
+            border-radius: 5px;
             position: relative;
             font-weight: 300;
-            max-width: 7200px;
+            max-width: 360px;
             transition: var(--tr);
             opacity: 0;
-            transform: translateX(0); /* since centered, no translateX */
-            border: 0.15rem solid #fff2;
-            box-shadow: inset 0 0 0.5rem 0 #1d1e26, 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateX(0);
+            border: 1.5px solid #fff2;
+            box-shadow: inset 0 0 5px 0 #1d1e26, 0 4px 12px rgba(0,0,0,0.3);
             animation: sytoast-slide-in 0.5s ease forwards;
         }
 
@@ -124,13 +124,12 @@
             content: "";
             position: absolute;
             width: var(--plate-w);
-            /* Stretch the decorative plate to follow the toast height */
             top: 0;
             bottom: var(--plate-bottom);
             left: var(--plate-left);
             z-index: 0;
-            border-radius: 0.35rem;
-            background: radial-gradient(circle at 0% 50%, var(--clr), #fff0 5rem), radial-gradient(circle at -50% 50%, var(--bg), #fff0 5rem);
+            border-radius: 3.5px;
+            background: radial-gradient(circle at 0% 50%, var(--clr), #fff0 50px), radial-gradient(circle at -50% 50%, var(--bg), #fff0 50px);
             opacity: 0.5;
         }
 
@@ -139,24 +138,22 @@
             position: absolute;
             width: var(--badge);
             height: var(--badge);
-            background: radial-gradient(circle at 50% 50%, var(--clr) 1.25rem, var(--brd) calc(1.25rem + 1px) 100%);
-            /* Position the badge at 25% of the ::before plate width (relative to the plate), not the toast box */
+            background: radial-gradient(circle at 50% 50%, var(--clr) 12.5px, var(--brd) calc(12.5px + 1px) 100%);
             left: calc(var(--plate-left) + (var(--plate-w) * 0.42) - (var(--badge) / 2));
-            /* Vertically center relative to the dynamic ::before height (which follows the toast) */
             top: calc(((100% - var(--plate-bottom)) - var(--badge)) / 2);
-            border-radius: 3rem;
-            padding-top: 0.2rem;
+            border-radius: 30px;
+            padding-top: 2px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8rem;
+            font-size: 8px;
             box-sizing: border-box;
         }
 
         .sytoast h3 {
-            font-size: 12rem;
-            margin: 0 0 0.5rem 0;
-            line-height: 12rem;
+            font-size: 12px;
+            margin: 0 0 5px 0;
+            line-height: 12px;
             font-weight: 300;
             position: relative;
             z-index: 1;
@@ -164,7 +161,7 @@
 
         .sytoast p {
             position: relative;
-            font-size: 5rem;
+            font-size: 11px;
             z-index: 1;
             margin: 0;
             line-height: 1.4;
@@ -172,18 +169,18 @@
 
         .sytoast-close {
             position: absolute;
-            width: 6rem;
-            height: 6rem;
+            width: 16px;
+            height: 16px;
             text-align: center;
-            right: 1rem;
-            top: 1rem;
+            right: 5px;
+            top: 5px;
             cursor: pointer;
             border-radius: 100%;
             z-index: 2;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8rem;
+            font-size: 12px;
             color: #fff;
             transition: var(--tr);
         }
@@ -214,12 +211,10 @@
             --brd: var(--cs3);
         }
         .sytoast.success:after {
-            content: "L";
-            font-size: 7.2rem;
+            content: "✓";
+            font-size: 7px;
             font-weight: bold;
-            padding-bottom: 0.35rem;
-            transform: rotateY(180deg) rotate(-38deg);
-            text-indent: 0.1rem;
+            padding-bottom: 1px;
         }
 
         .sytoast.warning {
@@ -238,10 +233,9 @@
             --brd: var(--ce3);
         }
         .sytoast.error:after {
-            content: "+";
-            font-size: 14rem;
-            line-height: 1.2rem;
-            transform: rotate(45deg);
+            content: "×";
+            font-size: 10px;
+            line-height: 1;
         }
 
         .sytoast.info {
@@ -257,8 +251,8 @@
 
         .sytoast-buttons {
             display: flex;
-            gap: 20px;
-            margin-top: 20px;
+            gap: 10px;
+            margin-top: 10px;
             justify-content: flex-end;
             position: relative;
             z-index: 1;
@@ -269,7 +263,7 @@
             border: none;
             border-radius: 3px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 11px;
         }
 
         .sytoast-buttons .yes {
@@ -302,11 +296,11 @@
     // Fonction principale pour afficher les toasts
     window.sytoast = function(type, message, duration = 5000) {
         const container = getToastContainer();
-
+        
         // Créer l'élément toast
         const toast = document.createElement('div');
         toast.className = `sytoast ${type}`;
-
+        
         // Créer le contenu
         const title = getTitle(type);
         toast.innerHTML = `
@@ -314,26 +308,26 @@
             <h3>${title}</h3>
             <p>${message}</p>
         `;
-
+        
         // Ajouter au conteneur
         container.appendChild(toast);
-
+        
         // Déclencher l'animation d'apparition
         setTimeout(() => toast.classList.add('show'), 10);
-
+        
         // Gestion de la fermeture par clic
         const closeBtn = toast.querySelector('.sytoast-close');
         closeBtn.addEventListener('click', () => {
             removeToast(toast);
         });
-
+        
         // Fermeture automatique
         if (duration > 0) {
             setTimeout(() => {
                 removeToast(toast);
             }, duration);
         }
-
+        
         return toast;
     };
 
@@ -535,11 +529,44 @@
 
         const btn = document.createElement("button");
         btn.id = "btnImprimerEtiquetteManuel";
-        btn.className = "btn btn-primary";
-        btn.textContent = "🖨️";
+        btn.className = "retournement-btn";
+        btn.innerHTML = `<span class="icon">🖨️</span>`;
         btn.title = "Imprimer étiquette";
-        btn.style.padding = "4px 12px";
-        btn.style.borderRadius = "5px";
+        // Ajout du CSS spécifique Retournement_Bouton.css si non déjà présent
+        if (!document.getElementById("retournement-btn-css")) {
+            const style = document.createElement("style");
+            style.id = "retournement-btn-css";
+            style.textContent = `
+            .retournement-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: linear-gradient(90deg, #0070e0 0%, #05478a 100%);
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                padding: 0px 11px;
+                font-size: 1rem;
+                font-family: "Varela Round", sans-serif;
+                font-weight: 500;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+                cursor: pointer;
+                transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            }
+            .retournement-btn:hover {
+                background: linear-gradient(90deg, #05478a 0%, #0070e0 100%);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+                transform: translateY(-2px) scale(1.03);
+            }
+            .retournement-btn .icon {
+                font-size: 1.2em;
+            }
+            .retournement-btn .text {
+                font-size: 1em;
+            }
+            `;
+            document.head.appendChild(style);
+        }
 
         btn.onclick = imprimerEtiquette;
 
