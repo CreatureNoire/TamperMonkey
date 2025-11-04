@@ -4,6 +4,8 @@
     // Define your values
 
     let numSer = '';
+    let symbole = '';
+    let nomModule = '';
     let causeRebut = '';
     let numOF = '';
 
@@ -26,16 +28,90 @@
             console.log('[DEBUG] Forme incorrecte détectée, remplissage ignoré');
             return;
         }
-        console.log('[DEBUG] Forme correcte détectée, valeurs:', { numSer, causeRebut, numOF });
+        console.log('[DEBUG] Forme correcte détectée, valeurs:', { numSer, symbole, nomModule, causeRebut, numOF });
         // Remplir uniquement si les valeurs ne sont pas vides
-        if (numSer || causeRebut || numOF) {
+        if (numSer || symbole || nomModule || causeRebut || numOF) {
             console.log('[DEBUG] Remplissage des inputs PowerApps');
             fillPowerAppsInput("input[appmagic-control='TextInput7_3textbox']", numSer);
+            fillPowerAppsInput("input[appmagic-control='TextInput7_2textbox']", symbole);
+            fillPowerAppsInput("input[appmagic-control='TextInput7_4textbox']", nomModule);
             fillPowerAppsInput("input[appmagic-control='TextInput7_5textbox']", causeRebut);
             fillPowerAppsInput("input[appmagic-control='TextInput7textbox']", numOF);
+            
+            // Remplir le lien CollectorPlus si disponible
+            const collectorLinkInput = unsafeWindow.document.getElementById('collectorLink');
+            if (collectorLinkInput && collectorLinkInput.value.trim()) {
+                fillPowerAppsInput("input[appmagic-control='TextInput7_6textbox']", collectorLinkInput.value.trim());
+                console.log('[DEBUG] Lien CollectorPlus rempli:', collectorLinkInput.value.trim());
+            }
+            
+            // Contourner la validation d'image obligatoire
+            bypassImageValidation();
         } else {
             console.log('[DEBUG] Les variables sont vides, remplissage ignoré');
         }
+    }
+
+    function bypassImageValidation() {
+        console.log('[DEBUG] Tentative de contournement de la validation d\'image');
+        
+        // Simuler la présence d'une image en modifiant les éléments DOM
+        setTimeout(() => {
+            // Chercher le bouton d'envoi qui pourrait être bloqué
+            const sendButton = unsafeWindow.document.querySelector('div[data-appmagic-icon-name="Basel_Send"]');
+            if (sendButton) {
+                console.log('[DEBUG] Bouton d\'envoi trouvé, suppression des restrictions');
+                
+                // Supprimer les attributs qui pourraient bloquer l'envoi
+                const parentButton = sendButton.closest('.powerapps-icon');
+                if (parentButton) {
+                    parentButton.removeAttribute('aria-disabled');
+                    parentButton.style.pointerEvents = 'auto';
+                    parentButton.style.opacity = '1';
+                    console.log('[DEBUG] Restrictions du bouton d\'envoi supprimées');
+                }
+            }
+            
+            // Masquer le message "Image PRM :" si présent
+            const imageLabels = unsafeWindow.document.querySelectorAll('.appmagic-label-text');
+            imageLabels.forEach(label => {
+                if (label.textContent && label.textContent.includes('Image PRM')) {
+                    console.log('[DEBUG] Label "Image PRM" trouvé, masquage');
+                    const container = label.closest('.appmagic-group');
+                    if (container) {
+                        container.style.display = 'none';
+                        console.log('[DEBUG] Container d\'image masqué');
+                    }
+                }
+            });
+            
+            // Simuler qu'une image est présente en modifiant les classes
+            const addMediaButtons = unsafeWindow.document.querySelectorAll('.addmedia-no-media');
+            addMediaButtons.forEach(button => {
+                button.style.display = 'none';
+                console.log('[DEBUG] Bouton "ajouter image" masqué');
+            });
+            
+            const hasMediaButtons = unsafeWindow.document.querySelectorAll('.addmedia-has-media');
+            hasMediaButtons.forEach(button => {
+                button.style.display = 'block';
+                console.log('[DEBUG] État "image présente" activé');
+            });
+            
+            // Créer une image fictive si nécessaire
+            const imageContainers = unsafeWindow.document.querySelectorAll('.appmagic-image');
+            imageContainers.forEach(container => {
+                const img = container.querySelector('img');
+                if (img && (!img.src || img.src.includes('blob:'))) {
+                    // Créer une image 1x1 pixel transparente
+                    const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    img.src = transparentPixel;
+                    img.style.visibility = 'visible';
+                    console.log('[DEBUG] Image fictive créée');
+                }
+            });
+            
+        }, 500);
     }
 
     // Suppression du remplissage automatique au chargement et via MutationObserver
@@ -203,7 +279,14 @@
                             <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Numéro Série">Numéro Série</label>
                         </div>
-                        <!-- Suppression du champ Symbole -->
+                        <div class="form-group">
+                            <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Symbole">Symbole</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="manualNomModule" value="${nomModule}" placeholder=" " class="glitch-input">
+                            <label class="form-label" data-text="Nom Module">Nom Module</label>
+                        </div>
                         <div class="form-group">
                             <input type="text" id="manualCauseRebut" value="${causeRebut}" placeholder=" " class="glitch-input">
                             <label class="form-label" data-text="Cause Rebut">Cause Rebut</label>
@@ -214,6 +297,9 @@
                         </div>
                         <button id="updateValues" class="submit-btn" data-text="Mettre à jour">
                             <span class="btn-text">Mettre à jour</span>
+                        </button>
+                        <button id="bypassImage" class="submit-btn" data-text="Contourner Image">
+                            <span class="btn-text">Contourner Image</span>
                         </button>
                     </div>
                 </div>
@@ -230,17 +316,21 @@
         });
 
         // Update values function
-        function updateConstants(newNumSer, newCauseRebut, newNumOF) {
+        function updateConstants(newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF) {
             console.log('[DEBUG] updateConstants appelée avec:', {
                 newNumSer,
+                newSymbole,
+                newNomModule,
                 newCauseRebut,
                 newNumOF
             });
             console.trace('[DEBUG] Stack trace updateConstants');
             numSer = newNumSer;
+            symbole = newSymbole;
+            nomModule = newNomModule;
             causeRebut = newCauseRebut;
             numOF = newNumOF;
-            console.log('[DEBUG] Variables mises à jour:', { numSer, causeRebut, numOF });
+            console.log('[DEBUG] Variables mises à jour:', { numSer, symbole, nomModule, causeRebut, numOF });
             // Si l'appel vient du bouton manuel, ne jamais écraser le champ
             if (unsafeWindow.document.activeElement && unsafeWindow.document.activeElement.id === 'updateValues') {
                 console.log('[DEBUG] Edition manuelle détectée, champs HTML non écrasés');
@@ -249,6 +339,8 @@
                 console.log('[DEBUG] Synchronisation CollectorPlus, mise à jour des champs HTML');
                 // Synchronisation CollectorPlus : on met à jour tous les champs
                 if (unsafeWindow.document.getElementById('manualNumSer')) unsafeWindow.document.getElementById('manualNumSer').value = numSer;
+                if (unsafeWindow.document.getElementById('manualSymbole')) unsafeWindow.document.getElementById('manualSymbole').value = symbole;
+                if (unsafeWindow.document.getElementById('manualNomModule')) unsafeWindow.document.getElementById('manualNomModule').value = nomModule;
                 if (unsafeWindow.document.getElementById('manualCauseRebut')) unsafeWindow.document.getElementById('manualCauseRebut').value = causeRebut;
                 if (unsafeWindow.document.getElementById('manualNumOF')) unsafeWindow.document.getElementById('manualNumOF').value = numOF;
             }
@@ -263,13 +355,23 @@
             window._updateValuesClicked = true;
             setTimeout(() => { window._updateValuesClicked = false; }, 500);
             const manualNumSerInput = unsafeWindow.document.getElementById('manualNumSer');
+            const manualSymboleInput = unsafeWindow.document.getElementById('manualSymbole');
+            const manualNomModuleInput = unsafeWindow.document.getElementById('manualNomModule');
             const manualCauseRebutInput = unsafeWindow.document.getElementById('manualCauseRebut');
             const manualNumOFInput = unsafeWindow.document.getElementById('manualNumOF');
             const newNumSer = manualNumSerInput ? manualNumSerInput.value : '';
+            const newSymbole = manualSymboleInput ? manualSymboleInput.value : '';
+            const newNomModule = manualNomModuleInput ? manualNomModuleInput.value : '';
             const newCauseRebut = manualCauseRebutInput ? manualCauseRebutInput.value : '';
             const newNumOF = manualNumOFInput ? manualNumOFInput.value : '';
-            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newCauseRebut, newNumOF });
-            updateConstants(newNumSer, newCauseRebut, newNumOF);
+            console.log('[DEBUG] [Bouton] Valeurs lues avant updateConstants:', { newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF });
+            updateConstants(newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF);
+        });
+
+        // Bypass image validation button
+        unsafeWindow.document.getElementById('bypassImage').addEventListener('click', () => {
+            console.log('[DEBUG] Bouton Contourner Image cliqué');
+            bypassImageValidation();
         });
 
         // Collector fetch button
@@ -292,12 +394,46 @@
                     const doc = parser.parseFromString(resp.responseText, 'text/html');
 
                     console.log('[DEBUG] Début extraction Info Agent');
-
+                    
                     let newNumSer = "";
+                    let newSymbole = "";
+                    let newNomModule = "";
                     let newCauseRebut = "";
                     let newNumOF = "";
                     const allRows = doc.querySelectorAll('div.row');
                     console.log('[DEBUG] Nombre de div.row trouvées:', allRows.length);
+                    
+                    // Extraction du symbole et nom de module depuis div.col-xs-7.text-center.panel-title
+                    const symboleDivs = doc.querySelectorAll('div.col-xs-7.text-center.panel-title');
+                    console.log('[DEBUG] Nombre de div.col-xs-7.text-center.panel-title trouvées:', symboleDivs.length);
+                    symboleDivs.forEach((div, idx) => {
+                        const textContent = div.textContent.trim();
+                        console.log(`[DEBUG] Contenu div.col-xs-7.text-center.panel-title ${idx}:`, textContent);
+                        
+                        // Cherche le pattern: nombre à 8 chiffres - nom du module
+                        const matchSymboleEtNom = textContent.match(/^(\d{8})\s*-\s*(.+?)$/);
+                        if (matchSymboleEtNom && matchSymboleEtNom[1] && matchSymboleEtNom[2]) {
+                            newSymbole = matchSymboleEtNom[1];
+                            newNomModule = matchSymboleEtNom[2].trim();
+                            console.log(`[DEBUG] Extraction symbole et nom depuis div.col-xs-7.text-center.panel-title ${idx}:`, { symbole: newSymbole, nomModule: newNomModule });
+                        } else {
+                            console.log(`[DEBUG] Pattern non trouvé dans div ${idx}, tentative de recherche alternative`);
+                            
+                            // Alternative: chercher dans les rows enfants
+                            const rows = div.querySelectorAll('div.row');
+                            rows.forEach((row, rowIdx) => {
+                                const rowText = row.textContent.trim();
+                                console.log(`[DEBUG] Contenu row ${rowIdx} dans div ${idx}:`, rowText);
+                                const altMatch = rowText.match(/^(\d{8})\s*-\s*(.+?)$/);
+                                if (altMatch && altMatch[1] && altMatch[2]) {
+                                    newSymbole = altMatch[1];
+                                    newNomModule = altMatch[2].trim();
+                                    console.log(`[DEBUG] Extraction alternative symbole et nom depuis row ${rowIdx}:`, { symbole: newSymbole, nomModule: newNomModule });
+                                }
+                            });
+                        }
+                    });
+                    
                     // Extraction du n° OF
                     allRows.forEach((row, idx) => {
                         // Cherche label ou texte contenant n° OF
@@ -361,19 +497,23 @@
                         const match = allText.match(regex);
                         if (match && match[1]) {
                             let causeRebutText = match[1].trim();
-                            // Regex pour extraire après "XX -- DD/MM/YYYY -- "
+                            console.log('[DEBUG] Texte Info Agent complet:', causeRebutText);
+                            
+                            // Regex pour extraire SEULEMENT ce qui vient après "XX -- DD/MM/YYYY -- "
                             const pattern = /([A-Z]{2})\s*--\s*(\d{2}\/\d{2}\/\d{4})\s*--\s*(.+)/;
                             const matchPattern = causeRebutText.match(pattern);
                             if (matchPattern && matchPattern[3]) {
                                 newCauseRebut = matchPattern[3].trim();
+                                console.log('[DEBUG] Extraction causeRebut depuis Info Agent (après pattern):', newCauseRebut);
                             } else {
-                                newCauseRebut = causeRebutText;
+                                // Si le pattern n'est pas trouvé, laisser vide
+                                newCauseRebut = "";
+                                console.log('[DEBUG] Pattern "XX -- DD/MM/YYYY -- " non trouvé, causeRebut laissée vide');
                             }
-                            console.log('[DEBUG] Extraction causeRebut depuis Info Agent global (priorité):', newCauseRebut);
                         }
                     }
-                    console.log('[DEBUG] Valeurs extraites:', { newNumSer, newCauseRebut, newNumOF });
-                    updateConstants(newNumSer, newCauseRebut, newNumOF);
+                    console.log('[DEBUG] Valeurs extraites:', { newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF });
+                    updateConstants(newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF);
                 },
                 onerror: () => alert("Erreur HTTP lors de la récupération du CollectorPlus")
             });
