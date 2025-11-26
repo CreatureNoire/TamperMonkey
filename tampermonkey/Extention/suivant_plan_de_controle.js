@@ -9,7 +9,8 @@
         const titrePC = document.querySelector('.TitrePC');
         return titrePC && (
             titrePC.textContent.includes("Plan de contrôle") ||
-            titrePC.textContent.includes("PLAN DE CONTROLE GENERIQUE")
+            titrePC.textContent.includes("PLAN DE CONTROLE GENERIQUE") ||
+            titrePC.textContent.includes("PLATINE PORTE ACCES FIABILISEE")
         );
     }
 
