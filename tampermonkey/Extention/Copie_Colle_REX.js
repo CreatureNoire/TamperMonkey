@@ -5,8 +5,8 @@
 
     const storageKey = "formCopies";
     const componentStorageKey = "componentFailures";
-
-    // Tableau temporaire pour les requêtes EditComponentFailure
+    
+    // Tableau temporaire pour les requÃªtes EditComponentFailure
     let componentFailureRequests = [];
 
     // Initialiser le stockage s'il n'existe pas
@@ -19,12 +19,12 @@
         localStorage.setItem(storageKey, JSON.stringify(vide));
     }
 
-    // Fonction pour récupérer le numéro de symbole depuis le panel-heading
+    // Fonction pour rÃ©cupÃ©rer le numÃ©ro de symbole depuis le panel-heading
     function getCurrentSymbole() {
         const panelTitle = document.querySelector('.panel-heading .panel-title .row');
         if (panelTitle) {
             const text = panelTitle.textContent.trim();
-            // Extraire le numéro avant le tiret (exemple: "78660169 - TIROIR EQUIPE ALIM-104")
+            // Extraire le numÃ©ro avant le tiret (exemple: "78660169 - TIROIR EQUIPE ALIM-104")
             const match = text.match(/^(\d+)\s*-/);
             if (match) {
                 return match[1];
@@ -48,139 +48,255 @@
     function getOrderedKeys(storedCopies) {
         const currentOrder = getButtonOrder();
         const allKeys = Object.keys(storedCopies);
-
-        console.log('🔍 getOrderedKeys - Ordre actuel:', currentOrder);
-        console.log('🔍 getOrderedKeys - Toutes les clés:', allKeys);
-
-        // Filtrer l'ordre existant pour ne garder que les clés valides
+        
+        // Filtrer l'ordre existant pour ne garder que les clÃ©s valides
         const validOrder = currentOrder.filter(key => allKeys.includes(key));
-
-        // Ajouter les nouvelles clés qui ne sont pas dans l'ordre (à la fin)
+        
+        // Ajouter les nouvelles clÃ©s qui ne sont pas dans l'ordre (Ã  la fin)
         const newKeys = allKeys.filter(key => !validOrder.includes(key));
-
-        // Combiner l'ordre existant avec les nouvelles clés
+        
+        // Combiner l'ordre existant avec les nouvelles clÃ©s
         const finalOrder = [...validOrder, ...newKeys];
-
-        console.log('📋 getOrderedKeys - Ordre final:', finalOrder);
-
-        // Mettre à jour l'ordre stocké SEULEMENT s'il y a de nouvelles clés
+        
+        // Mettre Ã  jour l'ordre stockÃ© SEULEMENT s'il y a de nouvelles clÃ©s
         if (newKeys.length > 0) {
-            console.log('💾 getOrderedKeys - Sauvegarde du nouvel ordre avec nouvelles clés:', newKeys);
             setButtonOrder(finalOrder);
         }
-
+        
         return finalOrder;
     }
 
-        // Fonction pour supprimer toutes les copies (à exécuter dans la console)
+    // Fonction pour supprimer toutes les copies (Ã  exÃ©cuter dans la console)
     window.clearAllCopies = function() {
         localStorage.removeItem(storageKey);
         localStorage.removeItem(orderKey);
         location.reload();
     };
 
-    // Fonction de debug pour vérifier l'ordre actuel
+    // Fonction de diagnostic pour identifier les problÃ¨mes entre utilisateurs
+    window.diagnosticFormulaire = function() {
+        
+        // 1. Informations systÃ¨me
+        
+        // 2. VÃ©rifier la prÃ©sence du formulaire
+        const formulaire = document.querySelector('#panel-body-general');
+        if (formulaire) {
+            const inputs = formulaire.querySelectorAll('input, select, textarea');
+        }
+        
+        // 3. VÃ©rifier les champs d'indices
+        const indices = [
+            'S_indice_organe_arr',
+            'S_indice_organe_dep',
+            'S_indice_logiciel_arr',
+            'S_indice_logiciel_dep'
+        ];
+        indices.forEach(id => {
+            const element = document.getElementById(id);
+        });
+        
+        // 4. VÃ©rifier le bouton de validation
+        const validateBtn = document.getElementById('fonctionnel_validate_form');
+        if (validateBtn) {
+        }
+        
+        // 5. VÃ©rifier les boutons de consistance
+        const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
+        if (btnGroup) {
+            const buttons = btnGroup.querySelectorAll('button[collector-value]');
+            buttons.forEach((btn, i) => {
+            });
+        }
+        
+        // 6. VÃ©rifier le localStorage
+        const storedCopies = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        Object.keys(storedCopies).forEach(key => {
+            const preset = storedCopies[key];
+        });
+        
+        // 7. VÃ©rifier les Ã©lÃ©ments critiques
+        const criticalElements = [
+            { id: 'idUser', label: 'ID Utilisateur' },
+            { id: 'idRep', label: 'ID RÃ©paration' },
+            { id: 'fonctionnel_transition_id', label: 'ID Transition' }
+        ];
+        criticalElements.forEach(item => {
+            const el = document.getElementById(item.id);
+        });
+        
+        // 8. **NOUVEAU** - VÃ©rifier les dÃ©pendances pour l'affichage des boutons
+        
+        // VÃ©rifier la prÃ©sence du panel-heading "Saisie REX"
+        const panelHeadings = document.querySelectorAll('.panel-heading h3.panel-title');
+        let saisieRexFound = false;
+        for (let heading of panelHeadings) {
+            if (heading.textContent.trim() === "Saisie REX") {
+                saisieRexFound = true;
+                break;
+            }
+        }
+        
+        // VÃ©rifier le conteneur de boutons crÃ©Ã© par le script
+        const buttonContainer = document.querySelector('.copie-rex-button-container');
+        if (buttonContainer) {
+            const buttons = buttonContainer.querySelectorAll('button');
+            buttons.forEach((btn, i) => {
+            });
+        }
+        
+        // VÃ©rifier window.styleButton
+        
+        return {
+            formulairePresent: !!formulaire,
+            indicesPresents: indices.map(id => ({ id, present: !!document.getElementById(id) })),
+            boutonValidationPresent: !!validateBtn,
+            nombrePresets: Object.keys(storedCopies).length,
+            hasConsistanceLabel: hasConsistanceLabel,
+            hasButtonContainer: !!buttonContainer,
+            hasStyleButton: typeof window.styleButton === 'function'
+        };
+    };
+
+    // Fonction de debug pour vÃ©rifier l'ordre actuel
     window.debugButtonOrder = function() {
         const order = getButtonOrder();
         const copies = JSON.parse(localStorage.getItem(storageKey) || '{}');
-
-        console.log('🔍 DEBUG - Ordre actuel des boutons:', order);
-        console.log('🔍 DEBUG - Copies stockées:', Object.keys(copies));
-        console.log('🔍 DEBUG - Ordre localStorage raw:', localStorage.getItem(orderKey));
-
-        // Vérifier l'ordre visual dans le DOM
+        
+        // VÃ©rifier l'ordre visual dans le DOM
         const buttonContainer = document.querySelector('div[style*="position: fixed;"][style*="bottom: 10px;"][style*="right: 10px;"]');
         if (buttonContainer) {
             const visualOrder = Array.from(buttonContainer.querySelectorAll('[id^="btnColler-"]')).map(btn => btn.dataset.buttonKey);
-            console.log('🔍 DEBUG - Ordre visuel dans le DOM:', visualOrder);
-            console.log('🔍 DEBUG - Correspondance visuel vs sauvé:', JSON.stringify(visualOrder) === JSON.stringify(order) ? '✅ CORRECT' : '❌ DIFFÉRENT');
         }
-
+        
         return { order, copies: Object.keys(copies) };
     };
 
-    // Fonction de debug pour le drag & drop (à exécuter dans la console)
+    // Fonction de debug pour le drag & drop (Ã  exÃ©cuter dans la console)
     window.debugDragDrop = function() {
-        console.log("🔍 Debug Drag & Drop:");
         const buttons = document.querySelectorAll('[id^="btnColler-"]');
-        console.log(`Nombre de boutons trouvés: ${buttons.length}`);
-
+        
         buttons.forEach((btn, index) => {
-            console.log(`Bouton ${index + 1}:`, {
-                id: btn.id,
-                draggable: btn.draggable,
-                buttonKey: btn.dataset.buttonKey,
-                classList: btn.classList.toString(),
-                hasListeners: btn.ondragstart !== null || btn.getAttribute('data-drag-listeners') === 'true'
-            });
         });
-
-        // Tester si les événements sont bien attachés
+        
+        // Tester si les Ã©vÃ©nements sont bien attachÃ©s
         if (buttons.length > 0) {
             const testBtn = buttons[0];
-            console.log("🧪 Test du premier bouton:");
-            console.log("- Position:", testBtn.getBoundingClientRect());
-            console.log("- Styles calculés:", window.getComputedStyle(testBtn).cursor);
         }
     };
 
     function verifierPresenceTitre() {
-        return document.querySelector('.control-label')?.textContent.includes("Consistance Réparation");
+        // Chercher le panel-heading avec "Saisie REX"
+        const panelHeadings = document.querySelectorAll('.panel-heading h3.panel-title');
+        for (let heading of panelHeadings) {
+            if (heading.textContent.trim() === "Saisie REX") {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Fonction pour crÃ©er ou rÃ©cupÃ©rer le conteneur de boutons dans le panel-heading "Saisie REX"
+    function getOrCreateButtonContainer() {
+        
+        // Chercher le panel-heading existant
+        const panelHeadings = document.querySelectorAll('.panel-heading');
+        
+        let saisieRexHeading = null;
+        
+        for (let heading of panelHeadings) {
+            const title = heading.querySelector('h3.panel-title');
+            if (title) {
+                if (title.textContent.trim() === "Saisie REX") {
+                    saisieRexHeading = heading;
+                    break;
+                }
+            }
+        }
+        
+        if (!saisieRexHeading) {
+            return null;
+        }
+        
+        // VÃ©rifier si le conteneur existe dÃ©jÃ 
+        let buttonContainer = saisieRexHeading.querySelector('.copie-rex-button-container');
+        
+        if (!buttonContainer) {
+            // CrÃ©er le conteneur de boutons
+            buttonContainer = document.createElement('div');
+            buttonContainer.className = 'copie-rex-button-container';
+            buttonContainer.style.cssText = `
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0px;
+                justify-content: flex-start;
+                align-items: center;
+                margin-top: 0px;
+                padding: 0px;
+                background-color: rgba(0, 0, 0, 0.03);
+                border-radius: 0px;
+            `;
+            
+            // Ajouter le conteneur au panel-heading
+            saisieRexHeading.appendChild(buttonContainer);
+        } else {
+        }
+        
+        return buttonContainer;
     }
 
     let intervalCheck = setInterval(() => {
-        if (verifierPresenceTitre()) {
+        const presenceTitre = verifierPresenceTitre();
+        
+        // Debug: afficher l'Ã©tat de vÃ©rification toutes les 10 secondes
+        if (Date.now() % 10000 < 1000) {
+            const panelHeadings = document.querySelectorAll('.panel-heading h3.panel-title');
+        }
+        
+        if (presenceTitre) {
             ajouterBoutons();
         } else {
             retirerBoutons();
         }
-
-        // Vérifier la présence de l'élément "Saisie REX"
+        
+        // VÃ©rifier la prÃ©sence de l'Ã©lÃ©ment "Saisie REX"
         checkSaisieRexPresence();
     }, 1000);
 
-    // Vérification simple de la présence de l'élément "Saisie REX"
+    // VÃ©rification simple de la prÃ©sence de l'Ã©lÃ©ment "Saisie REX"
     function checkSaisieRexPresence() {
         const saisieRexTitle = document.querySelector('h3.panel-title');
         const isSaisieRexPresent = saisieRexTitle && saisieRexTitle.textContent.trim() === "Saisie REX";
-
-        // Gérer les changements d'état
+        
+        // GÃ©rer les changements d'Ã©tat
         if (isSaisieRexPresent && !window.isSaisieRexPageActive) {
-            // L'élément vient d'apparaître - activer l'interception
-            console.log("🔍 Détection de l'élément 'Saisie REX' - Activation de l'interception des requêtes");
+            // L'Ã©lÃ©ment vient d'apparaÃ®tre - activer l'interception
             if (!window.fetchIntercepted) {
                 interceptComponentFailureRequests();
             }
             window.isSaisieRexPageActive = true;
-
+            
         } else if (!isSaisieRexPresent && window.isSaisieRexPageActive) {
-            // L'élément vient de disparaître - désactiver l'interception
-            console.log("❌ Élément 'Saisie REX' non détecté - Désactivation de l'interception");
+            // L'Ã©lÃ©ment vient de disparaÃ®tre - dÃ©sactiver l'interception
             window.isSaisieRexPageActive = false;
-
+            
         }
-
+        
         // Afficher le statut si changement
         if (window.isSaisieRexPageActive !== window.previousRexState) {
-            console.log(`📊 Statut interception: ${window.isSaisieRexPageActive ? '🟢 ACTIVE' : '🔴 INACTIVE'}`);
             window.previousRexState = window.isSaisieRexPageActive;
         }
     }
 
-    // Intercepter les requêtes POST vers EditComponentFailure - INTERCEPTION PERMANENTE
+    // Intercepter les requÃªtes POST vers EditComponentFailure - INTERCEPTION PERMANENTE
     function interceptComponentFailureRequests() {
-        console.log("🎯 appel de intercept failure");
-        // Éviter la double interception
+        // Ã‰viter la double interception
         if (window.fetchIntercepted) return;
-
-        console.log("🎯 Installation de l'interception XMLHttpRequest des requêtes EditComponentFailure");
-
+        
         // === INTERCEPTION XMLHttpRequest ===
         const originalXHROpen = XMLHttpRequest.prototype.open;
         const originalXHRSend = XMLHttpRequest.prototype.send;
-
+        
         XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-            console.log("🚀 XHR OPEN intercepté:", method, url);
             this._method = method;
             this._url = url;
             return originalXHROpen.apply(this, arguments);
@@ -188,30 +304,24 @@
 
         XMLHttpRequest.prototype.send = function(data) {
             if (this._method === 'POST') {
-                console.log("🔍 DEBUG XHR - Requête POST détectée vers:", this._url);
-
+                
                 const isEditComponentFailure = this._url && (
                     this._url.includes('EditComponentFailure') ||
                     this._url.includes('/Prm/ReparationForms/Saisie_Intervention/EditComponentFailure')
                 );
 
                 if (window.isSaisieRexPageActive && isEditComponentFailure) {
-                    console.log("📡 XHR - Interception d'une requête EditComponentFailure (flag ACTIF)");
-                    console.log("📦 Data XHR:", data);
-                    console.log("🔍 Type de data:", typeof data);
-
+                    
                     let formData = {};
-
-                    // Traiter les données FormData
+                    
+                    // Traiter les donnÃ©es FormData
                     if (data instanceof FormData) {
-                        console.log("📋 Traitement FormData");
                         for (let [key, value] of data.entries()) {
                             formData[key] = value;
                         }
-                    }
-                    // Traiter les données URL-encodées (string)
+                    } 
+                    // Traiter les donnÃ©es URL-encodÃ©es (string)
                     else if (typeof data === 'string' && data.includes('=')) {
-                        console.log("📋 Traitement données URL-encodées");
                         const pairs = data.split('&');
                         for (let pair of pairs) {
                             const [key, value] = pair.split('=');
@@ -220,9 +330,7 @@
                             }
                         }
                     }
-
-                    console.log("🗂️ FormData parsée:", formData);
-
+                    
                     // Extraire seulement les champs requis si ils existent
                     const filteredData = {
                         fk_dico_constituant: formData.fk_dico_constituant,
@@ -230,59 +338,194 @@
                         S_repere: formData.S_repere,
                         idt_t_reparation_has_lst_dico_constituant: formData.idt_t_reparation_has_lst_dico_constituant
                     };
-
-                    // Vérifier qu'on a au moins un champ requis
+                    
+                    // VÃ©rifier qu'on a au moins un champ requis
                     if (filteredData.fk_dico_constituant || filteredData.fk_dico_defaut_constituant || filteredData.S_repere) {
                         componentFailureRequests.push(filteredData);
-                        console.log("💾 Requête XHR enregistrée:", filteredData);
-                        console.log("📊 Total des requêtes enregistrées:", componentFailureRequests.length);
-
-                        // Ajouter une div dans le panel-heading "Défauts composant"
-                        const panelHeading = Array.from(document.querySelectorAll('.panel-heading')).find(heading =>
-                            heading.textContent.includes('Défauts composant')
+                        
+                        // Ajouter une div dans le panel-heading "DÃ©fauts composant"
+                        const panelHeading = Array.from(document.querySelectorAll('.panel-heading')).find(heading => 
+                            heading.textContent.includes('DÃ©fauts composant')
                         );
-
+                        
                         if (panelHeading) {
                             // Supprimer l'ancienne div d'enregistrement si elle existe
                             const existingDiv = panelHeading.querySelector('.xhr-recording-info');
                             if (existingDiv) {
                                 existingDiv.remove();
                             }
-
-                            // Créer une nouvelle div d'information
+                            
+                            // CrÃ©er une nouvelle div d'information
                             const recordingDiv = document.createElement('div');
                             recordingDiv.className = 'xhr-recording-info xhr-recording-glow';
-
-                            // Créer la div circulaire rouge
+                            
+                            // CrÃ©er la div circulaire rouge
                             const indicatorDot = document.createElement('div');
                             indicatorDot.className = 'xhr-indicator-dot';
-
+                            
                             // Ajouter le texte
                             const textSpan = document.createElement('span');
                             textSpan.textContent = `Enregistrement: ${componentFailureRequests.length} constituant${componentFailureRequests.length > 1 ? 's' : ''}`;
-
+                            
                             recordingDiv.appendChild(indicatorDot);
                             recordingDiv.appendChild(textSpan);
-
+                            
                             panelHeading.appendChild(recordingDiv);
                         }
                     } else {
-                        console.log("⚠️ Aucun champ requis trouvé dans les données");
                     }
                 }
             }
-
+            
             return originalXHRSend.apply(this, arguments);
         };
-
+        
         window.fetchIntercepted = true;
-        console.log("✅ Interception XHR installée - En attente du flag d'activation");
     }
 
     function ajouterBoutons() {
-        const buttonContainer = document.querySelector('div[style*="position: fixed;"][style*="bottom: 10px;"][style*="right: 10px;"]');
-        if (!buttonContainer || document.getElementById("btnCopier")) {
+        
+        // Utiliser le nouveau conteneur dans le panel-heading "Saisie REX"
+        const buttonContainer = getOrCreateButtonContainer();
+        
+        if (!buttonContainer) {
             return;
+        }
+        
+        if (document.getElementById("btnCopier")) {
+            return;
+        }
+        
+        // VÃ©rifier si window.styleButton existe, sinon crÃ©er une version de fallback
+        if (typeof window.styleButton !== 'function') {
+            window.styleButton = function(button, color, iconClass) {
+                // Appliquer le style Frutiger
+                button.className = 'frutiger-button';
+                
+                // DÃ©terminer les couleurs selon le type de bouton
+                let gradient1, gradient2, radialColor;
+                if (color === "#28a745") { // Vert pour Copier
+                    gradient1 = "#28a745";
+                    gradient2 = "#5cd67d";
+                    radialColor = "#5cd67d";
+                } else if (color === "#6f42c1") { // Mauve pour symbole
+                    gradient1 = "#6f42c1";
+                    gradient2 = "#9d6edb";
+                    radialColor = "#9d6edb";
+                } else { // Bleu par dÃ©faut
+                    gradient1 = "#006caa";
+                    gradient2 = "#00c3ff";
+                    radialColor = "#30f8f8";
+                }
+                
+                button.style.cssText = `
+                    cursor: pointer;
+                    position: relative;
+                    padding: 1px;
+                    border-radius: 4px;
+                    border: 0;
+                    text-shadow: 1px 1px #000a;
+                    background: linear-gradient(${gradient1}, ${gradient2});
+                    box-shadow: 0px 2px 4px 0px #0008;
+                    transition: 0.3s all;
+                    margin: 3px;
+                `;
+                
+                // CrÃ©er la structure interne
+                const inner = document.createElement('div');
+                inner.className = 'inner';
+                inner.style.cssText = `
+                    position: relative;
+                    inset: 0px;
+                    padding: 0.5em 1em;
+                    border-radius: 5px;
+                    background: radial-gradient(circle at 50% 100%, ${radialColor} 10%, ${radialColor}00 55%),
+                        linear-gradient(${gradient1}aa, ${gradient2}dd);
+                    overflow: hidden;
+                    transition: inherit;
+                    font-size: 13px;
+                `;
+                
+                // Effet de brillance
+                const beforeEffect = document.createElement('div');
+                beforeEffect.style.cssText = `
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(-65deg, #0000 40%, #fff7 50%, #0000 70%);
+                    background-size: 200% 100%;
+                    background-repeat: no-repeat;
+                    animation: shine 3s ease infinite;
+                    pointer-events: none;
+                `;
+                
+                // Top white effect
+                const topWhite = document.createElement('div');
+                topWhite.className = 'top-white';
+                topWhite.style.cssText = `
+                    position: absolute;
+                    border-radius: inherit;
+                    inset: 0 -8em;
+                    background: radial-gradient(circle at 50% -270%, #fff 45%, #fff6 60%, #fff0 60%);
+                    transition: inherit;
+                    pointer-events: none;
+                `;
+                
+                // Texte
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text';
+                textSpan.style.cssText = `
+                    position: relative;
+                    z-index: 1;
+                    color: white;
+                    font-weight: 550;
+                    transition: inherit;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: 13px;
+                    line-height: 1.2;
+                `;
+                
+                // DÃ©placer le texte existant dans textSpan
+                while (button.firstChild) {
+                    textSpan.appendChild(button.firstChild);
+                }
+                
+                // Assembler la structure
+                inner.appendChild(beforeEffect);
+                inner.appendChild(topWhite);
+                inner.appendChild(textSpan);
+                button.appendChild(inner);
+                
+                // Ajouter l'animation CSS
+                if (!document.getElementById('frutiger-animation')) {
+                    const style = document.createElement('style');
+                    style.id = 'frutiger-animation';
+                    style.textContent = `
+                        @keyframes shine {
+                            0% {
+                                background-position: 130%;
+                                opacity: 1;
+                            }
+                            100% {
+                                background-position: -166%;
+                                opacity: 0;
+                            }
+                        }
+                        .frutiger-button:hover {
+                            box-shadow: 0px 6px 12px 0px #0009;
+                        }
+                        .frutiger-button:active {
+                            box-shadow: 0px 0px 0px 0px #0000;
+                        }
+                        .frutiger-button:active .inner::after {
+                            box-shadow: inset 0px 2px 8px -2px #000a;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            };
         }
 
         let btnCopier = document.createElement("button");
@@ -291,56 +534,55 @@
         spanCopier.innerText = "Copier";
         btnCopier.appendChild(spanCopier);
         btnCopier.onclick = copierFormulaire;
-        window.styleButton(btnCopier, "#6c757d", "fa-copy");
+        window.styleButton(btnCopier, "#28a745", "fa-copy"); // Vert pour le bouton Copier
 
-        buttonContainer.prepend(btnCopier);
+        buttonContainer.appendChild(btnCopier); // Utiliser appendChild au lieu de prepend
 
         let storedCopies = JSON.parse(localStorage.getItem(storageKey));
-
+        
         // Utiliser l'ordre pour afficher les boutons
         const orderedKeys = getOrderedKeys(storedCopies);
         orderedKeys.forEach(key => {
             const slotData = storedCopies[key];
-            // Vérifier si le bouton existe déjà
+            // VÃ©rifier si le bouton existe dÃ©jÃ 
             if (document.getElementById(`btnColler-${key}`)) return;
-
-            // Vérifier si l'élément est lié à un symbole
+            
+            // VÃ©rifier si l'Ã©lÃ©ment est liÃ© Ã  un symbole
             const currentSymbole = getCurrentSymbole();
             const isSymbolLinked = slotData.linkedSymbole;
-
-            // Si l'élément est lié à un symbole, vérifier la correspondance
+            
+            // Si l'Ã©lÃ©ment est liÃ© Ã  un symbole, vÃ©rifier la correspondance
             if (isSymbolLinked && isSymbolLinked !== currentSymbole) {
-                console.log(`Bouton ${key} masqué - Symbole requis: ${isSymbolLinked}, Symbole actuel: ${currentSymbole}`);
                 return; // Ne pas afficher le bouton si le symbole ne correspond pas
             }
-
+            
             let btnColler = document.createElement("button");
             btnColler.id = `btnColler-${key}`;
             btnColler.style.position = "relative"; // Pour positionner la croix
             btnColler.draggable = true; // Rendre le bouton draggable
             btnColler.className = "draggable-button"; // Ajouter la classe CSS
-            btnColler.dataset.buttonKey = key; // Stocker la clé pour le drag & drop
-
+            btnColler.dataset.buttonKey = key; // Stocker la clÃ© pour le drag & drop
+            
             const spanColler = document.createElement("span");
             spanColler.innerText = slotData.label || key;
             btnColler.appendChild(spanColler);
             btnColler.onclick = () => collerFormulaire(key);
-
-            // Coloration différente si lié à un symbole
-            const buttonColor = isSymbolLinked ? "#6f42c1" : "#6c757d"; // Mauve si lié à un symbole, gris sinon
+            
+            // Coloration diffÃ©rente si liÃ© Ã  un symbole
+            const buttonColor = isSymbolLinked ? "#6f42c1" : "#007bff"; // Mauve si liÃ© Ã  un symbole, bleu sinon
             window.styleButton(btnColler, buttonColor, "fa-paste");
-
+            
             // Ajouter la gestion du hover pour la suppression
             addDeleteFunctionality(btnColler, key);
-
+            
             // Ajouter les event listeners pour le drag & drop
             addDragAndDropListeners(btnColler, buttonContainer);
-
-            // Marquer que les listeners ont été ajoutés
+            
+            // Marquer que les listeners ont Ã©tÃ© ajoutÃ©s
             btnColler.setAttribute('data-drag-listeners', 'true');
-
-            // Utiliser prepend pour garder l'ordre d'affichage habituel
-            buttonContainer.prepend(btnColler);
+            
+            // Utiliser appendChild pour l'ordre naturel
+            buttonContainer.appendChild(btnColler);
         });
     }
 
@@ -355,7 +597,7 @@
     function copierFormulaire() {
         const formulaire = document.querySelector('#panel-body-general');
         if (!formulaire) {
-            sytoast('error', 'Formulaire non trouvé sur cette page.');
+            sytoast('error', 'Formulaire non trouvÃ© sur cette page.');
             return;
         }
 
@@ -368,32 +610,28 @@
             }
         });
 
-        // Capturer les données des boutons de consistance
+        // Capturer les donnÃ©es des boutons de consistance
         let consistanceData = null;
-        const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance Réparation"]');
+        const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
         if (btnGroup) {
-            // Chercher d'abord le bouton avec btn-primary (actuellement sélectionné)
+            // Chercher d'abord le bouton avec btn-primary (actuellement sÃ©lectionnÃ©)
             let selectedButton = btnGroup.querySelector('button.btn-primary');
-
-            // Si aucun bouton btn-primary trouvé, chercher le bouton avec btn-success ou autre classe active
+            
+            // Si aucun bouton btn-primary trouvÃ©, chercher le bouton avec btn-success ou autre classe active
             if (!selectedButton) {
                 selectedButton = btnGroup.querySelector('button.btn-success, button.active, button[class*="selected"]');
             }
-
-            // Si toujours rien, ne pas créer de données de consistance (aucune sélection)
+            
+            // Si toujours rien, ne pas crÃ©er de donnÃ©es de consistance (aucune sÃ©lection)
             if (selectedButton) {
                 consistanceData = {
                     collectorValue: selectedButton.getAttribute('collector-value'),
                     buttonText: selectedButton.textContent.trim(),
                     buttonId: selectedButton.id
                 };
-                console.log('📋 Bouton de consistance capturé:', consistanceData);
-                console.log('🎯 Classes du bouton capturé:', selectedButton.className);
             } else {
-                console.log('⚠️ Aucun bouton de consistance sélectionné, pas de données de consistance à capturer');
             }
         } else {
-            console.log('❌ Conteneur de boutons de consistance non trouvé');
         }
 
         // Capturer les valeurs des indices (organe et logiciel)
@@ -402,7 +640,7 @@
         const indiceOrganeDep = document.getElementById('S_indice_organe_dep');
         const indiceLogicielArr = document.getElementById('S_indice_logiciel_arr');
         const indiceLogicielDep = document.getElementById('S_indice_logiciel_dep');
-
+        
         if (indiceOrganeArr || indiceOrganeDep || indiceLogicielArr || indiceLogicielDep) {
             indicesData = {
                 S_indice_organe_arr: indiceOrganeArr?.value || '',
@@ -410,12 +648,10 @@
                 S_indice_logiciel_arr: indiceLogicielArr?.value || '',
                 S_indice_logiciel_dep: indiceLogicielDep?.value || ''
             };
-            console.log('📋 Indices capturés:', indicesData);
         } else {
-            console.log('⚠️ Aucun champ d\'indice trouvé');
         }
 
-        // Créer une boîte de dialogue personnalisée pour la copie
+        // CrÃ©er une boÃ®te de dialogue personnalisÃ©e pour la copie
         const dialog = document.createElement('div');
         dialog.style.cssText = `
             position: fixed;
@@ -432,7 +668,7 @@
         `;
 
         const currentSymbole = getCurrentSymbole();
-
+        
         dialog.innerHTML = `
             <h3 style="margin-top: 0;">Copier le formulaire</h3>
             <div style="margin-bottom: 15px;">
@@ -442,7 +678,7 @@
             <div style="margin-bottom: 15px;">
                 <label>
                     <input type="checkbox" id="linkToSymbol" style="margin-right: 8px;">
-                    Lier au symbole actuel (${currentSymbole || 'Non détecté'})
+                    Lier au symbole actuel (${currentSymbole || 'Non dÃ©tectÃ©'})
                 </label>
             </div>
             <div style="text-align: right;">
@@ -453,7 +689,7 @@
 
         document.body.appendChild(dialog);
 
-        // Gérer les événements
+        // GÃ©rer les Ã©vÃ©nements
         document.getElementById('cancelCopy').onclick = () => {
             document.body.removeChild(dialog);
         };
@@ -461,50 +697,47 @@
         document.getElementById('confirmCopy').onclick = () => {
             const presetName = document.getElementById('presetName').value.trim();
             const linkToSymbol = document.getElementById('linkToSymbol').checked;
-
+            
             if (!presetName) {
                 sytoast('warning', 'Veuillez entrer un nom pour le preset.');
                 return;
             }
 
             const storedCopies = JSON.parse(localStorage.getItem(storageKey));
-            const uniqueKey = Date.now().toString(); // Utiliser timestamp comme clé unique
-
+            const uniqueKey = Date.now().toString(); // Utiliser timestamp comme clÃ© unique
+            
             const copyData = {
                 data: formData,
                 label: presetName,
                 componentFailures: [...componentFailureRequests],
-                consistanceData: consistanceData, // Ajouter les données de consistance
-                indicesData: indicesData, // Ajouter les données des indices
+                consistanceData: consistanceData, // Ajouter les donnÃ©es de consistance
+                indicesData: indicesData, // Ajouter les donnÃ©es des indices
                 linkedSymbole: linkToSymbol ? currentSymbole : null,
                 createdAt: new Date().toISOString()
             };
 
             storedCopies[uniqueKey] = copyData;
             localStorage.setItem(storageKey, JSON.stringify(storedCopies));
-
-            console.log(`💾 Formulaire copié sous '${presetName}' avec ${componentFailureRequests.length} requêtes de composants`);
-            console.log(`🔗 Lié au symbole: ${linkToSymbol ? currentSymbole : 'Non'}`);
-
-            sytoast('success', `Formulaire copié sous '${presetName}' !<br>Requêtes de composants enregistrées: ${componentFailureRequests.length}<br>Lié au symbole: ${linkToSymbol ? currentSymbole : 'Non'}`);
-
+            
+            sytoast('success', `Formulaire copiÃ© sous '${presetName}' !<br>RequÃªtes de composants enregistrÃ©es: ${componentFailureRequests.length}<br>LiÃ© au symbole: ${linkToSymbol ? currentSymbole : 'Non'}`);
+            
             document.body.removeChild(dialog);
-            location.reload(); // pour mettre à jour les boutons
+            location.reload(); // pour mettre Ã  jour les boutons
         };
 
         // Focus sur le champ de nom
         document.getElementById('presetName').focus();
     }
 
-    // Fonction pour ajouter la fonctionnalité de suppression avec hover
+    // Fonction pour ajouter la fonctionnalitÃ© de suppression avec hover
     function addDeleteFunctionality(button, key) {
         let hoverTimeout;
         let deleteButton;
-
+        
         button.addEventListener('mouseenter', () => {
-            // Démarrer le timer de 3 secondes
+            // DÃ©marrer le timer de 3 secondes
             hoverTimeout = setTimeout(() => {
-                // Créer la croix de suppression
+                // CrÃ©er la croix de suppression
                 deleteButton = document.createElement('div');
                 deleteButton.innerHTML = '<i class="fa fa-times"></i>';
                 deleteButton.style.cssText = `
@@ -525,34 +758,34 @@
                     z-index: 1001;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                     transition: all 0.2s ease;
-                    transform: skew(10deg);
+                    transform: none;
                 `;
-
+                
                 deleteButton.addEventListener('mouseenter', () => {
-                    deleteButton.style.transform = 'skew(10deg) scale(1.2)';
+                    deleteButton.style.transform = 'scale(1.2)';
                     deleteButton.style.background = '#c82333';
                 });
-
+                
                 deleteButton.addEventListener('mouseleave', () => {
-                    deleteButton.style.transform = 'skew(10deg) scale(1)';
+                    deleteButton.style.transform = 'scale(1)';
                     deleteButton.style.background = '#dc3545';
                 });
-
+                
                 deleteButton.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Empêcher le clic sur le bouton principal
+                    e.stopPropagation(); // EmpÃªcher le clic sur le bouton principal
                     deletePreset(key);
                 });
-
+                
                 button.appendChild(deleteButton);
-            }, 500); // 2 secondes (modifiez cette valeur pour changer le délai)
+            }, 500); // 2 secondes (modifiez cette valeur pour changer le dÃ©lai)
         });
-
+        
         button.addEventListener('mouseleave', () => {
             // Annuler le timer si on quitte avant 3 secondes
             if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
             }
-
+            
             // Supprimer la croix si elle existe
             if (deleteButton && button.contains(deleteButton)) {
                 button.removeChild(deleteButton);
@@ -565,12 +798,10 @@
     let draggedElement = null;
     let ghostButton = null;
 
-    // Fonction pour ajouter les fonctionnalités de drag & drop
+    // Fonction pour ajouter les fonctionnalitÃ©s de drag & drop
     function addDragAndDropListeners(button, container) {
-        console.log('🎯 Ajout des listeners drag & drop pour:', button.id);
 
         button.addEventListener('dragstart', (e) => {
-            console.log('🚀 Drag start:', button.id);
             draggedElement = button;
             button.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
@@ -578,7 +809,6 @@
         });
 
         button.addEventListener('dragend', (e) => {
-            console.log('🎬 Drag end:', button.id);
             button.classList.remove('dragging');
             if (ghostButton && ghostButton.parentNode) {
                 ghostButton.parentNode.removeChild(ghostButton);
@@ -590,9 +820,9 @@
         button.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-
+            
             if (draggedElement && draggedElement !== button) {
-                // Créer ou déplacer le ghost button
+                // CrÃ©er ou dÃ©placer le ghost button
                 if (!ghostButton) {
                     ghostButton = draggedElement.cloneNode(true);
                     ghostButton.className = ghostButton.className + ' ghost-button';
@@ -600,22 +830,21 @@
                     // Nettoyer les event listeners du clone
                     ghostButton.onclick = null;
                     ghostButton.removeAttribute('draggable');
-                    console.log('� Création ghost button');
                 }
-
-                // Déterminer la position du ghost
+                
+                // DÃ©terminer la position du ghost
                 const rect = button.getBoundingClientRect();
                 const midpoint = rect.left + rect.width / 2;
                 const mouseX = e.clientX;
-
-                // Placer le ghost à la bonne position
+                
+                // Placer le ghost Ã  la bonne position
                 if (mouseX < midpoint) {
-                    // Insérer avant le bouton
+                    // InsÃ©rer avant le bouton
                     if (button.previousSibling !== ghostButton) {
                         container.insertBefore(ghostButton, button);
                     }
                 } else {
-                    // Insérer après le bouton
+                    // InsÃ©rer aprÃ¨s le bouton
                     if (button.nextSibling !== ghostButton) {
                         container.insertBefore(ghostButton, button.nextSibling);
                     }
@@ -625,29 +854,26 @@
 
         button.addEventListener('drop', (e) => {
             e.preventDefault();
-            console.log('📦 Drop événement sur:', button.id);
-
+            
             if (draggedElement && draggedElement !== button && ghostButton) {
                 const draggedKey = draggedElement.dataset.buttonKey;
-
-                console.log('🔄 Reconstruction de la liste basée sur la position finale du ghost');
-
-                // Reconstruire la liste complète en fonction de la position actuelle du ghost
+                
+                // Reconstruire la liste complÃ¨te en fonction de la position actuelle du ghost
                 rebuildOrderFromGhostPosition(draggedKey);
             }
-
+            
             if (ghostButton && ghostButton.parentNode) {
                 ghostButton.parentNode.removeChild(ghostButton);
                 ghostButton = null;
             }
         });
 
-        // Ajouter aussi des listeners sur le conteneur pour gérer les drops entre les boutons
+        // Ajouter aussi des listeners sur le conteneur pour gÃ©rer les drops entre les boutons
         container.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-
-            // Si on survole une zone vide, positionner le ghost à la fin
+            
+            // Si on survole une zone vide, positionner le ghost Ã  la fin
             if (draggedElement && e.target === container) {
                 if (!ghostButton) {
                     ghostButton = draggedElement.cloneNode(true);
@@ -656,8 +882,8 @@
                     ghostButton.onclick = null;
                     ghostButton.removeAttribute('draggable');
                 }
-
-                // Placer le ghost à la fin du conteneur (mais avant le séparateur et le bouton copier)
+                
+                // Placer le ghost Ã  la fin du conteneur (mais avant le sÃ©parateur et le bouton copier)
                 const separator = container.querySelector('span[style*="width: 100%"]');
                 if (separator && ghostButton.parentNode !== container) {
                     container.insertBefore(ghostButton, separator);
@@ -667,213 +893,177 @@
 
         container.addEventListener('drop', (e) => {
             e.preventDefault();
-            console.log('📦 Drop sur conteneur');
-
+            
             // Si on drop sur le conteneur (zone vide) et qu'il y a un ghost
             if (draggedElement && ghostButton && e.target === container) {
                 const draggedKey = draggedElement.dataset.buttonKey;
-                console.log('🔄 Drop sur zone vide, reconstruction basée sur position ghost');
-
-                // Utiliser la même logique de reconstruction
+                
+                // Utiliser la mÃªme logique de reconstruction
                 rebuildOrderFromGhostPosition(draggedKey);
             }
-
+            
             if (ghostButton && ghostButton.parentNode) {
                 ghostButton.parentNode.removeChild(ghostButton);
                 ghostButton = null;
             }
         });
-
-        // Debug: vérifier que le bouton est bien configuré
-        console.log('✅ Bouton configuré pour drag & drop:', {
-            id: button.id,
-            draggable: button.draggable,
-            buttonKey: button.dataset.buttonKey,
-            classList: button.classList.toString()
-        });
     }
 
     // Fonction pour reconstruire l'ordre complet basé sur la position du ghost
     function rebuildOrderFromGhostPosition(draggedKey) {
-        console.log('🏗️ Reconstruction de l\'ordre depuis la position du ghost pour:', draggedKey);
-
+        
         if (!ghostButton || !ghostButton.parentNode) {
-            console.log('❌ Pas de ghost button pour reconstruire l\'ordre');
             return;
         }
-
+        
         const container = ghostButton.parentNode;
         const newOrder = [];
-
-        // Parcourir tous les éléments dans le conteneur pour créer le nouvel ordre
+        
+        // Parcourir tous les Ã©lÃ©ments dans le conteneur pour crÃ©er le nouvel ordre
         const allElements = Array.from(container.children);
-        console.log('🔍 Éléments dans le conteneur:', allElements.map(el => el.id || el.tagName).join(', '));
-
+        
         allElements.forEach(element => {
-            // Si c'est le ghost, ajouter l'élément drag
+            // Si c'est le ghost, ajouter l'Ã©lÃ©ment drag
             if (element === ghostButton) {
                 newOrder.push(draggedKey);
-                console.log('👻 Position ghost trouvée, ajout de:', draggedKey);
             }
-            // Si c'est un bouton coller (pas le drag), l'ajouter à la liste
+            // Si c'est un bouton coller (pas le drag), l'ajouter Ã  la liste
             else if (element.id && element.id.startsWith('btnColler-') && element !== draggedElement) {
                 const buttonKey = element.dataset.buttonKey;
                 if (buttonKey && buttonKey !== draggedKey) {
                     newOrder.push(buttonKey);
-                    console.log('🔘 Bouton existant ajouté:', buttonKey);
                 }
             }
         });
-
-        console.log('📋 Nouvel ordre reconstruit (ordre DOM):', newOrder);
-
+        
+        
         // CORRECTION: Inverser pour compenser le prepend() dans refreshButtons
         // L'ordre DOM [A,B,C] avec prepend() s'affiche comme [C,B,A]
-        // Donc pour avoir [A,B,C] à l'affichage, on sauvegarde [C,B,A]
+        // Donc pour avoir [A,B,C] Ã  l'affichage, on sauvegarde [C,B,A]
         const orderForSaving = [...newOrder].reverse();
-        console.log('📋 Ordre pour sauvegarde (inversé pour prepend):', orderForSaving);
-
-        // Sauvegarder l'ordre inversé pour compenser le prepend()
+        
+        // Sauvegarder l'ordre inversÃ© pour compenser le prepend()
         setButtonOrder(orderForSaving);
-
-        // Vérification immédiate de la sauvegarde
+        
+        // VÃ©rification immÃ©diate de la sauvegarde
         const savedOrder = getButtonOrder();
-        console.log('✅ Vérification sauvegarde - Ordre sauvé:', savedOrder);
-        console.log('🔍 Correspondance ordre:', JSON.stringify(newOrder) === JSON.stringify(savedOrder) ? '✅ CORRECT' : '❌ ÉCHEC');
-
+        
         refreshButtons();
     }
 
-    // Fonction pour réorganiser l'ordre des boutons
+    // Fonction pour rÃ©organiser l'ordre des boutons
     function reorderButtons(draggedKey, targetKey, insertBefore) {
-        console.log('🔧 reorderButtons appelé avec:', { draggedKey, targetKey, insertBefore });
-
+        
         const currentOrder = getButtonOrder();
-        console.log('📋 Ordre actuel:', currentOrder);
-
-        // Retirer l'élément déplacé de sa position actuelle
+        
+        // Retirer l'Ã©lÃ©ment dÃ©placÃ© de sa position actuelle
         const draggedIndex = currentOrder.indexOf(draggedKey);
         if (draggedIndex > -1) {
             currentOrder.splice(draggedIndex, 1);
-            console.log('✂️ Retiré', draggedKey, 'de l\'index', draggedIndex);
         }
-
+        
         // Trouver la nouvelle position
         const targetIndex = currentOrder.indexOf(targetKey);
         const newIndex = insertBefore ? targetIndex : targetIndex + 1;
-
-        console.log('🎯 Position cible:', { targetIndex, newIndex, insertBefore });
-
-        // Insérer l'élément à sa nouvelle position
+        
+        // InsÃ©rer l'Ã©lÃ©ment Ã  sa nouvelle position
         currentOrder.splice(newIndex, 0, draggedKey);
-
-        console.log('📋 Nouvel ordre:', currentOrder);
-
+        
         // Sauvegarder le nouvel ordre
         setButtonOrder(currentOrder);
-
-        // Vérification immédiate de la sauvegarde
+        
+        // VÃ©rification immÃ©diate de la sauvegarde
         const savedOrder = getButtonOrder();
-        console.log('✅ Vérification sauvegarde - Ordre sauvé:', savedOrder);
-        console.log('🔍 Correspondance ordre:', JSON.stringify(currentOrder) === JSON.stringify(savedOrder) ? '✅ CORRECT' : '❌ ÉCHEC');
-
-        // Rafraîchir l'affichage des boutons
+        
+        // RafraÃ®chir l'affichage des boutons
         refreshButtons();
     }
 
-    // Fonction pour rafraîchir l'affichage des boutons
+    // Fonction pour rafraÃ®chir l'affichage des boutons
     function refreshButtons() {
-        console.log('🔄 Refresh buttons appelé');
-
+        
         // Retirer tous les boutons de collage existants
         const existingButtons = document.querySelectorAll('[id^="btnColler-"]');
-        console.log('🗑️ Suppression de', existingButtons.length, 'boutons existants');
         existingButtons.forEach(btn => btn.remove());
-
-        // Recréer les boutons dans le bon ordre
-        const buttonContainer = document.querySelector('div[style*="position: fixed;"][style*="bottom: 10px;"][style*="right: 10px;"]');
+        
+        // RecrÃ©er les boutons dans le bon ordre
+        const buttonContainer = getOrCreateButtonContainer();
         if (buttonContainer) {
             const storedCopies = JSON.parse(localStorage.getItem(storageKey));
-
-            // Utiliser directement getButtonOrder pour garder l'ordre exact sauvé
+            
+            // Utiliser directement getButtonOrder pour garder l'ordre exact sauvÃ©
             const savedOrder = getButtonOrder();
-
-            // Filtrer pour ne garder que les clés valides
+            
+            // Filtrer pour ne garder que les clÃ©s valides
             const validOrder = savedOrder.filter(key => storedCopies[key]);
-
-            console.log('📋 Ordre sauvé pour refresh:', validOrder);
-
-            // Créer les boutons dans l'ordre sauvé (qui est déjà inversé pour compenser prepend)
-            // L'ordre sauvé [C,B,A] avec prepend() s'affiche comme [A,B,C]
+            
+            // CrÃ©er les boutons dans l'ordre sauvÃ© (avec appendChild, l'ordre est naturel)
             validOrder.forEach(key => {
                 if (storedCopies[key]) {
-                    console.log('🔧 Création bouton pour:', key);
                     createPasteButton(key, storedCopies[key], buttonContainer);
                 }
             });
         }
     }
 
-    // Fonction helper pour créer un bouton de collage
+    // Fonction helper pour crÃ©er un bouton de collage
     function createPasteButton(key, slotData, buttonContainer) {
-        // Vérifier si l'élément est lié à un symbole
+        // VÃ©rifier si l'Ã©lÃ©ment est liÃ© Ã  un symbole
         const currentSymbole = getCurrentSymbole();
         const isSymbolLinked = slotData.linkedSymbole;
-
-        // Si l'élément est lié à un symbole, vérifier la correspondance
+        
+        // Si l'Ã©lÃ©ment est liÃ© Ã  un symbole, vÃ©rifier la correspondance
         if (isSymbolLinked && isSymbolLinked !== currentSymbole) {
             return; // Ne pas afficher le bouton si le symbole ne correspond pas
         }
-
+        
         let btnColler = document.createElement("button");
         btnColler.id = `btnColler-${key}`;
         btnColler.style.position = "relative";
         btnColler.draggable = true;
         btnColler.className = "draggable-button";
         btnColler.dataset.buttonKey = key;
-
+        
         const spanColler = document.createElement("span");
         spanColler.innerText = slotData.label || key;
         btnColler.appendChild(spanColler);
         btnColler.onclick = () => collerFormulaire(key);
-
-        // Coloration différente si lié à un symbole
-        const buttonColor = isSymbolLinked ? "#6f42c1" : "#6c757d";
+        
+        // Coloration diffÃ©rente si liÃ© Ã  un symbole
+        const buttonColor = isSymbolLinked ? "#6f42c1" : "#007bff";
         window.styleButton(btnColler, buttonColor, "fa-paste");
-
+        
         // Ajouter la gestion du hover pour la suppression
         addDeleteFunctionality(btnColler, key);
-
+        
         // Ajouter les event listeners pour le drag & drop
         addDragAndDropListeners(btnColler, buttonContainer);
-
-        // Utiliser prepend pour garder l'ordre d'affichage habituel
-        buttonContainer.prepend(btnColler);
+        
+        // Utiliser appendChild pour l'ordre naturel
+        buttonContainer.appendChild(btnColler);
     }
 
     // Fonction pour supprimer un preset
     function deletePreset(key) {
         const storedCopies = JSON.parse(localStorage.getItem(storageKey));
         const presetName = storedCopies[key]?.label || key;
-
-        if (confirm(`Êtes-vous sûr de vouloir supprimer le preset "${presetName}" ?`)) {
+        
+        if (confirm(`ÃŠtes-vous sÃ»r de vouloir supprimer le preset "${presetName}" ?`)) {
             delete storedCopies[key];
             localStorage.setItem(storageKey, JSON.stringify(storedCopies));
-
-            // Mettre à jour l'ordre en retirant la clé supprimée
+            
+            // Mettre Ã  jour l'ordre en retirant la clÃ© supprimÃ©e
             const currentOrder = getButtonOrder();
             const updatedOrder = currentOrder.filter(orderKey => orderKey !== key);
             setButtonOrder(updatedOrder);
-
-            console.log(`🗑️ Preset "${presetName}" supprimé`);
-
+            
             // Retirer le bouton du DOM
             const buttonToRemove = document.getElementById(`btnColler-${key}`);
             if (buttonToRemove) {
                 buttonToRemove.remove();
             }
-
-            sytoast('success', `Preset "${presetName}" supprimé avec succès !`);
+            
+            sytoast('success', `Preset "${presetName}" supprimÃ© avec succÃ¨s !`);
         }
     }
 
@@ -881,12 +1071,11 @@
     // Fonction pour valider le textarea via l'API
     async function validateTextarea(textValue) {
         try {
-            // Récupérer les valeurs nécessaires du DOM
+            // RÃ©cupÃ©rer les valeurs nÃ©cessaires du DOM
             const idUserElement = document.getElementById('idUser');
             const idRepElement = document.getElementById('idRep');
 
             if (!idUserElement || !idRepElement) {
-                console.error('Éléments idUser ou idRep non trouvés');
                 return false;
             }
 
@@ -906,202 +1095,232 @@
             });
 
             if (response.ok) {
-                console.log('✅ Validation réussie pour le textarea');
                 return true;
             } else {
-                console.error('❌ Erreur lors de la validation:', response.status, response.statusText);
                 return false;
             }
         } catch (error) {
-            console.error('❌ Erreur lors de la requête de validation:', error);
             return false;
         }
     }
 
     function collerFormulaire(slot) {
-        // Modifier la classe du bouton de consistance au début
-        const consistanceButton = document.getElementById('id_dico_consistance_1');
-        if (consistanceButton) {
-            consistanceButton.className = 'btn btn-primary';
-            console.log('✅ Classe du bouton de consistance modifiée en "btn btn-primary"');
-        } else {
-            console.log('⚠️ Bouton de consistance "id_dico_consistance_1" non trouvé');
+        
+        // Fonction pour attendre que le formulaire soit prÃ©sent
+        function attendreFormulaire(callback, maxAttempts = 20) {
+            let attempts = 0;
+            const checkInterval = setInterval(() => {
+                attempts++;
+                const formulaire = document.querySelector('#panel-body-general');
+                
+                if (formulaire) {
+                    clearInterval(checkInterval);
+                    callback();
+                } else {
+                    
+                    if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        sytoast('error', 'Formulaire non trouvÃ© - Veuillez ouvrir une rÃ©paration avant de coller.');
+                    }
+                }
+            }, 500); // VÃ©rifier toutes les 500ms
         }
-
-        // Ajouter 1 seconde de latence avant de lancer la fonction actuelle
-        setTimeout(() => {
-            const formulaire = document.querySelector('#panel-body-general');
-            if (!formulaire) {
-                sytoast('error', 'Formulaire non trouvé sur cette page.');
-                return;
+        
+        // Attendre que le formulaire soit prÃ©sent avant de continuer
+        attendreFormulaire(() => {
+            
+            // Modifier la classe du bouton de consistance
+            const consistanceButton = document.getElementById('id_dico_consistance_1');
+            if (consistanceButton) {
+                consistanceButton.className = 'btn btn-primary';
+            } else {
             }
 
-            let storedCopies = JSON.parse(localStorage.getItem(storageKey));
-            const formData = storedCopies[slot]?.data;
-            if (!formData) {
-                sytoast('error', 'Aucune donnée enregistrée pour ' + slot);
-                return;
-            }
+            // Ajouter 1 seconde de latence avant de lancer la fonction actuelle
+            setTimeout(() => {
+                
+                const formulaire = document.querySelector('#panel-body-general');
+                if (!formulaire) {
+                    sytoast('error', 'Formulaire non trouvÃ© sur cette page.');
+                    return;
+                }
 
-            // Répéter plusieurs fois la saisie
-            let repeatCount = 4; // nombre de fois que tu veux injecter les données
-            let delay = 200; // en millisecondes
+                let storedCopies = JSON.parse(localStorage.getItem(storageKey));
+                const formData = storedCopies[slot]?.data;
+                if (!formData) {
+                    sytoast('error', 'Aucune donnÃ©e enregistrÃ©e pour ' + slot);
+                    return;
+                }
 
-            let current = 0;
+                // RÃ©pÃ©ter plusieurs fois la saisie
+                let repeatCount = 4; // nombre de fois que tu veux injecter les donnÃ©es
+                let delay = 200; // en millisecondes
 
-            const remplir = () => {
-                formulaire.querySelectorAll('input, select, textarea').forEach((element) => {
-                    const value = formData[element.name];
-                    if (value !== undefined) {
-                        if (element.tagName === 'SELECT' && element.multiple) {
-                            Array.from(element.options).forEach(option => {
-                                option.selected = value.includes(option.value);
-                            });
+                let current = 0;
 
-                            const container = element.closest('.bootstrap-select');
-                            if (container) {
-                                const display = container.querySelector('.filter-option-inner-inner');
-                                if (display) {
-                                    display.textContent = Array.from(element.selectedOptions).map(opt => opt.textContent).join(', ');
+                const remplir = () => {
+                    formulaire.querySelectorAll('input, select, textarea').forEach((element) => {
+                        const value = formData[element.name];
+                        if (value !== undefined) {
+                            if (element.tagName === 'SELECT' && element.multiple) {
+                                Array.from(element.options).forEach(option => {
+                                    option.selected = value.includes(option.value);
+                                });
+
+                                const container = element.closest('.bootstrap-select');
+                                if (container) {
+                                    const display = container.querySelector('.filter-option-inner-inner');
+                                    if (display) {
+                                        display.textContent = Array.from(element.selectedOptions).map(opt => opt.textContent).join(', ');
+                                    }
                                 }
+
+                            } else {
+                                element.value = value;
                             }
 
-                        } else {
-                            element.value = value;
+                            element.dispatchEvent(new Event('input', { bubbles: true }));
+                            element.dispatchEvent(new Event('change', { bubbles: true }));
+                            element.dispatchEvent(new Event('blur', { bubbles: true }));
                         }
+                    });
+                };
 
-                        element.dispatchEvent(new Event('input', { bubbles: true }));
-                        element.dispatchEvent(new Event('change', { bubbles: true }));
-                        element.dispatchEvent(new Event('blur', { bubbles: true }));
-                    }
-                });
-            };
-
-            const loop = () => {
+                const loop = () => {
                 if (current < repeatCount) {
                     remplir();
                     current++;
                     setTimeout(loop, delay);
                 } else {
-                    console.log(`✅ Formulaire injecté ${repeatCount} fois pour stabilité.`);
 
-                    // Cliquer sur le bouton de consistance si les données existent
+                    // Cliquer sur le bouton de consistance si les donnÃ©es existent
                     const consistanceData = storedCopies[slot]?.consistanceData;
                     if (consistanceData && consistanceData.collectorValue) {
-                        console.log('🎯 Données de consistance trouvées, recherche du bouton correspondant...');
-                        console.log('📋 Consistance à appliquer:', consistanceData);
                         setTimeout(() => {
-                            clickConsistanceButtonByValue(consistanceData.collectorValue);
-                        }, 500); // Délai pour laisser le DOM se stabiliser
+                            try {
+                                clickConsistanceButtonByValue(consistanceData.collectorValue);
+                            } catch (error) {
+                            }
+                        }, 500); // DÃ©lai pour laisser le DOM se stabiliser
                     } else {
-                        console.log('⚠️ Aucune donnée de consistance à appliquer (aucun bouton n\'était sélectionné lors de la copie)');
                     }
 
-                    // Restaurer les valeurs des indices si elles existent (avec délais entre chaque)
+                    // Restaurer les valeurs des indices si elles existent (avec dÃ©lais entre chaque)
                     const indicesData = storedCopies[slot]?.indicesData;
                     if (indicesData) {
-                        console.log('📋 Restauration des indices avec délais:', indicesData);
-
-                        // Restaurer S_indice_organe_arr (premier champ - délai 700ms)
+                        
+                        // Restaurer S_indice_organe_arr (premier champ - dÃ©lai 700ms)
                         setTimeout(() => {
-                            const indiceOrganeArr = document.getElementById('S_indice_organe_arr');
-                            if (indiceOrganeArr && indicesData.S_indice_organe_arr) {
-                                indiceOrganeArr.value = indicesData.S_indice_organe_arr;
-                                indiceOrganeArr.dispatchEvent(new Event('input', { bubbles: true }));
-                                indiceOrganeArr.dispatchEvent(new Event('change', { bubbles: true }));
-                                indiceOrganeArr.dispatchEvent(new Event('blur', { bubbles: true }));
-                                console.log('✅ S_indice_organe_arr restauré:', indicesData.S_indice_organe_arr);
+                            try {
+                                const indiceOrganeArr = document.getElementById('S_indice_organe_arr');
+                                if (indiceOrganeArr && indicesData.S_indice_organe_arr) {
+                                    indiceOrganeArr.value = indicesData.S_indice_organe_arr;
+                                    indiceOrganeArr.dispatchEvent(new Event('input', { bubbles: true }));
+                                    indiceOrganeArr.dispatchEvent(new Event('change', { bubbles: true }));
+                                    indiceOrganeArr.dispatchEvent(new Event('blur', { bubbles: true }));
+                                } else {
+                                }
+                            } catch (error) {
                             }
                         }, 700);
-
-                        // Restaurer S_indice_organe_dep (deuxième champ - délai 1200ms)
+                        
+                        // Restaurer S_indice_organe_dep (deuxiÃ¨me champ - dÃ©lai 1200ms)
                         setTimeout(() => {
-                            const indiceOrganeDep = document.getElementById('S_indice_organe_dep');
-                            if (indiceOrganeDep && indicesData.S_indice_organe_dep) {
-                                indiceOrganeDep.value = indicesData.S_indice_organe_dep;
-                                indiceOrganeDep.dispatchEvent(new Event('input', { bubbles: true }));
-                                indiceOrganeDep.dispatchEvent(new Event('change', { bubbles: true }));
-                                indiceOrganeDep.dispatchEvent(new Event('blur', { bubbles: true }));
-                                console.log('✅ S_indice_organe_dep restauré:', indicesData.S_indice_organe_dep);
+                            try {
+                                const indiceOrganeDep = document.getElementById('S_indice_organe_dep');
+                                if (indiceOrganeDep && indicesData.S_indice_organe_dep) {
+                                    indiceOrganeDep.value = indicesData.S_indice_organe_dep;
+                                    indiceOrganeDep.dispatchEvent(new Event('input', { bubbles: true }));
+                                    indiceOrganeDep.dispatchEvent(new Event('change', { bubbles: true }));
+                                    indiceOrganeDep.dispatchEvent(new Event('blur', { bubbles: true }));
+                                } else {
+                                }
+                            } catch (error) {
                             }
                         }, 1200);
-
-                        // Restaurer S_indice_logiciel_arr (troisième champ - délai 1700ms)
+                        
+                        // Restaurer S_indice_logiciel_arr (troisiÃ¨me champ - dÃ©lai 1700ms)
                         setTimeout(() => {
-                            const indiceLogicielArr = document.getElementById('S_indice_logiciel_arr');
-                            if (indiceLogicielArr && indicesData.S_indice_logiciel_arr) {
-                                indiceLogicielArr.value = indicesData.S_indice_logiciel_arr;
-                                indiceLogicielArr.dispatchEvent(new Event('input', { bubbles: true }));
-                                indiceLogicielArr.dispatchEvent(new Event('change', { bubbles: true }));
-                                indiceLogicielArr.dispatchEvent(new Event('blur', { bubbles: true }));
-                                console.log('✅ S_indice_logiciel_arr restauré:', indicesData.S_indice_logiciel_arr);
+                            try {
+                                const indiceLogicielArr = document.getElementById('S_indice_logiciel_arr');
+                                if (indiceLogicielArr && indicesData.S_indice_logiciel_arr) {
+                                    indiceLogicielArr.value = indicesData.S_indice_logiciel_arr;
+                                    indiceLogicielArr.dispatchEvent(new Event('input', { bubbles: true }));
+                                    indiceLogicielArr.dispatchEvent(new Event('change', { bubbles: true }));
+                                    indiceLogicielArr.dispatchEvent(new Event('blur', { bubbles: true }));
+                                } else {
+                                }
+                            } catch (error) {
                             }
                         }, 1700);
-
-                        // Restaurer S_indice_logiciel_dep (quatrième champ - délai 2200ms)
+                        
+                        // Restaurer S_indice_logiciel_dep (quatriÃ¨me champ - dÃ©lai 2200ms)
                         setTimeout(() => {
-                            const indiceLogicielDep = document.getElementById('S_indice_logiciel_dep');
-                            if (indiceLogicielDep && indicesData.S_indice_logiciel_dep) {
-                                indiceLogicielDep.value = indicesData.S_indice_logiciel_dep;
-                                indiceLogicielDep.dispatchEvent(new Event('input', { bubbles: true }));
-                                indiceLogicielDep.dispatchEvent(new Event('change', { bubbles: true }));
-                                indiceLogicielDep.dispatchEvent(new Event('blur', { bubbles: true }));
-                                console.log('✅ S_indice_logiciel_dep restauré:', indicesData.S_indice_logiciel_dep);
-                                console.log('🎉 Tous les indices ont été restaurés avec succès');
+                            try {
+                                const indiceLogicielDep = document.getElementById('S_indice_logiciel_dep');
+                                if (indiceLogicielDep && indicesData.S_indice_logiciel_dep) {
+                                    indiceLogicielDep.value = indicesData.S_indice_logiciel_dep;
+                                    indiceLogicielDep.dispatchEvent(new Event('input', { bubbles: true }));
+                                    indiceLogicielDep.dispatchEvent(new Event('change', { bubbles: true }));
+                                    indiceLogicielDep.dispatchEvent(new Event('blur', { bubbles: true }));
+                                } else {
+                                }
+                            } catch (error) {
                             }
                         }, 2200);
-
-                        // Cliquer sur le bouton "Valider" après la restauration de tous les indices (délai 3000ms)
+                        
+                        // Cliquer sur le bouton "Valider" aprÃ¨s la restauration de tous les indices (dÃ©lai 3000ms)
                         setTimeout(() => {
-                            const validateButton = document.getElementById('fonctionnel_validate_form');
-                            if (validateButton) {
-                                console.log('🎯 Clic automatique sur le bouton Valider');
-                                validateButton.click();
-                                console.log('✅ Bouton Valider cliqué avec succès');
-                            } else {
-                                console.log('⚠️ Bouton Valider (fonctionnel_validate_form) non trouvé');
+                            try {
+                                const validateButton = document.getElementById('fonctionnel_validate_form');
+                                if (validateButton) {
+                                    
+                                    validateButton.click();
+                                } else {
+                                    const alternativeButtons = document.querySelectorAll('.btn-success');
+                                    alternativeButtons.forEach((btn, i) => {
+                                    });
+                                }
+                            } catch (error) {
                             }
                         }, 3000);
                     } else {
-                        console.log('⚠️ Aucune donnée d\'indice à restaurer');
                     }
 
-                    // Validation du textarea après remplissage
+                    // Validation du textarea aprÃ¨s remplissage
                     const textareaElement = document.getElementById('S_observation_reparation');
                     if (textareaElement && textareaElement.value) {
-                        console.log('🔄 Validation du textarea en cours...');
                         validateTextarea(textareaElement.value).then((ok) => {
                             if (ok) {
                                 const presetLabel = storedCopies[slot]?.label || slot;
-                                sytoast('success', 'Données collées et validées avec succès pour ' + presetLabel);
+                                sytoast('success', 'DonnÃ©es collÃ©es et validÃ©es avec succÃ¨s pour ' + presetLabel);
                             } else {
-                                sytoast('error', "Échec de la validation du textarea.");
+                                sytoast('error', "Ã‰chec de la validation du textarea.");
                             }
                         });
                     }
                 }
-            };
+                };
 
-            loop();
+                loop();
 
-            // Rejouer les requêtes de composants après le remplissage
-            const componentFailures = storedCopies[slot]?.componentFailures;
-            if (componentFailures && componentFailures.length > 0) {
-                console.log(`🔄 Rejeu de ${componentFailures.length} requêtes de composants...`);
-                setTimeout(() => {
-                    replayComponentFailureRequests(componentFailures);
-                }, 1000); // Attendre 1 seconde après le remplissage du formulaire
-            }
-        }, 1000); // Latence d'1 seconde avant de lancer la fonction actuelle
+                // Rejouer les requÃªtes de composants aprÃ¨s le remplissage
+                const componentFailures = storedCopies[slot]?.componentFailures;
+                if (componentFailures && componentFailures.length > 0) {
+                    setTimeout(() => {
+                        replayComponentFailureRequests(componentFailures);
+                    }, 1000); // Attendre 1 seconde aprÃ¨s le remplissage du formulaire
+                }
+            }, 1000); // Latence d'1 seconde avant de lancer la fonction actuelle
+        }); // Fin du callback attendreFormulaire
     }
 
-    // Rejouer les requêtes EditComponentFailure
+    // Rejouer les requÃªtes EditComponentFailure
     async function replayComponentFailureRequests(componentFailures) {
         const idRepElement = document.getElementById('idRep');
         const idUserElement = document.getElementById('idUser');
 
         if (!idRepElement || !idUserElement) {
-            console.error('❌ Éléments idRep ou idUser non trouvés');
             return;
         }
 
@@ -1110,7 +1329,7 @@
 
         for (let i = 0; i < componentFailures.length; i++) {
             const componentData = componentFailures[i];
-
+            
             try {
                 const formData = new FormData();
                 formData.append('fk_dico_constituant', componentData.fk_dico_constituant);
@@ -1121,8 +1340,6 @@
                 formData.append('idUser', idUser);
                 formData.append('current_repair_id', idRep);
 
-                console.log(`📤 Envoi de la requête ${i + 1}/${componentFailures.length}:`, componentData);
-
                 const response = await fetch('https://prod.cloud-collectorplus.mt.sncf.fr/Prm/ReparationForms/Saisie_Intervention/EditComponentFailure', {
                     method: 'POST',
                     body: formData,
@@ -1130,154 +1347,130 @@
                 });
 
                 if (response.ok) {
-                    console.log(`✅ Requête ${i + 1} envoyée avec succès`);
-
-                    // Récupérer et traiter la réponse JSON
+                    
+                    // RÃ©cupÃ©rer et traiter la rÃ©ponse JSON
                     try {
                         const responseData = await response.json();
-                        console.log(`📨 Réponse ${i + 1}:`, responseData);
-
-                        // Vérifier si la réponse contient du HTML pour les composants
+                        
+                        // VÃ©rifier si la rÃ©ponse contient du HTML pour les composants
                         if (responseData.status === "OK" && responseData.component_panel) {
-                            console.log(`🔄 Mise à jour du DOM avec le HTML de la réponse ${i + 1}`);
                             updateComponentsTable(responseData.component_panel);
                         } else {
-                            console.log(`⚠️ Réponse ${i + 1} sans HTML de composants`);
                         }
                     } catch (jsonError) {
-                        console.error(`❌ Erreur parsing JSON réponse ${i + 1}:`, jsonError);
                     }
                 } else {
-                    console.error(`❌ Erreur requête ${i + 1}:`, response.status, response.statusText);
                 }
 
-                // Délai entre les requêtes pour éviter la surcharge
+                // DÃ©lai entre les requÃªtes pour Ã©viter la surcharge
                 if (i < componentFailures.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
 
             } catch (error) {
-                console.error(`❌ Erreur lors de l'envoi de la requête ${i + 1}:`, error);
             }
         }
-
-        console.log('🎉 Toutes les requêtes de composants ont été rejouées');
-        sytoast('success', 'Composant ajouté avec succès !');
+        sytoast('success', 'Composant ajoutÃ© avec succÃ¨s !');
     }
 
-    // Fonction pour mettre à jour le tableau des composants avec le HTML reçu
+    // Fonction pour mettre Ã  jour le tableau des composants avec le HTML reÃ§u
     function updateComponentsTable(htmlContent) {
         try {
-            console.log("🎯 Début de mise à jour du tableau des composants - mise à jour du tbody uniquement");
-
+            
             // Trouver le tableau dans .dataTables_scrollBody
             const scrollBodyTable = document.querySelector('.dataTables_scrollBody #components_panel_table');
-
+            
             if (scrollBodyTable) {
-                console.log("📋 Tableau dans dataTables_scrollBody trouvé");
-
+                
                 // Parser le nouveau HTML pour extraire le tbody
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = htmlContent;
                 const newTable = tempDiv.querySelector('#components_panel_table');
-
+                
                 if (newTable) {
                     const newTbody = newTable.querySelector('tbody');
                     const existingTbody = scrollBodyTable.querySelector('tbody');
-
+                    
                     if (newTbody && existingTbody) {
-                        console.log("🔄 Remplacement du tbody existant avec le nouveau contenu");
-
+                        
                         // Copier les nouvelles lignes avec leurs attributs DataTables
                         const newRows = Array.from(newTbody.querySelectorAll('tr'));
-
+                        
                         // Vider le tbody existant
                         existingTbody.innerHTML = '';
-
-                        // Ajouter les nouvelles lignes avec les classes DataTables appropriées
+                        
+                        // Ajouter les nouvelles lignes avec les classes DataTables appropriÃ©es
                         newRows.forEach((row, index) => {
                             // Ajouter les classes DataTables pour le tri et les styles
                             row.setAttribute('role', 'row');
                             row.classList.add(index % 2 === 0 ? 'odd' : 'even');
-
-                            // Ajouter les classes sorting aux cellules si nécessaire
+                            
+                            // Ajouter les classes sorting aux cellules si nÃ©cessaire
                             const cells = row.querySelectorAll('td');
                             cells.forEach(cell => {
                                 if (cell.classList.contains('component_default')) {
                                     cell.classList.add('sorting_1');
                                 }
                             });
-
+                            
                             existingTbody.appendChild(row);
                         });
-
-                        console.log(`✅ ${newRows.length} lignes mises à jour dans le tbody`);
-
-                        // Déclencher des événements DataTables pour réinitialiser le tri/pagination
+                        
+                        // DÃ©clencher des Ã©vÃ©nements DataTables pour rÃ©initialiser le tri/pagination
                         if (window.$ && $.fn.DataTable) {
                             const dataTable = $('#components_panel_table').DataTable();
                             if (dataTable) {
-                                console.log("🔄 Réinitialisation DataTables");
                                 dataTable.draw(false);
                             }
                         }
-
-                        // Déclencher un événement personnalisé
+                        
+                        // DÃ©clencher un Ã©vÃ©nement personnalisÃ©
                         scrollBodyTable.dispatchEvent(new Event('contentUpdated', { bubbles: true }));
-
-                        // Cliquer automatiquement sur le bouton avec btn-primary après l'hydratation
+                        
+                        // Cliquer automatiquement sur le bouton avec btn-primary aprÃ¨s l'hydratation
                         setTimeout(() => {
                             clickConsistanceButton();
-                        }, 900); // Délai pour laisser le DOM se stabiliser
-
+                        }, 900); // DÃ©lai pour laisser le DOM se stabiliser
+                        
                     } else {
-                        console.log("⚠️ Tbody non trouvé, remplacement complet du tableau");
                         scrollBodyTable.replaceWith(newTable);
-
-                        // Cliquer sur le bouton même en cas de remplacement complet
+                        
+                        // Cliquer sur le bouton mÃªme en cas de remplacement complet
                         setTimeout(() => {
                             clickConsistanceButton();
                         }, 900);
                     }
                 } else {
-                    console.log("❌ Aucun tableau trouvé dans la réponse HTML");
                 }
-
+                
             } else {
-                console.log("⚠️ Tableau dataTables_scrollBody non trouvé, fallback vers conteneur global");
-
+                
                 // Fallback vers l'ancien comportement
                 const existingContainer = document.getElementById('components_table_container');
                 if (existingContainer) {
-                    console.log("📋 Utilisation du conteneur components_table_container comme fallback");
                     existingContainer.innerHTML = htmlContent;
-                    console.log("✅ HTML inséré dans le conteneur fallback");
                 } else {
-                    console.log("❌ Aucun conteneur approprié trouvé pour insérer le HTML");
                 }
             }
-
+            
         } catch (error) {
-            console.error("❌ Erreur lors de la mise à jour du DOM:", error);
         }
     }
 
-    // Fonction pour envoyer la requête de validation de consistance comme le fait le système
+    // Fonction pour envoyer la requÃªte de validation de consistance comme le fait le systÃ¨me
     async function sendConsistanceValidationRequest(collectorValue) {
         try {
-            console.log(`📡 Envoi de la requête de validation de consistance pour collector-value: ${collectorValue}`);
-
-            // Récupérer les valeurs nécessaires du DOM
+            
+            // RÃ©cupÃ©rer les valeurs nÃ©cessaires du DOM
             const idUserElement = document.getElementById('idUser');
             const currentRepairIdElement = document.getElementById('idRep');
             const fonctionnelTransitionIdElement = document.getElementById('fonctionnel_transition_id');
 
             if (!idUserElement || !currentRepairIdElement) {
-                console.error('❌ Éléments idUser ou idRep non trouvés pour la validation de consistance');
                 return false;
             }
 
-            // Construire le payload comme dans la vraie requête
+            // Construire le payload comme dans la vraie requÃªte
             const formData = new FormData();
             formData.append('id_dico_consistance', collectorValue);
             formData.append('field', 'id_dico_consistance');
@@ -1287,10 +1480,7 @@
             formData.append('save_on_validate', 'true');
             formData.append('idUser', idUserElement.value);
             formData.append('current_repair_id', currentRepairIdElement.value);
-
-            console.log('📦 Payload de la requête de consistance:');
             for (let [key, value] of formData.entries()) {
-                console.log(`  ${key}: ${value}`);
             }
 
             const response = await fetch('https://prod.cloud-collectorplus.mt.sncf.fr/Prm/Reparation/Validate', {
@@ -1301,183 +1491,146 @@
 
             if (response.ok) {
                 const responseData = await response.json();
-                console.log('✅ Réponse de validation de consistance reçue:', responseData);
-
+                
                 if (responseData.status === "OK" && responseData.form) {
-                    console.log('🔄 Mise à jour du formulaire avec la nouvelle consistance');
-
-                    // Remplacer le contenu du formulaire avec la réponse du serveur
+                    
+                    // Remplacer le contenu du formulaire avec la rÃ©ponse du serveur
                     // Chercher le formulaire principal
                     const mainForm = document.getElementById('Saisie_Intervention');
                     if (mainForm) {
-                        // Parser la réponse HTML
+                        // Parser la rÃ©ponse HTML
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = responseData.form;
                         const newForm = tempDiv.querySelector('#Saisie_Intervention');
-
+                        
                         if (newForm) {
                             // Remplacer le formulaire existant par le nouveau
                             mainForm.innerHTML = newForm.innerHTML;
-                            console.log('✅ Formulaire mis à jour avec la nouvelle consistance');
-
-                            // Déclencher les événements nécessaires pour réinitialiser les plugins
+                            
+                            // DÃ©clencher les Ã©vÃ©nements nÃ©cessaires pour rÃ©initialiser les plugins
                             if (window.$ && $.fn.selectpicker) {
                                 $('.selectpicker').selectpicker('refresh');
                             }
                         }
                     } else {
-                        console.log('⚠️ Formulaire principal non trouvé, tentative de mise à jour partielle');
-
-                        // Fallback: mettre à jour uniquement la section de consistance
+                        
+                        // Fallback: mettre Ã  jour uniquement la section de consistance
                         updateConsistanceSection(responseData.form);
                     }
-
+                    
                     return true;
                 } else {
-                    console.error('❌ Réponse de validation invalide:', responseData);
                     return false;
                 }
-
+                
             } else {
-                console.error('❌ Erreur lors de la validation de consistance:', response.status, response.statusText);
                 return false;
             }
-
+            
         } catch (error) {
-            console.error('❌ Erreur lors de la requête de validation de consistance:', error);
             return false;
         }
     }
 
-    // Fonction pour mettre à jour uniquement la section de consistance
+    // Fonction pour mettre Ã  jour uniquement la section de consistance
     function updateConsistanceSection(newFormHTML) {
         try {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newFormHTML;
-
+            
             // Chercher la nouvelle section de consistance
-            const newBtnGroup = tempDiv.querySelector('.btn-group.pull-right[aria-label="Consistance Réparation"]');
-            const existingBtnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance Réparation"]');
-
+            const newBtnGroup = tempDiv.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
+            const existingBtnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
+            
             if (newBtnGroup && existingBtnGroup) {
                 // Remplacer les boutons existants par les nouveaux
                 existingBtnGroup.innerHTML = newBtnGroup.innerHTML;
-                console.log('✅ Section de consistance mise à jour');
             } else {
-                console.log('⚠️ Impossible de mettre à jour la section de consistance');
             }
         } catch (error) {
-            console.error('❌ Erreur lors de la mise à jour de la section de consistance:', error);
         }
     }
 
     // Fonction pour cliquer sur le bouton de consistance par valeur collector-value
     function clickConsistanceButtonByValue(targetCollectorValue) {
         try {
-            console.log(`🎯 Recherche du bouton de consistance avec collector-value: ${targetCollectorValue}`);
-
+            
             // Trouver le conteneur des boutons de consistance
-            const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance Réparation"]');
-
+            const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
+            
             if (btnGroup) {
-                console.log("📋 Conteneur de boutons de consistance trouvé");
-
+                
                 // Chercher le bouton avec la collector-value correspondante
                 const targetButton = btnGroup.querySelector(`button[collector-value="${targetCollectorValue}"]`);
-
+                
                 if (targetButton) {
-                    console.log("🔘 Bouton cible trouvé:", targetButton.textContent.trim());
-                    console.log("📍 ID du bouton:", targetButton.id);
-                    console.log("🎯 Valeur collector:", targetButton.getAttribute('collector-value'));
-                    console.log("🔍 Classes avant clic:", targetButton.className);
-
-                    // Au lieu de modifier les classes manuellement, envoyer la requête de validation
-                    // comme le fait le vrai système
+                    
+                    // Au lieu de modifier les classes manuellement, envoyer la requÃªte de validation
+                    // comme le fait le vrai systÃ¨me
                     sendConsistanceValidationRequest(targetCollectorValue);
-
+                    
                 } else {
-                    console.log(`⚠️ Aucun bouton avec collector-value="${targetCollectorValue}" trouvé`);
-
+                    
                     // Lister tous les boutons disponibles pour debug
                     const allButtons = btnGroup.querySelectorAll('button[collector-value]');
-                    console.log("🔍 Boutons de consistance disponibles:");
                     allButtons.forEach((btn, index) => {
-                        console.log(`  ${index + 1}. "${btn.textContent.trim()}" - collector-value: ${btn.getAttribute('collector-value')} - Classes: ${btn.className}`);
                     });
                 }
-
+                
             } else {
-                console.log("❌ Conteneur de boutons de consistance non trouvé");
-
+                
                 // Recherche alternative plus large
                 const alternativeButton = document.querySelector(`button[collector-value="${targetCollectorValue}"]`);
                 if (alternativeButton) {
-                    console.log("🔄 Bouton alternatif trouvé, envoi de la requête de validation");
                     sendConsistanceValidationRequest(targetCollectorValue);
                 } else {
-                    console.log(`❌ Aucun bouton avec collector-value="${targetCollectorValue}" trouvé sur la page`);
                 }
             }
-
+            
         } catch (error) {
-            console.error("❌ Erreur lors du clic automatique sur le bouton de consistance:", error);
         }
     }
 
     // Fonction pour cliquer sur le bouton de consistance avec la classe btn-primary
     function clickConsistanceButton() {
         try {
-            console.log("🎯 Recherche du bouton de consistance avec btn-primary");
-
+            
             // Trouver le conteneur des boutons de consistance
-            const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance Réparation"]');
-
+            const btnGroup = document.querySelector('.btn-group.pull-right[aria-label="Consistance RÃ©paration"]');
+            
             if (btnGroup) {
-                console.log("📋 Conteneur de boutons de consistance trouvé");
-
+                
                 // Chercher le bouton avec la classe btn-primary dans ce groupe
                 const primaryButton = btnGroup.querySelector('button.btn-primary');
-
+                
                 if (primaryButton) {
-                    console.log("🔘 Bouton btn-primary trouvé:", primaryButton.textContent.trim());
-                    console.log("📍 ID du bouton:", primaryButton.id);
-                    console.log("🎯 Valeur collector:", primaryButton.getAttribute('collector-value'));
-
+                    
                     // Simuler un clic sur le bouton
                     primaryButton.click();
-
-                    // Déclencher aussi les événements manuellement au cas où
+                    
+                    // DÃ©clencher aussi les Ã©vÃ©nements manuellement au cas oÃ¹
                     primaryButton.dispatchEvent(new Event('click', { bubbles: true }));
                     primaryButton.dispatchEvent(new Event('change', { bubbles: true }));
-
-                    console.log("✅ Clic automatique effectué sur le bouton de consistance");
-
+                    
                 } else {
-                    console.log("⚠️ Aucun bouton btn-primary trouvé dans le groupe de consistance");
-
+                    
                     // Lister tous les boutons disponibles pour debug
                     const allButtons = btnGroup.querySelectorAll('button');
-                    console.log("🔍 Boutons disponibles:");
                     allButtons.forEach((btn, index) => {
-                        console.log(`  ${index + 1}. ${btn.textContent.trim()} - Classes: ${btn.className}`);
                     });
                 }
-
+                
             } else {
-                console.log("❌ Conteneur de boutons de consistance non trouvé");
-
+                
                 // Recherche alternative plus large
                 const alternativeButton = document.querySelector('button.btn-primary[collector-value]');
                 if (alternativeButton) {
-                    console.log("🔄 Bouton btn-primary alternatif trouvé, clic effectué");
                     alternativeButton.click();
                 } else {
-                    console.log("❌ Aucun bouton btn-primary avec collector-value trouvé sur la page");
                 }
             }
-
+            
         } catch (error) {
-            console.error("❌ Erreur lors du clic automatique sur le bouton de consistance:", error);
         }
     }
 
