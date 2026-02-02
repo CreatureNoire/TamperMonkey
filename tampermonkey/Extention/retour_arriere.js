@@ -75,7 +75,19 @@
         return false;
     }
 
+    async function cliquerSurBoutonParAttribut(selector, nomBouton) {
+        const bouton = document.querySelector(selector);
+        if (!bouton) {
+            log(`❌ Bouton "${nomBouton}" introuvable avec le sélecteur: ${selector}`);
+            return false;
+        }
+        bouton.click();
+        log(`✅ Clique sur "${nomBouton}"`);
+        return true;
+    }
+
     async function actionRetourEnArriere() {
+        // Étape 1: Cliquer sur le premier bouton (Renvoi Qualité Industrielle)
         const boutonRenvoi = document.querySelector('button[collector-trans-id="22758"]');
         if (!boutonRenvoi) {
             alert("❌ Bouton 'Renvoi Qualité Industrielle' non trouvé.");
@@ -84,15 +96,39 @@
 
         boutonRenvoi.click();
         log("✅ Clique sur 'Renvoi Qualité Industrielle'");
-        await delay(1000);
+        await delay(2000);
 
-        const ok1 = await cliquerSurBoutonAvecTexte("Remise en production");
-        if (!ok1) return;
+        // Étape 2: Cliquer sur "Remise en production" (collector-trans-id="22760")
+        let ok1 = await cliquerSurBoutonParAttribut('button[collector-trans-id="22760"]', "Remise en production");
+        // Si le sélecteur collector-trans-id ne fonctionne pas, essayer avec pk
+        if (!ok1) {
+            ok1 = await cliquerSurBoutonParAttribut('button[pk="11874"]', "Remise en production");
+        }
+        // Si ça ne fonctionne toujours pas, essayer par texte
+        if (!ok1) {
+            ok1 = await cliquerSurBoutonAvecTexte("Remise en production");
+        }
+        if (!ok1) {
+            alert("❌ Impossible de trouver le bouton 'Remise en production'");
+            return;
+        }
 
-        await delay(1000);
+        await delay(2000);
 
-        const ok2 = await cliquerSurBoutonAvecTexte("Retour contrôle Qualité");
-        if (!ok2) return;
+        // Étape 3: Cliquer sur "Retour contrôle Qualité" (collector-trans-id="26067")
+        let ok2 = await cliquerSurBoutonParAttribut('button[collector-trans-id="26067"]', "Retour contrôle Qualité");
+        // Si le sélecteur collector-trans-id ne fonctionne pas, essayer avec pk
+        if (!ok2) {
+            ok2 = await cliquerSurBoutonParAttribut('button[pk="389"]', "Retour contrôle Qualité");
+        }
+        // Si ça ne fonctionne toujours pas, essayer par texte
+        if (!ok2) {
+            ok2 = await cliquerSurBoutonAvecTexte("Retour contrôle Qualité");
+        }
+        if (!ok2) {
+            alert("❌ Impossible de trouver le bouton 'Retour contrôle Qualité'");
+            return;
+        }
 
         alert("✅ Séquence retour effectuée avec succès !");
     }
