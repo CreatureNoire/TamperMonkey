@@ -271,16 +271,59 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s ease, margin 0.3s ease;
             cursor: move;
             background: var(--bg-card);
+            position: relative;
+        }
+
+        .favorites-modal .favorite-item.dragging {
+            opacity: 0.4;
+            background: #f0f0f0;
+        }
+
+        .favorites-modal .favorite-item.shift-down {
+            transform: translateY(70px);
+        }
+
+        .favorites-modal .favorite-item.shift-up {
+            transform: translateY(-70px);
+        }
+
+        .favorites-modal .drop-zone {
+            height: 10px;
+            margin: 5px 0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .favorites-modal .drop-zone.active {
+            height: 60px;
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .favorites-modal .drop-zone.active::before {
+            content: '↓ Déposer ici ↓';
+            display: block;
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            line-height: 60px;
+            font-size: 14px;
         }
 
         .favorites-modal .favorite-item:hover {
             background: var(--bg-hover);
             border-color: var(--primary-color);
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-            transform: translateY(-2px);
+        }
+
+        .favorites-modal .favorite-item.dragging:hover {
+            transform: none;
+            box-shadow: none;
         }
 
         .favorites-modal .favorite-item.dragging {
@@ -1060,16 +1103,16 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
             modal.classList.add('show');
-            
+
             modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-            
+
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1094,22 +1137,22 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
             modal.classList.add('show');
-            
+
             modal.querySelector('.dialog-btn-danger').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-            
+
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(false);
             });
-            
+
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1135,35 +1178,35 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
             modal.classList.add('show');
-            
+
             const input = modal.querySelector('.dialog-input');
             input.focus();
             input.select();
-            
+
             const validate = () => {
                 const value = input.value;
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(value || null);
             };
-            
+
             modal.querySelector('.dialog-btn-primary').addEventListener('click', validate);
-            
+
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     validate();
                 }
             });
-            
+
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(null);
             });
-            
+
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1228,9 +1271,9 @@
 
     function createFolder(name, parentId = null) {
         const folders = getFolders();
-        
+
         // Vérifier si un dossier avec le même nom existe déjà au même niveau
-        const exists = folders.some(folder => 
+        const exists = folders.some(folder =>
             folder.name === name && folder.parentId === parentId
         );
 
@@ -1250,7 +1293,7 @@
 
     function deleteFolder(folderId) {
         let folders = getFolders();
-        
+
         // Récupérer tous les sous-dossiers récursivement
         const getAllSubfolders = (parentId) => {
             const subfolders = folders.filter(f => f.parentId === parentId);
@@ -1260,10 +1303,10 @@
             });
             return allSubs;
         };
-        
+
         const subfoldersToDelete = getAllSubfolders(folderId);
         const allFolderIds = [folderId, ...subfoldersToDelete.map(f => f.id)];
-        
+
         // Supprimer tous les dossiers et sous-dossiers
         folders = folders.filter(folder => !allFolderIds.includes(folder.id));
         saveFolders(folders);
@@ -1448,9 +1491,18 @@
     }
 
     function openFavoritesModal() {
-        createFavoritesModal();
-        updateFavoritesList();
-        document.querySelector('.favorites-modal').classList.add('show');
+        try {
+            createFavoritesModal();
+            updateFavoritesList();
+            const modal = document.querySelector('.favorites-modal');
+            if (modal) {
+                modal.classList.add('show');
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'ouverture de la modal:', error);
+            console.error('Stack:', error.stack);
+            alert('Erreur lors de l\'ouverture des favoris. Vérifiez la console (F12) pour plus de détails.');
+        }
     }
 
     function closeFavoritesModal() {
@@ -1490,7 +1542,7 @@
         const buildFolderTree = (parentId = null, level = 0) => {
             let html = '';
             const childFolders = folders.filter(f => f.parentId === parentId);
-            
+
             // Filtrer selon la recherche
             const filteredChildFolders = folderSearchQuery
                 ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase()))
@@ -1499,10 +1551,10 @@
             filteredChildFolders.forEach(folder => {
                 const hasChildren = folders.some(f => f.parentId === folder.id);
                 const folderCount = countFavoritesInFolder(folder.id);
-                
+
                 html += `<div class="folder-section">`;
                 html += `<div class="folder-header ${folder.collapsed ? 'collapsed' : ''} ${currentFolderId === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">`;
-                
+
                 // Icône d'expansion si le dossier a des enfants
                 if (hasChildren) {
                     html += `<span class="folder-icon expandable" data-folder-id="${folder.id}">🔽</span>`;
@@ -1523,14 +1575,14 @@
                 html += `<button class="rename-folder" data-folder-id="${folder.id}" title="Renommer">✏️</button>`;
                 html += `<button class="delete-folder" data-folder-id="${folder.id}" title="Supprimer">🗑️</button>`;
                 html += '</div></div>';
-                
+
                 // Sous-dossiers
                 if (hasChildren) {
                     html += `<div class="folder-children ${folder.collapsed ? 'hidden' : ''}" data-parent-id="${folder.id}">`;
                     html += buildFolderTree(folder.id, level + 1);
                     html += '</div>';
                 }
-                
+
                 html += '</div>';
             });
 
@@ -1634,7 +1686,7 @@
                 const folderId = e.target.getAttribute('data-folder-id');
                 const folders = getFolders();
                 const hasSubfolders = folders.some(f => f.parentId === folderId);
-                const message = hasSubfolders 
+                const message = hasSubfolders
                     ? 'Supprimer ce dossier et tous ses sous-dossiers ?\n(Les favoris seront déplacés dans "Sans dossier")'
                     : 'Supprimer ce dossier ?\n(Les favoris seront déplacés dans "Sans dossier")';
                 const confirmed = await customConfirm(message, '🗑️');
@@ -1648,11 +1700,12 @@
             });
         });
 
-        // Drop zones sur les dossiers de l'arborescence
+        // Drag & Drop pour déplacer des favoris vers les dossiers
         treeContainer.querySelectorAll('.folder-header').forEach(header => {
-            header.addEventListener('dragover', handleDragOver);
-            header.addEventListener('dragleave', handleDragLeave);
-            header.addEventListener('drop', handleDrop);
+            header.addEventListener('dragover', handleFolderDragOver);
+            header.addEventListener('dragenter', handleFolderDragEnter);
+            header.addEventListener('dragleave', handleFolderDragLeave);
+            header.addEventListener('drop', handleFolderDrop);
         });
     }
 
@@ -1663,6 +1716,16 @@
 
         const favorites = getFavorites();
         const folders = getFolders();
+
+        // Fonction pour récupérer tous les IDs de sous-dossiers récursivement
+        const getAllSubfolderIds = (folderId) => {
+            let ids = [folderId];
+            const children = folders.filter(f => f.parentId === folderId);
+            children.forEach(child => {
+                ids = ids.concat(getAllSubfolderIds(child.id));
+            });
+            return ids;
+        };
 
         // Filtrer selon le dossier sélectionné
         let filteredFavorites;
@@ -1675,7 +1738,10 @@
             filteredFavorites = favorites.filter(fav => !fav.folderId);
             folderTitle = '📄 Sans dossier';
         } else {
-            filteredFavorites = favorites.filter(fav => fav.folderId === currentFolderId);
+            // Récupérer tous les sous-dossiers récursivement
+            const folderIds = getAllSubfolderIds(currentFolderId);
+            // Filtrer les favoris qui sont dans ce dossier OU dans un de ses sous-dossiers
+            filteredFavorites = favorites.filter(fav => folderIds.includes(fav.folderId));
             const folder = folders.find(f => f.id === currentFolderId);
             folderTitle = folder ? `📁 ${folder.name}` : '📁 Dossier';
         }
@@ -1704,52 +1770,72 @@
         listContainer.innerHTML = renderFavorites(filteredFavorites);
 
         // Attacher les événements
-        attachFavoriteEvents();
+        try {
+            attachFavoriteEvents();
+        } catch (error) {
+            console.error('Erreur lors de l\'attachement des événements:', error);
+        }
     }
 
     function renderFavorites(favorites) {
-        const folders = getFolders();
-        return favorites.map(fav => {
-            // Highlight le texte recherché
-            let titleHtml = fav.title;
-            let numberHtml = formatDocumentNumber(fav.number);
+        try {
+            const folders = getFolders();
+            let html = '';
 
-            if (favoritesSearchQuery) {
-                const regex = new RegExp(`(${favoritesSearchQuery})`, 'gi');
-                titleHtml = fav.title.replace(regex, '<span class="highlight-match">$1</span>');
-                numberHtml = formatDocumentNumber(fav.number).replace(regex, '<span class="highlight-match">$1</span>');
-            }
+            // Zone de drop au début
+            html += '<div class="drop-zone" data-index="0"></div>';
 
-            // Afficher le chemin du dossier si on est en mode recherche
-            let folderPath = '';
-            if (favoritesSearchQuery && fav.folderId) {
-                const folder = folders.find(f => f.id === fav.folderId);
-                if (folder) {
-                    folderPath = `<div class="folder-path">📁 ${folder.name}</div>`;
+            favorites.forEach((fav, index) => {
+                // Highlight le texte recherché
+                let titleHtml = fav.title;
+                let numberHtml = formatDocumentNumber(fav.number);
+
+                if (favoritesSearchQuery) {
+                    const regex = new RegExp(`(${favoritesSearchQuery})`, 'gi');
+                    titleHtml = fav.title.replace(regex, '<span class="highlight-match">$1</span>');
+                    numberHtml = formatDocumentNumber(fav.number).replace(regex, '<span class="highlight-match">$1</span>');
                 }
-            } else if (favoritesSearchQuery && !fav.folderId) {
-                folderPath = `<div class="folder-path">📄 Sans dossier</div>`;
-            }
 
-            return `
-                <div class="favorite-item" draggable="true" data-number="${fav.number}">
-                    <span class="drag-handle">⋮⋮</span>
-                    <div class="favorite-info">
-                        <div class="favorite-title" data-number="${fav.number}">${titleHtml}</div>
-                        <div class="favorite-number">Numéro: ${numberHtml}</div>
-                        ${folderPath}
+                // Afficher le chemin du dossier si on est en mode recherche
+                let folderPath = '';
+                if (favoritesSearchQuery && fav.folderId) {
+                    const folder = folders.find(f => f.id === fav.folderId);
+                    if (folder) {
+                        folderPath = `<div class="folder-path">📁 ${folder.name}</div>`;
+                    }
+                } else if (favoritesSearchQuery && !fav.folderId) {
+                    folderPath = `<div class="folder-path">📄 Sans dossier</div>`;
+                }
+
+                html += `
+                    <div class="favorite-item" data-number="${fav.number}" data-index="${index}">
+                        <span class="drag-handle" draggable="true">⋮⋮</span>
+                        <div class="favorite-info">
+                            <div class="favorite-title" data-number="${fav.number}">${titleHtml}</div>
+                            <div class="favorite-number">Numéro: ${numberHtml}</div>
+                            ${folderPath}
+                        </div>
+                        <div class="favorite-actions">
+                            <button class="edit-favorite" data-number="${fav.number}">
+                                ✏️ Modifier
+                            </button>
+                            <button class="remove-favorite" data-number="${fav.number}">
+                                🗑️ Supprimer
+                            </button>
+                        </div>
                     </div>
-                    <div class="favorite-actions">
-                        <button class="edit-favorite" data-number="${fav.number}">
-                            ✏️ Modifier
-                        </button>
-                        <button class="remove-favorite" data-number="${fav.number}">
-                            🗑️ Supprimer
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+                `;
+
+                // Zone de drop après chaque élément
+                html += `<div class="drop-zone" data-index="${index + 1}"></div>`;
+            });
+
+            return html;
+        } catch (error) {
+            console.error('Erreur dans renderFavorites:', error);
+            console.error('Stack:', error.stack);
+            return '<div class="no-favorites">Erreur lors du rendu des favoris</div>';
+        }
     }
 
     function attachFavoriteEvents() {
@@ -1769,20 +1855,9 @@
                 fillSearchField(number);
                 closeFavoritesModal();
             });
-            
+
             // Garder le curseur pointer sur toute la zone sauf drag handle et boutons
             item.style.cursor = 'pointer';
-        });
-
-        // Le drag handle garde son propre curseur
-        listContainer.querySelectorAll('.drag-handle').forEach(handle => {
-            handle.style.cursor = 'grab';
-            handle.addEventListener('mousedown', () => {
-                handle.style.cursor = 'grabbing';
-            });
-            handle.addEventListener('mouseup', () => {
-                handle.style.cursor = 'grab';
-            });
         });
 
         // Modifier un favori
@@ -1804,67 +1879,281 @@
             });
         });
 
-        // Drag & Drop pour les favoris
-        listContainer.querySelectorAll('.favorite-item').forEach(item => {
-            item.addEventListener('dragstart', handleDragStart);
-            item.addEventListener('dragend', handleDragEnd);
+        // Le drag handle garde son propre curseur et gère le drag
+        listContainer.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.style.cursor = 'grab';
+            handle.addEventListener('mousedown', () => {
+                handle.style.cursor = 'grabbing';
+            });
+            handle.addEventListener('mouseup', () => {
+                handle.style.cursor = 'grab';
+            });
+
+            // Attacher les événements de drag au handle
+            handle.addEventListener('dragstart', handleDragStart);
+            handle.addEventListener('dragend', handleDragEnd);
+        });
+
+        // Pas de drag events sur les items, seulement sur les drop zones
+        listContainer.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', handleDropZoneDragOver);
+            zone.addEventListener('dragenter', handleDropZoneDragEnter);
+            zone.addEventListener('dragleave', handleDropZoneDragLeave);
+            zone.addEventListener('drop', handleDropZoneDrop);
         });
     }
 
-    let draggedNumber = null;
+    // Variables globales pour le drag & drop
+    let draggedElement = null;
+    let draggedFavoriteNumber = null;
+    let draggedIndex = -1;
 
     function handleDragStart(e) {
-        draggedNumber = e.currentTarget.getAttribute('data-number');
-        e.currentTarget.classList.add('dragging');
+        const handle = e.target;
+        draggedElement = handle.closest('.favorite-item');
+
+        if (!draggedElement) return;
+
+        draggedFavoriteNumber = draggedElement.getAttribute('data-number');
+        draggedIndex = parseInt(draggedElement.getAttribute('data-index'));
+        draggedElement.classList.add('dragging');
+
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+        e.dataTransfer.setData('text/plain', draggedFavoriteNumber);
     }
 
     function handleDragEnd(e) {
-        e.currentTarget.classList.remove('dragging');
-        draggedNumber = null;
+        if (draggedElement) {
+            draggedElement.classList.remove('dragging');
+        }
+
+        // Retirer toutes les classes
+        document.querySelectorAll('.favorites-modal .drop-zone').forEach(zone => {
+            zone.classList.remove('active');
+        });
+        document.querySelectorAll('.favorites-modal .favorite-item').forEach(item => {
+            item.classList.remove('shift-up', 'shift-down');
+        });
+
+        draggedElement = null;
+        draggedFavoriteNumber = null;
+        draggedIndex = -1;
     }
 
-    function handleDragOver(e) {
+    function handleDropZoneDragOver(e) {
         if (e.preventDefault) {
             e.preventDefault();
         }
         e.dataTransfer.dropEffect = 'move';
-        e.currentTarget.classList.add('drag-over');
         return false;
     }
 
-    function handleDragLeave(e) {
-        e.currentTarget.classList.remove('drag-over');
+    function handleDropZoneDragEnter(e) {
+        if (!draggedElement) return;
+
+        const zone = e.currentTarget;
+        const targetIndex = parseInt(zone.getAttribute('data-index'));
+
+        // Retirer toutes les classes actives
+        document.querySelectorAll('.favorites-modal .drop-zone').forEach(z => {
+            z.classList.remove('active');
+        });
+        document.querySelectorAll('.favorites-modal .favorite-item').forEach(item => {
+            item.classList.remove('shift-up', 'shift-down');
+        });
+
+        // Activer cette zone
+        zone.classList.add('active');
+
+        // Déplacer les éléments pour montrer où ça va atterrir
+        updateItemsShift(targetIndex);
     }
 
-    function handleDrop(e) {
+    function handleDropZoneDragLeave(e) {
+        // Le leave est géré par le enter de la nouvelle zone
+    }
+
+    function updateItemsShift(targetIndex) {
+        const allItems = Array.from(document.querySelectorAll('.favorites-modal .favorite-item'));
+
+        allItems.forEach((item, index) => {
+            item.classList.remove('shift-up', 'shift-down');
+
+            // Ne pas bouger l'élément dragué
+            if (index === draggedIndex) return;
+
+            // Si on insère avant l'élément dragué
+            if (targetIndex <= draggedIndex) {
+                // Les éléments entre targetIndex et draggedIndex descendent
+                if (index >= targetIndex && index < draggedIndex) {
+                    item.classList.add('shift-down');
+                }
+            } else {
+                // On insère après l'élément dragué
+                // Les éléments entre draggedIndex et targetIndex montent
+                if (index > draggedIndex && index < targetIndex) {
+                    item.classList.add('shift-up');
+                }
+            }
+        });
+    }
+
+    function handleDropZoneDrop(e) {
         if (e.stopPropagation) {
             e.stopPropagation();
         }
         e.preventDefault();
 
-        e.currentTarget.classList.remove('drag-over');
+        const zone = e.currentTarget;
+        const targetIndex = parseInt(zone.getAttribute('data-index'));
 
-        if (draggedNumber) {
-            const folderId = e.currentTarget.getAttribute('data-folder-id');
+        // Retirer toutes les classes
+        document.querySelectorAll('.favorites-modal .drop-zone').forEach(z => {
+            z.classList.remove('active');
+        });
+        document.querySelectorAll('.favorites-modal .favorite-item').forEach(item => {
+            item.classList.remove('shift-up', 'shift-down');
+        });
 
-            // Si c'est "Tous", ne rien faire
-            if (folderId === 'all') {
-                return false;
-            }
+        if (!draggedElement || draggedIndex === -1) {
+            return false;
+        }
 
-            // Si c'est le dossier "Sans dossier", passer null
+        // Calculer le nouvel index après le retrait de l'élément
+        let newIndex = targetIndex;
+        if (targetIndex > draggedIndex) {
+            newIndex = targetIndex - 1;
+        }
+
+        // Si c'est la même position, ne rien faire
+        if (newIndex === draggedIndex) {
+            return false;
+        }
+
+        // Récupérer les favoris
+        const favorites = getFavorites();
+        const folders = getFolders();
+        const currentFolder = currentFolderId;
+
+        // Fonction pour récupérer tous les IDs de sous-dossiers récursivement
+        const getAllSubfolderIds = (folderId) => {
+            let ids = [folderId];
+            const children = folders.filter(f => f.parentId === folderId);
+            children.forEach(child => {
+                ids = ids.concat(getAllSubfolderIds(child.id));
+            });
+            return ids;
+        };
+
+        // Filtrer les favoris du dossier actuel (incluant sous-dossiers)
+        let folderFavorites;
+        if (currentFolder === 'all') {
+            folderFavorites = favorites;
+        } else if (currentFolder === '') {
+            folderFavorites = favorites.filter(f => !f.folderId);
+        } else {
+            const folderIds = getAllSubfolderIds(currentFolder);
+            folderFavorites = favorites.filter(f => folderIds.includes(f.folderId));
+        }
+
+        // Réorganiser les favoris du dossier
+        const [movedFavorite] = folderFavorites.splice(draggedIndex, 1);
+        folderFavorites.splice(newIndex, 0, movedFavorite);
+
+        // Obtenir les autres favoris (qui ne sont pas dans le dossier actuel)
+        let otherFavorites;
+        if (currentFolder === 'all') {
+            otherFavorites = [];
+        } else if (currentFolder === '') {
+            otherFavorites = favorites.filter(f => f.folderId);
+        } else {
+            const folderIds = getAllSubfolderIds(currentFolder);
+            otherFavorites = favorites.filter(f => !folderIds.includes(f.folderId));
+        }
+
+        // Fusionner les favoris réorganisés avec les autres
+        const newFavorites = [...folderFavorites, ...otherFavorites];
+
+        // Sauvegarder
+        saveFavorites(newFavorites);
+
+        // Rafraîchir l'affichage
+        updateFavoritesList();
+
+        showNotification('✅ Ordre des favoris mis à jour');
+
+        return false;
+    }
+
+    // Fonctions pour drag & drop vers les dossiers
+    function handleFolderDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        if (!draggedElement) return false;
+
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleFolderDragEnter(e) {
+        if (!draggedElement) return;
+
+        const header = e.currentTarget;
+        const folderId = header.getAttribute('data-folder-id');
+
+        // Ne pas permettre de glisser vers "Tous les favoris"
+        if (folderId === 'all') return;
+
+        header.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+        header.style.borderLeft = '4px solid var(--primary-color)';
+    }
+
+    function handleFolderDragLeave(e) {
+        const header = e.currentTarget;
+        header.style.backgroundColor = '';
+        header.style.borderLeft = '';
+    }
+
+    function handleFolderDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        e.preventDefault();
+
+        const header = e.currentTarget;
+        const folderId = header.getAttribute('data-folder-id');
+
+        // Retirer le style
+        header.style.backgroundColor = '';
+        header.style.borderLeft = '';
+
+        if (!draggedElement || !draggedFavoriteNumber) {
+            return false;
+        }
+
+        // Ne pas permettre de glisser vers "Tous les favoris"
+        if (folderId === 'all') {
+            return false;
+        }
+
+        // Déplacer le favori vers le dossier cible
+        const favorites = getFavorites();
+        const favorite = favorites.find(f => f.number === draggedFavoriteNumber);
+
+        if (favorite) {
+            // Si c'est "Sans dossier", mettre folderId à null
             if (folderId === '' || !folderId) {
-                moveToFolder(draggedNumber, null);
+                favorite.folderId = null;
                 showNotification('📄 Déplacé vers "Sans dossier"');
             } else {
+                favorite.folderId = folderId;
                 const folders = getFolders();
                 const folder = folders.find(f => f.id === folderId);
-                moveToFolder(draggedNumber, folderId);
-                showNotification(`📁 Déplacé vers "${folder.name}"`);
+                showNotification(`📁 Déplacé vers "${folder ? folder.name : 'dossier'}"`);
             }
 
+            saveFavorites(favorites);
             updateFavoritesList();
         }
 
@@ -1935,7 +2224,7 @@
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchInput.dispatchEvent(new Event('change', { bubbles: true }));
             searchInput.focus();
-            
+
             // Attendre un court instant puis cliquer sur le bouton Rechercher
             setTimeout(() => {
                 const searchButton = document.querySelector('button.btn.btn-primary.float-right.mt-4');
@@ -2007,7 +2296,7 @@
                     <h3>🏷️ Personnaliser le nom du document</h3>
                     <button class="close-modal">&times;</button>
                 </div>
-                
+
                 <div class="custom-terms-body">
                     <div class="left-panel">
                         <div class="terms-section">
@@ -2077,10 +2366,10 @@
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-        
+
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
-        
+
         updateTermsList();
         updateFolderSelector();
         updatePreview();
@@ -2118,7 +2407,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-        
+
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -2156,29 +2445,52 @@
         selectedTerms = extracted.terms;
         customDocName = extracted.customName;
 
+        console.log('Extraction:', {
+            titre: favorite.title,
+            termes: selectedTerms,
+            nomPersonnalisé: customDocName
+        });
+
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-        
+
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
-        
+
+        // Pré-remplir le champ de nom personnalisé AVANT updateTermsList
+        const customNameInput = modal.querySelector('#custom-doc-name');
+        if (customNameInput) {
+            customNameInput.value = customDocName;
+            console.log('Valeur assignée au champ:', customNameInput.value);
+
+            // Retirer les anciens listeners
+            const newInput = customNameInput.cloneNode(true);
+            customNameInput.parentNode.replaceChild(newInput, customNameInput);
+
+            // Ajouter le nouveau listener
+            newInput.addEventListener('input', (e) => {
+                customDocName = e.target.value.trim();
+                updatePreview();
+            });
+        } else {
+            console.error('Champ #custom-doc-name non trouvé !');
+        }
+
         updateTermsList();
         updateFolderSelector();
         updatePreview();
 
         // Gérer la recherche de dossiers
         const folderSearchInput = modal.querySelector('#folder-search-modal');
-        folderSearchInput.addEventListener('input', (e) => {
+        folderSearchInput.value = ''; // Reset search
+
+        // Retirer les anciens listeners
+        const newFolderSearch = folderSearchInput.cloneNode(true);
+        folderSearchInput.parentNode.replaceChild(newFolderSearch, folderSearchInput);
+
+        newFolderSearch.addEventListener('input', (e) => {
             folderSearchQueryModal = e.target.value.trim();
             updateFolderSelector();
-        });
-
-        // Pré-remplir le champ de nom personnalisé
-        const customNameInput = modal.querySelector('#custom-doc-name');
-        customNameInput.value = customDocName;
-        customNameInput.addEventListener('input', (e) => {
-            customDocName = e.target.value.trim();
-            updatePreview();
         });
 
         // Valider
@@ -2200,7 +2512,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-        
+
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -2231,38 +2543,35 @@
         }
 
         // Format attendu: "Terme1 + Terme2 - Nom Personnalisé"
-        // Séparer d'abord par " - " pour isoler le nom personnalisé
-        const dashParts = title.split(' - ');
-        
-        let termsString = '';
-        let customName = '';
-        
-        if (dashParts.length > 1) {
-            // Il y a un " - ", donc la dernière partie est le nom personnalisé
-            termsString = dashParts.slice(0, -1).join(' - ');
-            customName = dashParts[dashParts.length - 1].trim();
-        } else {
-            // Pas de " - ", tout est potentiellement des termes
-            termsString = title;
-        }
-        
-        // Extraire les termes prédéfinis (séparés par " + ")
         const customTermsList = getCustomTerms();
         const terms = [];
-        
-        if (termsString) {
+        let customName = '';
+
+        // Vérifier si le titre contient " + " (séparateur de termes)
+        if (title.includes(' + ')) {
+            // Séparer par " - " pour isoler les termes du nom personnalisé
+            const dashParts = title.split(' - ');
+
+            // Traiter la partie termes (avant le " - " si présent)
+            const termsString = dashParts[0];
             const termsParts = termsString.split(' + ').map(t => t.trim()).filter(t => t !== '');
+
             termsParts.forEach(part => {
                 if (customTermsList.includes(part)) {
                     terms.push(part);
-                } else if (!customName) {
-                    // Si ce n'est pas un terme et qu'on n'a pas encore de nom personnalisé,
-                    // c'est probablement un ancien nom personnalisé
-                    customName = part;
                 }
             });
+
+            // Le nom personnalisé est tout ce qui vient après les termes reconnus
+            if (dashParts.length > 1) {
+                customName = dashParts.slice(1).join(' - ').trim();
+            }
+        } else {
+            // Pas de " + ", donc pas de format "termes + nom"
+            // Tout le titre est considéré comme nom personnalisé
+            customName = title;
         }
-        
+
         return {
             terms: terms,
             customName: customName
@@ -2300,7 +2609,7 @@
         const buildFolderList = (parentId = null, level = 0) => {
             let list = [];
             const childFolders = folders.filter(f => f.parentId === parentId);
-            
+
             // Filtrer selon la recherche
             const filteredChildFolders = folderSearchQueryModal
                 ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
@@ -2313,7 +2622,7 @@
                     indent: indent,
                     level: level
                 });
-                
+
                 // Ajouter récursivement les sous-dossiers
                 list = list.concat(buildFolderList(folder.id, level + 1));
             });
@@ -2344,7 +2653,7 @@
             option.addEventListener('click', (e) => {
                 const folderId = option.getAttribute('data-folder-id');
                 const checkbox = option.querySelector('input[type="checkbox"]');
-                
+
                 // Toggle la sélection
                 if (selectedFolderId === folderId) {
                     selectedFolderId = null;
@@ -2353,7 +2662,7 @@
                     selectedFolderId = folderId;
                     checkbox.checked = true;
                 }
-                
+
                 updateFolderSelector();
             });
 
@@ -2362,13 +2671,13 @@
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const folderId = option.getAttribute('data-folder-id');
-                
+
                 if (e.target.checked) {
                     selectedFolderId = folderId;
                 } else {
                     selectedFolderId = null;
                 }
-                
+
                 updateFolderSelector();
             });
         });
@@ -2379,7 +2688,7 @@
         if (!termsList) return;
 
         const terms = getCustomTerms();
-        
+
         if (terms.length === 0) {
             termsList.innerHTML = '<p style="color: #999; font-style: italic;">Aucun terme personnalisé. Ajoutez-en un ci-dessous.</p>';
             return;
@@ -2430,19 +2739,19 @@
         } else {
             selectedTerms.push(term);
         }
-        
+
         updateTermsList();
         updatePreview();
     }
 
     function buildFinalTitle() {
         let result = '';
-        
+
         // Ajouter les termes prédéfinis en premier (séparés par +)
         if (selectedTerms.length > 0) {
             result = selectedTerms.join(' + ');
         }
-        
+
         // Ajouter le nom personnalisé à droite (séparé par -)
         if (customDocName && customDocName.trim() !== '') {
             if (result !== '') {
@@ -2451,12 +2760,12 @@
                 result = customDocName;
             }
         }
-        
+
         // Si on a un résultat, le retourner, sinon juste le numéro
         if (result !== '') {
             return result;
         }
-        
+
         return currentDocNumber;
     }
 
