@@ -13,42 +13,60 @@
 (function() {
     'use strict';
 
-    // Styles CSS
+    // Styles CSS - Interface moderne et épurée isolée uniquement pour le script
     GM_addStyle(`
+        /* Variables CSS globales pour les éléments du script uniquement */
+        .favorites-modal,
+        .custom-terms-modal,
+        .add-favorite-button,
+        .favorites-button {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+        }
+
         /* Bouton d'ajout aux favoris */
         .add-favorite-button {
             cursor: pointer;
-            font-size: 24px;
-            color: #d8b4fe;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            border: 2px solid #d8b4fe;
+            font-size: 22px;
+            color: var(--primary-color);
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
             padding: 10px 15px;
             margin-left: 15px;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: inline-flex;
             align-items: center;
             vertical-align: middle;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(216, 180, 254, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .add-favorite-button:hover {
-            transform: scale(1.1);
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
-            box-shadow: 0 6px 20px rgba(216, 180, 254, 0.5);
-            border-color: #a855f7;
+            transform: translateY(-2px);
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
         }
 
         .add-favorite-button.added {
-            color: #22c55e;
-            border-color: #22c55e;
+            color: white;
+            background: var(--success-color);
+            border-color: var(--success-color);
             animation: pulse 0.5s ease;
-            background: linear-gradient(135deg, #166534 0%, #15803d 100%);
         }
 
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.3); }
+            50% { transform: scale(1.15); }
         }
 
         .nav-tabs-container {
@@ -58,26 +76,28 @@
         }
 
         .favorites-button {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            border: 1px solid #333;
-            color: white;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
             cursor: pointer;
-            padding: 10px 16px;
+            padding: 10px 18px;
             margin-left: 10px;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .favorites-button:hover {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
-            border-color: #d8b4fe;
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(216, 180, 254, 0.4);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
         }
 
         .favorites-modal {
@@ -86,12 +106,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(15, 23, 42, 0.95);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
         }
 
         .favorites-modal.show {
@@ -100,318 +120,333 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
 
-        .favorites-content {
-            background: #000;
-            padding: 30px;
-            border-radius: 24px;
+        .favorites-modal .favorites-content {
+            background: var(--bg-dark);
+            padding: 32px;
+            border-radius: 20px;
             max-width: 1200px;
             width: 95%;
             max-height: 85vh;
             overflow: hidden;
-            box-shadow: 0 0 40px rgba(216, 180, 254, 0.3);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-            border: 1px solid #1a1a1a;
+            border: 1px solid var(--border-color);
         }
 
-        .favorites-body {
+        .favorites-modal .favorites-body {
             display: flex;
-            gap: 20px;
+            gap: 24px;
             flex: 1;
             overflow: hidden;
         }
 
-        .folders-sidebar {
+        .favorites-modal .folders-sidebar {
             width: 280px;
-            border-right: 2px solid #1a1a1a;
-            padding-right: 20px;
             overflow-y: auto;
             flex-shrink: 0;
-            background: rgba(26, 26, 26, 0.3);
+            background: rgba(30, 41, 59, 0.3);
             padding: 20px;
             border-radius: 12px;
         }
 
-        .folders-sidebar h3 {
-            color: #d8b4fe;
-            margin: 0 0 15px 0;
-            font-size: 18px;
+        .favorites-modal .folders-sidebar h3 {
+            color: var(--primary-color);
+            margin: 0 0 16px 0;
+            font-size: 17px;
             display: flex;
             align-items: center;
             gap: 8px;
-            font-weight: 600;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .search-box {
+        .favorites-modal .search-box {
             width: 100%;
-            padding: 14px;
-            margin-bottom: 15px;
-            border: 1px solid #1a1a1a;
-            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
             font-size: 14px;
             transition: all 0.3s ease;
-            background: #121212;
-            color: white;
-            font-family: 'Inter', sans-serif;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-        .search-box:focus {
+        .favorites-modal .search-box:focus {
             outline: none;
-            border-color: #7e22ce;
-            box-shadow: 0 0 12px rgba(126, 34, 206, 0.4);
-            background: #1a1a1a;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: var(--bg-hover);
         }
 
-        .search-box::placeholder {
-            color: #666;
+        .favorites-modal .search-box::placeholder {
+            color: var(--text-secondary);
         }
 
-        .highlight-match {
-            background: #7e22ce;
+        .favorites-modal .highlight-match {
+            background: var(--primary-color);
             color: white;
             padding: 2px 6px;
             border-radius: 4px;
-            font-weight: bold;
+            font-weight: 600;
         }
 
-        .folder-path {
-            font-size: 12px;
-            color: #888;
-            margin-top: 3px;
+        .favorites-modal .folder-path {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
             font-style: italic;
         }
 
-        .favorites-list-container {
+        .favorites-modal .favorites-list-container {
             flex: 1;
             overflow-y: auto;
-            padding-left: 20px;
+            padding-left: 24px;
         }
 
-        .favorites-list-container h3 {
-            color: #d8b4fe;
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            font-weight: 600;
+        .favorites-modal .favorites-list-container h3 {
+            color: var(--primary-color);
+            margin: 0 0 16px 0;
+            font-size: 17px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .favorites-header {
+        .favorites-modal .favorites-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #1a1a1a;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
         }
 
-        .favorites-header h2 {
+        .favorites-modal .favorites-header h2 {
             margin: 0;
-            color: #d8b4fe;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 26px;
-            font-weight: 600;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 700;
         }
 
-        .close-modal {
-            background: transparent;
-            border: 1px solid #333;
+        .favorites-modal .close-modal,
+        .custom-terms-modal .close-modal {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
             font-size: 24px;
             cursor: pointer;
-            color: #888;
-            width: 35px;
-            height: 35px;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 8px;
+            border-radius: 10px;
             transition: all 0.3s ease;
         }
 
-        .close-modal:hover {
-            background: #1a1a1a;
+        .favorites-modal .close-modal:hover,
+        .custom-terms-modal .close-modal:hover {
+            background: var(--danger-color);
             color: white;
-            border-color: #555;
+            border-color: var(--danger-color);
+            transform: scale(1.05);
         }
 
-        .favorite-item {
-            padding: 16px;
+        .favorites-modal .favorite-item {
+            padding: 18px;
             margin-bottom: 12px;
-            border: 1px solid #1a1a1a;
+            border: 2px solid var(--border-color);
             border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: move;
-            background: rgba(26, 26, 26, 0.5);
+            background: var(--bg-card);
         }
 
-        .favorite-item:hover {
-            background: #1a1a1a;
-            border-color: #7e22ce;
-            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.3);
+        .favorites-modal .favorite-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
             transform: translateY(-2px);
         }
 
-        .favorite-item.dragging {
-            opacity: 0.6;
-            background: rgba(126, 34, 206, 0.2);
-            border-color: #7e22ce;
-            transform: rotate(2deg);
+        .favorites-modal .favorite-item.dragging {
+            opacity: 0.5;
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-color);
+            transform: rotate(3deg) scale(1.02);
         }
 
-        .favorite-item .drag-handle {
-            margin-right: 12px;
-            color: #666;
-            cursor: move;
-            font-size: 18px;
+        .favorites-modal .favorite-item .drag-handle {
+            margin-right: 14px;
+            color: var(--text-secondary);
+            cursor: grab;
+            font-size: 20px;
+            transition: color 0.3s ease;
         }
 
-        .favorite-info {
+        .favorites-modal .favorite-item .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .favorites-modal .favorite-item:hover .drag-handle {
+            color: var(--primary-color);
+        }
+
+        .favorites-modal .favorite-info {
             flex: 1;
         }
 
-        .favorite-title {
+        .favorites-modal .favorite-title {
             font-weight: 600;
-            color: #d8b4fe;
+            color: var(--text-primary);
             margin-bottom: 6px;
             cursor: pointer;
             font-size: 16px;
             transition: all 0.2s ease;
         }
 
-        .favorite-title:hover {
-            color: #a855f7;
+        .favorites-modal .favorite-title:hover {
+            color: var(--primary-color);
         }
 
-        .favorite-number {
+        .favorites-modal .favorite-number {
             font-size: 13px;
-            color: #888;
+            color: var(--text-secondary);
             margin-top: 5px;
-            font-family: 'Courier New', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
         }
 
-        .favorite-actions {
+        .favorites-modal .favorite-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .edit-favorite {
-            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+        .favorites-modal .edit-favorite {
+            background: var(--warning-color);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 9px 16px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
             font-size: 13px;
-            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
         }
 
-        .edit-favorite:hover {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.5);
+        .favorites-modal .edit-favorite:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
         }
 
-        .remove-favorite {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        .favorites-modal .remove-favorite {
+            background: var(--danger-color);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 9px 16px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
             font-size: 13px;
-            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
         }
 
-        .remove-favorite:hover {
-            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+        .favorites-modal .remove-favorite:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
         }
 
-        .no-favorites {
+        .favorites-modal .no-favorites {
             text-align: center;
             padding: 60px 40px;
-            color: #666;
+            color: var(--text-secondary);
             font-style: italic;
             font-size: 15px;
         }
 
-        .favorites-count {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+        .favorites-button .favorites-count {
+            background: var(--primary-color);
             color: white;
             border-radius: 50%;
-            padding: 3px 10px;
+            padding: 4px 10px;
             font-size: 12px;
-            font-weight: bold;
-            margin-left: 8px;
-            box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
+            font-weight: 700;
+            margin-left: 10px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
         }
 
-        .folder-section {
+        .favorites-modal .folder-section {
             margin-bottom: 8px;
         }
 
-        .folder-header {
+        .favorites-modal .folder-header {
             display: flex;
             align-items: center;
-            padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-            border-radius: 8px;
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.5);
+            color: var(--text-primary);
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             margin-bottom: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
         }
 
-        .folder-header:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(216, 180, 254, 0.3);
+        .favorites-modal .folder-header:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
             transform: translateX(4px);
         }
 
-        .folder-header.active {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+        .favorites-modal .folder-header.active {
+            background: var(--primary-color);
             color: white;
-            border-color: #d8b4fe;
-            box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
-        .folder-header.drag-over {
-            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+        .favorites-modal .folder-header.drag-over {
+            background: var(--success-color);
             color: white;
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+            border-color: var(--success-color);
         }
 
-        .folder-icon {
-            font-size: 16px;
+        .favorites-modal .folder-icon {
+            font-size: 18px;
             margin-right: 10px;
         }
 
-        .folder-header.collapsed .folder-icon {
+        .favorites-modal .folder-header.collapsed .folder-icon {
             transform: none;
         }
 
-        .folder-name {
+        .favorites-modal .folder-name {
             flex: 1;
             font-weight: 600;
             font-size: 14px;
         }
 
-        .folder-count {
-            background: rgba(0, 0, 0, 0.3);
+        .favorites-modal .folder-count {
+            background: rgba(0, 0, 0, 0.4);
             padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
@@ -419,70 +454,71 @@
             font-weight: 600;
         }
 
-        .folder-header.active .folder-count {
-            background: rgba(255, 255, 255, 0.25);
+        .favorites-modal .folder-header.active .folder-count {
+            background: rgba(255, 255, 255, 0.3);
         }
 
-        .folder-actions {
+        .favorites-modal .folder-actions {
             display: none;
             gap: 6px;
             margin-left: 10px;
         }
 
-        .folder-header:hover .folder-actions {
+        .favorites-modal .folder-header:hover .folder-actions {
             display: flex;
         }
 
-        .folder-header.active .folder-actions {
+        .favorites-modal .folder-header.active .folder-actions {
             display: flex;
         }
 
-        .folder-actions button {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .favorites-modal .folder-actions button {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 4px 10px;
+            padding: 5px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
+            font-weight: 600;
             transition: all 0.2s ease;
         }
 
-        .folder-header.active .folder-actions button {
+        .favorites-modal .folder-header.active .folder-actions button {
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border-color: rgba(255, 255, 255, 0.3);
         }
 
-        .folder-actions button:hover {
+        .favorites-modal .folder-actions button:hover {
             background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
 
-        .folder-header.active .folder-actions button:hover {
+        .favorites-modal .folder-header.active .folder-actions button:hover {
             background: rgba(255, 255, 255, 0.4);
         }
 
-        .folder-content {
+        .favorites-modal .folder-content {
             display: none;
         }
 
-        .toolbar {
+        .favorites-modal .toolbar {
             display: flex;
             gap: 12px;
             margin-bottom: 24px;
-            padding: 16px;
-            background: rgba(26, 26, 26, 0.5);
+            padding: 18px;
+            background: rgba(30, 41, 59, 0.5);
             border-radius: 12px;
-            border: 1px solid #1a1a1a;
+            border: 2px solid var(--border-color);
         }
 
         .toolbar button {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            background: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 18px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
@@ -490,22 +526,20 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 2px 10px rgba(126, 34, 206, 0.3);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
         .toolbar button:hover {
-            background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
+            background: var(--primary-hover);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(126, 34, 206, 0.5);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
         }
 
         .favorite-item .favorite-folder {
             font-size: 11px;
-            color: #999;
-            margin-top: 3px;
+            color: var(--text-secondary);
+            margin-top: 4px;
         }
-
-
 
         @keyframes slideIn {
             from {
@@ -536,12 +570,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(15, 23, 42, 0.95);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 10001;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
         }
 
         .custom-terms-modal.show {
@@ -549,55 +583,57 @@
             animation: fadeIn 0.3s ease;
         }
 
-        .custom-terms-content {
-            background: #000;
-            padding: 30px;
-            border-radius: 24px;
-            max-width: 600px;
+        .custom-terms-modal .custom-terms-content {
+            background: var(--bg-dark);
+            padding: 32px;
+            border-radius: 20px;
+            max-width: 650px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 0 40px rgba(216, 180, 254, 0.3);
-            border: 1px solid #1a1a1a;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
         }
 
-        .custom-terms-header {
+        .custom-terms-modal .custom-terms-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #1a1a1a;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
         }
 
-        .custom-terms-header h3 {
+        .custom-terms-modal .custom-terms-header h3 {
             margin: 0;
-            color: #d8b4fe;
-            font-size: 22px;
-            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 700;
         }
 
-        .terms-section {
+        .custom-terms-modal .terms-section {
             margin-bottom: 28px;
         }
 
-        .terms-section h4 {
-            color: #ccc;
-            margin-bottom: 12px;
+        .custom-terms-modal .terms-section h4 {
+            color: var(--primary-color);
+            margin-bottom: 14px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .terms-buttons {
+        .custom-terms-modal .terms-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 16px;
         }
 
-        .term-button {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .custom-terms-modal .term-button {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
             padding: 10px 16px;
             border-radius: 20px;
             cursor: pointer;
@@ -606,146 +642,172 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            color: white;
+            color: var(--text-primary);
+            font-weight: 500;
         }
 
-        .term-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(216, 180, 254, 0.4);
+        .custom-terms-modal .term-button:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
             transform: translateY(-2px);
         }
 
-        .term-button.selected {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+        .custom-terms-modal .term-button.selected {
+            background: var(--primary-color);
             color: white;
-            border-color: #d8b4fe;
-            box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
-        .term-button .remove-term {
+        .custom-terms-modal .term-button .remove-term {
             margin-left: 6px;
-            color: #ef4444;
+            color: var(--danger-color);
             font-weight: bold;
             cursor: pointer;
             font-size: 18px;
             transition: all 0.2s ease;
         }
 
-        .term-button.selected .remove-term {
+        .custom-terms-modal .term-button.selected .remove-term {
             color: #fca5a5;
         }
 
-        .term-button .remove-term:hover {
+        .custom-terms-modal .term-button .remove-term:hover {
             transform: scale(1.2);
         }
 
-        .add-term-input {
+        .custom-terms-modal .add-term-input {
             display: flex;
             gap: 12px;
             margin-top: 12px;
         }
 
-        .add-term-input input {
+        .custom-terms-modal .add-term-input input {
             flex: 1;
-            padding: 14px;
-            border: 1px solid #1a1a1a;
-            border-radius: 8px;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
             font-size: 14px;
-            background: #121212;
-            color: white;
-            font-family: 'Inter', sans-serif;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             transition: all 0.3s ease;
         }
 
-        .add-term-input input:focus {
+        .custom-terms-modal .add-term-input input:focus {
             outline: none;
-            border-color: #7e22ce;
-            box-shadow: 0 0 12px rgba(126, 34, 206, 0.4);
-            background: #1a1a1a;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: var(--bg-hover);
         }
 
-        .add-term-input button {
-            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+        /* Style pour le champ de nom personnalisé */
+        .custom-terms-modal #custom-doc-name {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .custom-terms-modal #custom-doc-name:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: var(--bg-hover);
+        }
+
+        .custom-terms-modal #custom-doc-name::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .custom-terms-modal .add-term-input button {
+            background: var(--success-color);
             color: white;
             border: none;
-            padding: 14px 24px;
-            border-radius: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
 
-        .add-term-input button:hover {
-            background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
+        .custom-terms-modal .add-term-input button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
         }
 
-        .preview-section {
-            background: rgba(26, 26, 26, 0.5);
-            padding: 18px;
+        .custom-terms-modal .preview-section {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
             border-radius: 12px;
-            margin-bottom: 24px;
-            border: 1px solid #1a1a1a;
+            margin-bottom: 28px;
+            border: 2px solid var(--border-color);
         }
 
-        .preview-section h4 {
+        .custom-terms-modal .preview-section h4 {
             margin-top: 0;
-            margin-bottom: 10px;
-            color: #d8b4fe;
+            margin-bottom: 12px;
+            color: var(--primary-color);
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .preview-text {
-            font-size: 16px;
+        .custom-terms-modal .preview-text {
+            font-size: 17px;
             font-weight: 600;
-            color: white;
+            color: var(--text-primary);
             word-wrap: break-word;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
-        .modal-actions {
+        .custom-terms-modal .modal-actions {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
         }
 
-        .modal-actions button {
-            padding: 12px 28px;
+        .custom-terms-modal .modal-actions button {
+            padding: 12px 30px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
         }
 
-        .btn-validate {
-            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+        .custom-terms-modal .btn-validate {
+            background: var(--primary-color);
             color: white;
-            box-shadow: 0 2px 10px rgba(126, 34, 206, 0.3);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
-        .btn-validate:hover {
-            background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.5);
+        .custom-terms-modal .btn-validate:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
-        .btn-cancel {
+        .custom-terms-modal .btn-cancel {
             background: transparent;
-            color: white;
-            border: 1px solid #333;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
         }
 
-        .btn-cancel:hover {
-            background: #1a1a1a;
-            border-color: #555;
+        .custom-terms-modal .btn-cancel:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
         }
     `);
 
@@ -1451,14 +1513,19 @@
                     <h3>🏷️ Personnaliser le nom du document</h3>
                     <button class="close-modal">&times;</button>
                 </div>
-                
+
+                <div class="terms-section">
+                    <h4>📝 Nom personnalisé du document :</h4>
+                    <input type="text" id="custom-doc-name" placeholder="Entrez un nom personnalisé..." style="margin-bottom: 20px;">
+                </div>
+
                 <div class="preview-section">
                     <h4>Aperçu du nom final :</h4>
                     <div class="preview-text" id="term-preview"></div>
                 </div>
 
                 <div class="terms-section">
-                    <h4>Sélectionnez des termes à ajouter :</h4>
+                    <h4>Ou sélectionnez des termes prédéfinis :</h4>
                     <div class="terms-buttons" id="terms-list"></div>
                     <div class="add-term-input">
                         <input type="text" id="new-term-input" placeholder="Ajouter un nouveau terme...">
@@ -1487,21 +1554,31 @@
 
     let currentDocNumber = '';
     let selectedTerms = [];
+    let customDocName = '';
     let isEditMode = false;
 
     function openCustomTermsModal(number) {
         currentDocNumber = number;
         selectedTerms = [];
+        customDocName = '';
         isEditMode = false;
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-        
+
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
-        
+
         updateTermsList();
         updatePreview();
+
+        // Gérer le champ de nom personnalisé
+        const customNameInput = modal.querySelector('#custom-doc-name');
+        customNameInput.value = '';
+        customNameInput.addEventListener('input', (e) => {
+            customDocName = e.target.value.trim();
+            updatePreview();
+        });
 
         // Valider
         const validateBtn = modal.querySelector('.btn-validate');
@@ -1521,7 +1598,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-        
+
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -1552,17 +1629,27 @@
         currentDocNumber = number;
         isEditMode = true;
 
-        // Extraire les termes existants du titre
-        selectedTerms = extractTermsFromTitle(favorite.title, number);
+        // Extraire les termes et le nom personnalisé du titre
+        const extracted = extractTermsAndCustomName(favorite.title, number);
+        selectedTerms = extracted.terms;
+        customDocName = extracted.customName;
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-        
+
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
-        
+
         updateTermsList();
         updatePreview();
+
+        // Pré-remplir le champ de nom personnalisé
+        const customNameInput = modal.querySelector('#custom-doc-name');
+        customNameInput.value = customDocName;
+        customNameInput.addEventListener('input', (e) => {
+            customDocName = e.target.value.trim();
+            updatePreview();
+        });
 
         // Valider
         const validateBtn = modal.querySelector('.btn-validate');
@@ -1579,7 +1666,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-        
+
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -1603,25 +1690,49 @@
         modal.classList.add('show');
     }
 
-    function extractTermsFromTitle(title, number) {
-        // Si le titre est juste le numéro, pas de termes
+    function extractTermsAndCustomName(title, number) {
+        // Si le titre est juste le numéro, rien à extraire
         if (title === number) {
-            return [];
+            return { terms: [], customName: '' };
         }
 
-        // Format attendu: "Terme1 + Terme2 - Numéro"
-        const parts = title.split(' - ');
-        if (parts.length < 2) {
-            return [];
+        // Format attendu: "Terme1 + Terme2 - Nom Personnalisé"
+        // Séparer d'abord par " - " pour isoler le nom personnalisé
+        const dashParts = title.split(' - ');
+
+        let termsString = '';
+        let customName = '';
+
+        if (dashParts.length > 1) {
+            // Il y a un " - ", donc la dernière partie est le nom personnalisé
+            termsString = dashParts.slice(0, -1).join(' - ');
+            customName = dashParts[dashParts.length - 1].trim();
+        } else {
+            // Pas de " - ", tout est potentiellement des termes
+            termsString = title;
         }
 
-        // Prendre tout sauf la dernière partie (qui est le numéro)
-        const termsPart = parts.slice(0, -1).join(' - ');
-        
-        // Séparer par " + "
-        const terms = termsPart.split(' + ').map(t => t.trim()).filter(t => t !== '');
-        
-        return terms;
+        // Extraire les termes prédéfinis (séparés par " + ")
+        const customTermsList = getCustomTerms();
+        const terms = [];
+
+        if (termsString) {
+            const termsParts = termsString.split(' + ').map(t => t.trim()).filter(t => t !== '');
+            termsParts.forEach(part => {
+                if (customTermsList.includes(part)) {
+                    terms.push(part);
+                } else if (!customName) {
+                    // Si ce n'est pas un terme et qu'on n'a pas encore de nom personnalisé,
+                    // c'est probablement un ancien nom personnalisé
+                    customName = part;
+                }
+            });
+        }
+
+        return {
+            terms: terms,
+            customName: customName
+        };
     }
 
     function closeCustomTermsModal() {
@@ -1631,6 +1742,7 @@
         }
         currentDocNumber = '';
         selectedTerms = [];
+        customDocName = '';
         isEditMode = false;
     }
 
@@ -1639,7 +1751,7 @@
         if (!termsList) return;
 
         const terms = getCustomTerms();
-        
+
         if (terms.length === 0) {
             termsList.innerHTML = '<p style="color: #999; font-style: italic;">Aucun terme personnalisé. Ajoutez-en un ci-dessous.</p>';
             return;
@@ -1689,15 +1801,34 @@
         } else {
             selectedTerms.push(term);
         }
+
         updateTermsList();
         updatePreview();
     }
 
     function buildFinalTitle() {
-        if (selectedTerms.length === 0) {
-            return currentDocNumber;
+        let result = '';
+
+        // Ajouter les termes prédéfinis en premier (séparés par +)
+        if (selectedTerms.length > 0) {
+            result = selectedTerms.join(' + ');
         }
-        return `${selectedTerms.join(' + ')} - ${currentDocNumber}`;
+
+        // Ajouter le nom personnalisé à droite (séparé par -)
+        if (customDocName && customDocName.trim() !== '') {
+            if (result !== '') {
+                result += ' - ' + customDocName;
+            } else {
+                result = customDocName;
+            }
+        }
+
+        // Si on a un résultat, le retourner, sinon juste le numéro
+        if (result !== '') {
+            return result;
+        }
+
+        return currentDocNumber;
     }
 
     function updatePreview() {
