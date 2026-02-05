@@ -372,8 +372,71 @@
             return;
         }
 
+        // Attendre un peu que le DOM soit complètement chargé
+        setTimeout(() => {
+            // DEBUG: Afficher tous les conteneurs possibles
+            console.log('[DEBUG PANEL] === Recherche du conteneur cible ===');
+            const allContainers = document.querySelectorAll('[data-container-control-id]');
+            console.log(`[DEBUG PANEL] ${allContainers.length} conteneurs trouvés avec data-container-control-id:`);
+            allContainers.forEach((container, index) => {
+                const id = container.getAttribute('data-container-control-id');
+                const rect = container.getBoundingClientRect();
+                console.log(`[DEBUG PANEL] ${index + 1}. ID="${id}" Position: top=${Math.round(rect.top)}px, left=${Math.round(rect.left)}px, width=${Math.round(rect.width)}px, height=${Math.round(rect.height)}px`);
+
+                // Afficher le contenu pour identifier le bon
+                const buttons = container.querySelectorAll('.appmagic-button-label');
+                if (buttons.length > 0) {
+                    const buttonTexts = Array.from(buttons).map(b => b.textContent.trim()).join(', ');
+                    console.log(`[DEBUG PANEL]    Boutons trouvés: ${buttonTexts}`);
+                }
+            });
+
+            // Trouver le conteneur avec l'attribut data-container-control-id="185"
+            const targetContainer = document.querySelector('[data-container-control-id="185"]');
+
+            if (!targetContainer) {
+                console.log('[DEBUG PANEL] ❌ Conteneur cible (ID=185) non trouvé !');
+
+                // Chercher le conteneur par son nom
+                const containerByName = document.querySelector('[data-container-name="ContainerNewDemBoutons-container"]');
+                if (containerByName) {
+                    console.log('[DEBUG PANEL] ✅ Conteneur trouvé par nom: ContainerNewDemBoutons-container');
+                    insertPanelIntoContainer(containerByName);
+                } else {
+                    console.log('[DEBUG PANEL] ❌ Aucun conteneur trouvé, abandon...');
+                    return;
+                }
+            } else {
+                console.log(`[DEBUG PANEL] ✅ Conteneur cible trouvé (ID=185)`);
+
+                // Chercher le div parent avec la classe appmagic-group
+                const groupDiv = targetContainer.querySelector('.appmagic-group.appmagic-autolayout.horizontal');
+                if (groupDiv) {
+                    console.log('[DEBUG PANEL] ✅ Div groupe horizontal trouvé, insertion du panel...');
+                    insertPanelIntoContainer(groupDiv);
+                } else {
+                    console.log('[DEBUG PANEL] ⚠️ Div groupe non trouvé, insertion dans le conteneur principal...');
+                    insertPanelIntoContainer(targetContainer);
+                }
+            }
+        }, 500);
+    }
+
+    // Fonction pour insérer le panel dans le conteneur
+    function insertPanelIntoContainer(container) {
+        console.log('[DEBUG PANEL] 📍 Insertion du panel dans le conteneur...');
+
         const panel = document.createElement('div');
         panel.id = 'tampermonkey-panel';
+
+        // Style pour s'intégrer dans le flex container
+        panel.style.cssText = `
+            position: relative;
+            flex: 0 0 auto;
+            width: 300px;
+            margin-left: 20px;
+            animation: slideIn 0.3s ease-out;
+        `;
 
         // Intégrer votre interface complète dans le panel avec le style cyberpunk
         panel.innerHTML = `
@@ -395,36 +458,41 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="form-group">
-                            <input type="text" id="collectorLink" placeholder=" " />
-                            <label class="form-label" data-text="Lien CollectorPlus">Lien CollectorPlus</label>
+                        <div class="form-group-inline">
+                            <div class="form-group" style="flex: 1;">
+                                <input type="text" id="collectorLink" placeholder=" " />
+                                <label class="form-label" data-text="Lien CollectorPlus">Lien CollectorPlus</label>
+                            </div>
+                            <div class="button-group-inline">
+                                <button id="fetchData" class="submit-btn-mini" data-text="🔍" title="Récupérer">
+                                    <span class="btn-text">🔍</span>
+                                </button>
+                                <button id="toggleEdit" class="submit-btn-mini" data-text="✏️" title="Éditer">
+                                    <span class="btn-text">✏️</span>
+                                </button>
+                                <button id="closePanel" class="submit-btn-mini" data-text="❌" title="Fermer" style="border-color: #dc3545; color: #dc3545;">
+                                    <span class="btn-text">❌</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <button id="fetchData" class="submit-btn" data-text="Récupérer">
-                            <span class="btn-text">🔍 Récupérer</span>
-                        </button>
-
-                        <button id="toggleEdit" class="submit-btn" data-text="Éditer" style="margin-top: 0.3rem;">
-                            <span class="btn-text">✏️ Éditer</span>
-                        </button>
-
-                        <div id="editSection" style="display: none; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid rgba(0, 242, 234, 0.2);">
-                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                        <div id="editSection" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(0, 242, 234, 0.2);">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
                                 <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " />
                                 <label class="form-label" data-text="N° Série">N° Série</label>
                             </div>
 
-                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
                                 <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " />
                                 <label class="form-label" data-text="Symbole">Symbole</label>
                             </div>
 
-                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
                                 <input type="text" id="manualNumOF" value="${numOF}" placeholder=" " />
                                 <label class="form-label" data-text="N° OF">N° OF</label>
                             </div>
 
-                            <div class="form-group" style="margin-bottom: 0.8rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
                                 <input type="text" id="manualComposant" value="${composant}" placeholder=" " />
                                 <label class="form-label" data-text="Composant">Composant</label>
                             </div>
@@ -433,24 +501,14 @@
                                 <span class="btn-text">💾 Update</span>
                             </button>
                         </div>
-
-                        <button id="closePanel" class="submit-btn" data-text="Fermer" style="margin-top: 0.8rem; border-color: #dc3545; color: #dc3545;">
-                            <span class="btn-text">❌ Fermer</span>
-                        </button>
                     </div>
                 </div>
             </div>
         `;
 
-        // Styles pour le panel avec le thème cyberpunk (taille réduite)
-        panel.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 280px;
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-        `;
+        // Ajouter le panel au conteneur
+        container.appendChild(panel);
+        console.log('[DEBUG PANEL] ✅ Panel inséré dans le conteneur !');
 
         // Ajouter les styles CSS cyberpunk complets
         const style = document.createElement('style');
@@ -477,13 +535,13 @@
             .glitch-card {
               background-color: var(--bg-color);
               width: 100%;
-              max-width: 280px;
+              max-width: 300px;
               border: 1px solid rgba(0, 242, 234, 0.2);
               box-shadow:
                 0 0 15px rgba(0, 242, 234, 0.1),
                 inset 0 0 8px rgba(0, 0, 0, 0.5);
               overflow: hidden;
-              margin: 0.5rem;
+              margin: 0;
             }
 
             .card-header {
@@ -491,13 +549,13 @@
               justify-content: space-between;
               align-items: center;
               background-color: rgba(0, 0, 0, 0.3);
-              padding: 0.4em 0.8em;
+              padding: 0.3em 0.5em;
               border-bottom: 1px solid rgba(0, 242, 234, 0.2);
             }
 
             .card-title {
               color: var(--primary-color);
-              font-size: 0.7rem;
+              font-size: 0.6rem;
               font-weight: 700;
               text-transform: uppercase;
               letter-spacing: 0.05em;
@@ -507,35 +565,48 @@
             }
 
             .card-title svg {
-              width: 1em;
-              height: 1em;
+              width: 0.8em;
+              height: 0.8em;
               stroke: var(--primary-color);
             }
 
             .card-dots span {
               display: inline-block;
-              width: 6px;
-              height: 6px;
+              width: 4px;
+              height: 4px;
               border-radius: 50%;
               background-color: #333;
-              margin-left: 3px;
+              margin-left: 2px;
             }
 
             .card-body {
-              padding: 1rem;
+              padding: 0.6rem;
             }
 
             /* --- Form Elements (Compact) --- */
             .form-group {
               position: relative;
-              margin-bottom: 1rem;
+              margin-bottom: 0.6rem;
+            }
+
+            .form-group-inline {
+              display: flex;
+              align-items: flex-end;
+              gap: 0.3rem;
+              margin-bottom: 0.6rem;
+            }
+
+            .button-group-inline {
+              display: flex;
+              gap: 0.2rem;
+              flex-shrink: 0;
             }
 
             .form-label {
               position: absolute;
-              top: 0.6em;
+              top: 0.4em;
               left: 0;
-              font-size: 0.8rem;
+              font-size: 0.65rem;
               color: var(--primary-color);
               opacity: 0.6;
               text-transform: uppercase;
@@ -549,8 +620,8 @@
               background: transparent;
               border: none;
               border-bottom: 2px solid rgba(0, 242, 234, 0.3);
-              padding: 0.6em 0;
-              font-size: 0.9rem;
+              padding: 0.4em 0;
+              font-size: 0.75rem;
               color: var(--text-color);
               font-family: inherit;
               outline: none;
@@ -563,8 +634,8 @@
 
             .form-group input:focus + .form-label,
             .form-group input:not(:placeholder-shown) + .form-label {
-              top: -1em;
-              font-size: 0.7rem;
+              top: -0.8em;
+              font-size: 0.6rem;
               opacity: 1;
             }
 
@@ -621,13 +692,13 @@
             /* --- Button Styling (Compact) --- */
             .submit-btn {
               width: 100%;
-              padding: 0.6em;
-              margin-top: 0.8rem;
+              padding: 0.4em;
+              margin-top: 0.5rem;
               background-color: transparent;
               border: 2px solid var(--primary-color);
               color: var(--primary-color);
               font-family: inherit;
-              font-size: 0.8rem;
+              font-size: 0.7rem;
               font-weight: 700;
               text-transform: uppercase;
               letter-spacing: 0.1em;
@@ -635,6 +706,34 @@
               position: relative;
               transition: all 0.3s;
               overflow: hidden;
+            }
+
+            .submit-btn-mini {
+              padding: 0.35em 0.6em;
+              background-color: transparent;
+              border: 2px solid var(--primary-color);
+              color: var(--primary-color);
+              font-family: inherit;
+              font-size: 0.85rem;
+              font-weight: 700;
+              cursor: pointer;
+              position: relative;
+              transition: all 0.3s;
+              overflow: hidden;
+              border-radius: 4px;
+              min-width: 32px;
+            }
+
+            .submit-btn-mini:hover,
+            .submit-btn-mini:focus {
+              background-color: var(--primary-color);
+              color: var(--bg-color);
+              box-shadow: 0 0 15px var(--primary-color);
+              outline: none;
+            }
+
+            .submit-btn-mini:active {
+              transform: scale(0.95);
             }
 
             .submit-btn:hover,
@@ -730,9 +829,6 @@
             }
         `;
         document.head.appendChild(style);
-
-        // Ajouter le panel au body
-        document.body.appendChild(panel);
 
         // Ajouter les event listeners pour votre interface
 
