@@ -146,7 +146,7 @@
         }
 
         .favorites-modal .folders-sidebar {
-            width: 280px;
+            width: 400px;
             overflow-y: auto;
             flex-shrink: 0;
             background: rgba(30, 41, 59, 0.3);
@@ -208,7 +208,7 @@
         .favorites-modal .favorites-list-container {
             flex: 1;
             overflow-y: auto;
-            padding-left: 24px;
+            padding-left: 20px;
         }
 
         .favorites-modal .favorites-list-container h3 {
@@ -264,8 +264,8 @@
         }
 
         .favorites-modal .favorite-item {
-            padding: 18px;
-            margin-bottom: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
             border: 2px solid var(--border-color);
             border-radius: 12px;
             display: flex;
@@ -315,7 +315,7 @@
             color: var(--text-primary);
             margin-bottom: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.2s ease;
         }
 
@@ -324,7 +324,7 @@
         }
 
         .favorites-modal .favorite-number {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-secondary);
             margin-top: 5px;
             font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
@@ -332,19 +332,19 @@
 
         .favorites-modal .favorite-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .favorites-modal .edit-favorite {
             background: var(--warning-color);
             color: white;
             border: none;
-            padding: 9px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
         }
 
@@ -358,12 +358,12 @@
             background: var(--danger-color);
             color: white;
             border: none;
-            padding: 9px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
         }
 
@@ -433,10 +433,24 @@
         .favorites-modal .folder-icon {
             font-size: 18px;
             margin-right: 10px;
+            transition: transform 0.3s ease;
         }
 
-        .favorites-modal .folder-header.collapsed .folder-icon {
-            transform: none;
+        .favorites-modal .folder-icon.expandable {
+            cursor: pointer;
+        }
+
+        .favorites-modal .folder-header.collapsed .folder-icon.expandable {
+            transform: rotate(-90deg);
+        }
+
+        .favorites-modal .folder-children {
+            margin-left: 20px;
+            margin-top: 6px;
+        }
+
+        .favorites-modal .folder-children.hidden {
+            display: none;
         }
 
         .favorites-modal .folder-name {
@@ -1046,16 +1060,16 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1080,22 +1094,22 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             modal.querySelector('.dialog-btn-danger').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-
+            
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(false);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1121,35 +1135,35 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             const input = modal.querySelector('.dialog-input');
             input.focus();
             input.select();
-
+            
             const validate = () => {
                 const value = input.value;
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(value || null);
             };
-
+            
             modal.querySelector('.dialog-btn-primary').addEventListener('click', validate);
-
+            
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     validate();
                 }
             });
-
+            
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(null);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1212,14 +1226,19 @@
         GM_setValue('docmat_folders', JSON.stringify(folders));
     }
 
-    function createFolder(name) {
+    function createFolder(name, parentId = null) {
         const folders = getFolders();
-        const exists = folders.some(folder => folder.name === name);
+        
+        // Vérifier si un dossier avec le même nom existe déjà au même niveau
+        const exists = folders.some(folder => 
+            folder.name === name && folder.parentId === parentId
+        );
 
         if (!exists && name && name.trim() !== '') {
             folders.push({
                 id: Date.now().toString(),
                 name: name,
+                parentId: parentId,
                 collapsed: false,
                 date: new Date().toISOString()
             });
@@ -1231,13 +1250,28 @@
 
     function deleteFolder(folderId) {
         let folders = getFolders();
-        folders = folders.filter(folder => folder.id !== folderId);
+        
+        // Récupérer tous les sous-dossiers récursivement
+        const getAllSubfolders = (parentId) => {
+            const subfolders = folders.filter(f => f.parentId === parentId);
+            let allSubs = [...subfolders];
+            subfolders.forEach(sub => {
+                allSubs = allSubs.concat(getAllSubfolders(sub.id));
+            });
+            return allSubs;
+        };
+        
+        const subfoldersToDelete = getAllSubfolders(folderId);
+        const allFolderIds = [folderId, ...subfoldersToDelete.map(f => f.id)];
+        
+        // Supprimer tous les dossiers et sous-dossiers
+        folders = folders.filter(folder => !allFolderIds.includes(folder.id));
         saveFolders(folders);
 
         // Retirer le dossier des favoris
         let favorites = getFavorites();
         favorites = favorites.map(fav => {
-            if (fav.folderId === folderId) {
+            if (allFolderIds.includes(fav.folderId)) {
                 delete fav.folderId;
             }
             return fav;
@@ -1442,10 +1476,66 @@
         const favorites = getFavorites();
         const folders = getFolders();
 
-        // Filtrer les dossiers selon la recherche
-        const filteredFolders = folderSearchQuery
-            ? folders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase()))
-            : folders;
+        // Fonction récursive pour compter les favoris dans un dossier et ses sous-dossiers
+        const countFavoritesInFolder = (folderId) => {
+            const subfolders = folders.filter(f => f.parentId === folderId);
+            let count = favorites.filter(fav => fav.folderId === folderId).length;
+            subfolders.forEach(sub => {
+                count += countFavoritesInFolder(sub.id);
+            });
+            return count;
+        };
+
+        // Fonction récursive pour construire l'arborescence
+        const buildFolderTree = (parentId = null, level = 0) => {
+            let html = '';
+            const childFolders = folders.filter(f => f.parentId === parentId);
+            
+            // Filtrer selon la recherche
+            const filteredChildFolders = folderSearchQuery
+                ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase()))
+                : childFolders;
+
+            filteredChildFolders.forEach(folder => {
+                const hasChildren = folders.some(f => f.parentId === folder.id);
+                const folderCount = countFavoritesInFolder(folder.id);
+                
+                html += `<div class="folder-section">`;
+                html += `<div class="folder-header ${folder.collapsed ? 'collapsed' : ''} ${currentFolderId === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">`;
+                
+                // Icône d'expansion si le dossier a des enfants
+                if (hasChildren) {
+                    html += `<span class="folder-icon expandable" data-folder-id="${folder.id}">🔽</span>`;
+                } else {
+                    html += '<span class="folder-icon">📁</span>';
+                }
+
+                // Highlight le texte recherché
+                let folderNameHtml = folder.name;
+                if (folderSearchQuery) {
+                    const regex = new RegExp(`(${folderSearchQuery})`, 'gi');
+                    folderNameHtml = folder.name.replace(regex, '<span class="highlight-match">$1</span>');
+                }
+                html += `<span class="folder-name">${folderNameHtml}</span>`;
+                html += `<span class="folder-count">${folderCount}</span>`;
+                html += '<div class="folder-actions">';
+                html += `<button class="add-subfolder" data-folder-id="${folder.id}" title="Nouveau sous-dossier">➕</button>`;
+                html += `<button class="rename-folder" data-folder-id="${folder.id}" title="Renommer">✏️</button>`;
+                html += `<button class="delete-folder" data-folder-id="${folder.id}" title="Supprimer">🗑️</button>`;
+                html += '</div></div>';
+                
+                // Sous-dossiers
+                if (hasChildren) {
+                    html += `<div class="folder-children ${folder.collapsed ? 'hidden' : ''}" data-parent-id="${folder.id}">`;
+                    html += buildFolderTree(folder.id, level + 1);
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            });
+
+            return html;
+        };
 
         let html = '';
 
@@ -1469,28 +1559,10 @@
             html += '</div></div>';
         }
 
-        // Dossiers filtrés
-        filteredFolders.forEach(folder => {
-            const folderCount = favorites.filter(fav => fav.folderId === folder.id).length;
-            html += `<div class="folder-section">`;
-            html += `<div class="folder-header ${currentFolderId === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">`;
-            html += '<span class="folder-icon">📁</span>';
+        // Construire l'arborescence à partir des dossiers racines
+        html += buildFolderTree(null, 0);
 
-            // Highlight le texte recherché
-            let folderNameHtml = folder.name;
-            if (folderSearchQuery) {
-                const regex = new RegExp(`(${folderSearchQuery})`, 'gi');
-                folderNameHtml = folder.name.replace(regex, '<span class="highlight-match">$1</span>');
-            }
-            html += `<span class="folder-name">${folderNameHtml}</span>`;
-            html += `<span class="folder-count">${folderCount}</span>`;
-            html += '<div class="folder-actions">';
-            html += `<button class="rename-folder" data-folder-id="${folder.id}" title="Renommer">✏️</button>`;
-            html += `<button class="delete-folder" data-folder-id="${folder.id}" title="Supprimer">🗑️</button>`;
-            html += '</div></div></div>';
-        });
-
-        if (folderSearchQuery && filteredFolders.length === 0) {
+        if (folderSearchQuery && folders.length > 0 && !html.includes('folder-name')) {
             html += '<div class="no-favorites" style="padding: 20px; font-size: 14px;">Aucun dossier trouvé</div>';
         }
 
@@ -1500,12 +1572,41 @@
         treeContainer.querySelectorAll('.folder-header').forEach(header => {
             header.addEventListener('click', (e) => {
                 if (e.target.classList.contains('rename-folder') ||
-                    e.target.classList.contains('delete-folder')) {
+                    e.target.classList.contains('delete-folder') ||
+                    e.target.classList.contains('add-subfolder') ||
+                    e.target.classList.contains('folder-icon')) {
                     return;
                 }
                 const folderId = header.getAttribute('data-folder-id');
                 currentFolderId = folderId;
                 updateFavoritesList();
+            });
+        });
+
+        // Événements pour expand/collapse les dossiers
+        treeContainer.querySelectorAll('.folder-icon.expandable').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const folderId = icon.getAttribute('data-folder-id');
+                toggleFolder(folderId);
+                updateFoldersTree();
+            });
+        });
+
+        // Événements pour ajouter un sous-dossier
+        treeContainer.querySelectorAll('.add-subfolder').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const parentId = e.target.getAttribute('data-folder-id');
+                const name = await customPrompt('Nom du nouveau sous-dossier:', '', '📁');
+                if (name && name.trim() !== '') {
+                    if (createFolder(name, parentId)) {
+                        updateFavoritesList();
+                        showNotification('✅ Sous-dossier créé !');
+                    } else {
+                        await customAlert('Un dossier avec ce nom existe déjà à cet emplacement !', '⚠️');
+                    }
+                }
             });
         });
 
@@ -1531,7 +1632,12 @@
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const folderId = e.target.getAttribute('data-folder-id');
-                const confirmed = await customConfirm('Supprimer ce dossier ?\n(Les favoris seront déplacés dans "Sans dossier")', '🗑️');
+                const folders = getFolders();
+                const hasSubfolders = folders.some(f => f.parentId === folderId);
+                const message = hasSubfolders 
+                    ? 'Supprimer ce dossier et tous ses sous-dossiers ?\n(Les favoris seront déplacés dans "Sans dossier")'
+                    : 'Supprimer ce dossier ?\n(Les favoris seront déplacés dans "Sans dossier")';
+                const confirmed = await customConfirm(message, '🗑️');
                 if (confirmed) {
                     deleteFolder(folderId);
                     if (currentFolderId === folderId) {
@@ -1650,18 +1756,39 @@
         const listContainer = document.querySelector('.favorites-list');
         if (!listContainer) return;
 
-        // Cliquer sur le titre pour remplir le champ
-        listContainer.querySelectorAll('.favorite-title').forEach(title => {
-            title.addEventListener('click', (e) => {
-                const number = e.target.getAttribute('data-number');
+        // Cliquer sur toute la zone du favori pour remplir le champ
+        listContainer.querySelectorAll('.favorite-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Ne pas déclencher si on clique sur le drag handle ou les boutons
+                if (e.target.classList.contains('drag-handle') ||
+                    e.target.closest('.favorite-actions') ||
+                    e.target.closest('button')) {
+                    return;
+                }
+                const number = item.getAttribute('data-number');
                 fillSearchField(number);
                 closeFavoritesModal();
+            });
+            
+            // Garder le curseur pointer sur toute la zone sauf drag handle et boutons
+            item.style.cursor = 'pointer';
+        });
+
+        // Le drag handle garde son propre curseur
+        listContainer.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.style.cursor = 'grab';
+            handle.addEventListener('mousedown', () => {
+                handle.style.cursor = 'grabbing';
+            });
+            handle.addEventListener('mouseup', () => {
+                handle.style.cursor = 'grab';
             });
         });
 
         // Modifier un favori
         listContainer.querySelectorAll('.edit-favorite').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const number = e.target.getAttribute('data-number');
                 openEditModal(number);
             });
@@ -1670,6 +1797,7 @@
         // Supprimer un favori
         listContainer.querySelectorAll('.remove-favorite').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const number = e.target.getAttribute('data-number');
                 removeFavorite(number);
                 updateFavoritesList();
@@ -1777,11 +1905,11 @@
     async function createNewFolder() {
         const name = await customPrompt('Nom du nouveau dossier:', '', '📁');
         if (name && name.trim() !== '') {
-            if (createFolder(name)) {
+            if (createFolder(name, null)) {
                 updateFavoritesList();
                 showNotification('✅ Dossier créé !');
             } else {
-                await customAlert('Ce dossier existe déjà !', '⚠️');
+                await customAlert('Un dossier avec ce nom existe déjà à cet emplacement !', '⚠️');
             }
         }
     }
@@ -1807,6 +1935,14 @@
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchInput.dispatchEvent(new Event('change', { bubbles: true }));
             searchInput.focus();
+            
+            // Attendre un court instant puis cliquer sur le bouton Rechercher
+            setTimeout(() => {
+                const searchButton = document.querySelector('button.btn.btn-primary.float-right.mt-4');
+                if (searchButton && searchButton.textContent.trim() === 'Rechercher') {
+                    searchButton.click();
+                }
+            }, 100);
         }
     }
 
@@ -1871,7 +2007,7 @@
                     <h3>🏷️ Personnaliser le nom du document</h3>
                     <button class="close-modal">&times;</button>
                 </div>
-
+                
                 <div class="custom-terms-body">
                     <div class="left-panel">
                         <div class="terms-section">
@@ -1941,10 +2077,10 @@
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-
+        
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
-
+        
         updateTermsList();
         updateFolderSelector();
         updatePreview();
@@ -1982,7 +2118,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-
+        
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -2022,10 +2158,10 @@
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-
+        
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
-
+        
         updateTermsList();
         updateFolderSelector();
         updatePreview();
@@ -2064,7 +2200,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-
+        
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -2097,10 +2233,10 @@
         // Format attendu: "Terme1 + Terme2 - Nom Personnalisé"
         // Séparer d'abord par " - " pour isoler le nom personnalisé
         const dashParts = title.split(' - ');
-
+        
         let termsString = '';
         let customName = '';
-
+        
         if (dashParts.length > 1) {
             // Il y a un " - ", donc la dernière partie est le nom personnalisé
             termsString = dashParts.slice(0, -1).join(' - ');
@@ -2109,11 +2245,11 @@
             // Pas de " - ", tout est potentiellement des termes
             termsString = title;
         }
-
+        
         // Extraire les termes prédéfinis (séparés par " + ")
         const customTermsList = getCustomTerms();
         const terms = [];
-
+        
         if (termsString) {
             const termsParts = termsString.split(' + ').map(t => t.trim()).filter(t => t !== '');
             termsParts.forEach(part => {
@@ -2126,7 +2262,7 @@
                 }
             });
         }
-
+        
         return {
             terms: terms,
             customName: customName
@@ -2152,23 +2288,53 @@
 
         const folders = getFolders();
 
-        // Filtrer les dossiers selon la recherche
-        const filteredFolders = folderSearchQueryModal
-            ? folders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
-            : folders;
+        // Fonction récursive pour construire le chemin d'un dossier
+        const getFolderPath = (folderId) => {
+            const folder = folders.find(f => f.id === folderId);
+            if (!folder) return '';
+            if (!folder.parentId) return folder.name;
+            return getFolderPath(folder.parentId) + ' > ' + folder.name;
+        };
 
-        if (filteredFolders.length === 0) {
+        // Fonction récursive pour construire la liste des dossiers
+        const buildFolderList = (parentId = null, level = 0) => {
+            let list = [];
+            const childFolders = folders.filter(f => f.parentId === parentId);
+            
+            // Filtrer selon la recherche
+            const filteredChildFolders = folderSearchQueryModal
+                ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
+                : childFolders;
+
+            filteredChildFolders.forEach(folder => {
+                const indent = '&nbsp;&nbsp;'.repeat(level * 2);
+                list.push({
+                    folder: folder,
+                    indent: indent,
+                    level: level
+                });
+                
+                // Ajouter récursivement les sous-dossiers
+                list = list.concat(buildFolderList(folder.id, level + 1));
+            });
+
+            return list;
+        };
+
+        const folderList = buildFolderList(null, 0);
+
+        if (folderList.length === 0) {
             folderSelectorList.innerHTML = '<p style="color: #999; font-style: italic; font-size: 13px;">Aucun dossier disponible.</p>';
             return;
         }
 
-        folderSelectorList.innerHTML = filteredFolders.map(folder => {
-            const isSelected = selectedFolderId === folder.id;
+        folderSelectorList.innerHTML = folderList.map(item => {
+            const isSelected = selectedFolderId === item.folder.id;
             return `
-                <div class="folder-option ${isSelected ? 'selected' : ''}" data-folder-id="${folder.id}">
-                    <input type="checkbox" id="folder-${folder.id}" ${isSelected ? 'checked' : ''}>
-                    <span class="folder-icon-small">📁</span>
-                    <label for="folder-${folder.id}">${folder.name}</label>
+                <div class="folder-option ${isSelected ? 'selected' : ''}" data-folder-id="${item.folder.id}">
+                    <input type="checkbox" id="folder-${item.folder.id}" ${isSelected ? 'checked' : ''}>
+                    <span class="folder-icon-small">${item.indent}📁</span>
+                    <label for="folder-${item.folder.id}">${item.folder.name}</label>
                 </div>
             `;
         }).join('');
@@ -2178,7 +2344,7 @@
             option.addEventListener('click', (e) => {
                 const folderId = option.getAttribute('data-folder-id');
                 const checkbox = option.querySelector('input[type="checkbox"]');
-
+                
                 // Toggle la sélection
                 if (selectedFolderId === folderId) {
                     selectedFolderId = null;
@@ -2187,7 +2353,7 @@
                     selectedFolderId = folderId;
                     checkbox.checked = true;
                 }
-
+                
                 updateFolderSelector();
             });
 
@@ -2196,13 +2362,13 @@
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const folderId = option.getAttribute('data-folder-id');
-
+                
                 if (e.target.checked) {
                     selectedFolderId = folderId;
                 } else {
                     selectedFolderId = null;
                 }
-
+                
                 updateFolderSelector();
             });
         });
@@ -2213,7 +2379,7 @@
         if (!termsList) return;
 
         const terms = getCustomTerms();
-
+        
         if (terms.length === 0) {
             termsList.innerHTML = '<p style="color: #999; font-style: italic;">Aucun terme personnalisé. Ajoutez-en un ci-dessous.</p>';
             return;
@@ -2264,19 +2430,19 @@
         } else {
             selectedTerms.push(term);
         }
-
+        
         updateTermsList();
         updatePreview();
     }
 
     function buildFinalTitle() {
         let result = '';
-
+        
         // Ajouter les termes prédéfinis en premier (séparés par +)
         if (selectedTerms.length > 0) {
             result = selectedTerms.join(' + ');
         }
-
+        
         // Ajouter le nom personnalisé à droite (séparé par -)
         if (customDocName && customDocName.trim() !== '') {
             if (result !== '') {
@@ -2285,12 +2451,12 @@
                 result = customDocName;
             }
         }
-
+        
         // Si on a un résultat, le retourner, sinon juste le numéro
         if (result !== '') {
             return result;
         }
-
+        
         return currentDocNumber;
     }
 
