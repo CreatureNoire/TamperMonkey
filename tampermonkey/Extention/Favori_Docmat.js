@@ -208,7 +208,8 @@
         .favorites-modal .favorites-list-container {
             flex: 1;
             overflow-y: auto;
-            padding-left: 20px;
+            padding-left: 60px;
+            overflow-x: visible;
         }
 
         .favorites-modal .favorites-list-container h3 {
@@ -218,6 +219,11 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .favorites-modal .favorites-list {
+            padding-left: 0;
+            margin-left: 0;
         }
 
         .favorites-modal .favorites-header {
@@ -271,10 +277,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: transform 0.3s ease, margin 0.3s ease;
+            transition: transform 0.3s ease, margin 0.3s ease, background 0.3s ease;
             cursor: move;
             background: var(--bg-card);
             position: relative;
+        }
+
+        .favorites-modal .favorite-item[data-category] {
+            border-width: 3px;
+            border-style: solid;
+        }
+
+        .favorites-modal .favorite-item.indent-level-1 {
+            margin-left: -15px;
+            padding-left: 18px;
+        }
+
+        .favorites-modal .favorite-item.indent-level-2 {
+            margin-left: -30px;
+            padding-left: 34px;
         }
 
         .favorites-modal .favorite-item.dragging {
@@ -382,13 +403,13 @@
             background: var(--warning-color);
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-            font-size: 12px;
-            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
         }
 
         .favorites-modal .edit-favorite:hover {
@@ -401,13 +422,13 @@
             background: var(--danger-color);
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-            font-size: 12px;
-            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
         }
 
         .favorites-modal .remove-favorite:hover {
@@ -941,7 +962,7 @@
         }
 
         .custom-terms-modal .modal-actions button {
-            padding: 12px 30px;
+            padding: 12px 24px;
             border: none;
             border-radius: 10px;
             cursor: pointer;
@@ -971,6 +992,7 @@
         .custom-terms-modal .btn-cancel:hover {
             background: var(--bg-hover);
             border-color: var(--text-secondary);
+            transform: translateY(-2px);
         }
 
         /* Styles pour les modales de confirmation personnalisées */
@@ -1044,7 +1066,7 @@
         }
 
         .custom-dialog-modal .dialog-btn {
-            padding: 12px 32px;
+            padding: 12px 24px;
             border: none;
             border-radius: 10px;
             cursor: pointer;
@@ -1068,7 +1090,7 @@
         .custom-dialog-modal .dialog-btn-danger {
             background: var(--danger-color);
             color: white;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
         }
 
         .custom-dialog-modal .dialog-btn-danger:hover {
@@ -1086,6 +1108,7 @@
         .custom-dialog-modal .dialog-btn-secondary:hover {
             background: var(--bg-hover);
             border-color: var(--text-secondary);
+            transform: translateY(-2px);
         }
     `);
 
@@ -1258,6 +1281,66 @@
         let terms = getCustomTerms();
         terms = terms.filter(t => t !== term);
         saveCustomTerms(terms);
+    }
+
+    // Fonctions de gestion des catégories de documents
+    function getDocumentCategories() {
+        const defaultCategories = [
+            { id: 'dossier-reparation', name: 'Dossier de Réparation', color: '#3b82f6', indentLevel: 2 },
+            { id: 'recapitulatif', name: 'Récapitulatif', color: '#10b981', indentLevel: 1 },
+            { id: 'nomenclature', name: 'Nomenclature', color: '#f59e0b', indentLevel: 0 },
+            { id: 'schema', name: 'Schéma', color: '#f59e0b', indentLevel: 0 },
+            { id: 'implantation', name: 'Implantation', color: '#f59e0b', indentLevel: 0 }
+        ];
+        const categories = GM_getValue('docmat_categories', JSON.stringify(defaultCategories));
+        return JSON.parse(categories);
+    }
+
+    function saveDocumentCategories(categories) {
+        GM_setValue('docmat_categories', JSON.stringify(categories));
+    }
+
+    function addDocumentCategory(name, color, indentLevel = 0) {
+        const categories = getDocumentCategories();
+        const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (!categories.find(c => c.id === id)) {
+            categories.push({ id, name, color, indentLevel });
+            saveDocumentCategories(categories);
+            return true;
+        }
+        return false;
+    }
+
+    function updateDocumentCategory(id, name, color, indentLevel) {
+        const categories = getDocumentCategories();
+        const category = categories.find(c => c.id === id);
+        if (category) {
+            category.name = name;
+            category.color = color;
+            category.indentLevel = indentLevel;
+            saveDocumentCategories(categories);
+            return true;
+        }
+        return false;
+    }
+
+    function removeDocumentCategory(id) {
+        let categories = getDocumentCategories();
+        categories = categories.filter(c => c.id !== id);
+        saveDocumentCategories(categories);
+    }
+
+    function getCategoryForTitle(title) {
+        const categories = getDocumentCategories();
+        const titleLower = title.toLowerCase();
+
+        // Chercher une catégorie dont le nom est contenu dans le titre
+        for (const category of categories) {
+            if (titleLower.includes(category.name.toLowerCase())) {
+                return category;
+            }
+        }
+        return null;
     }
 
     function getFolders() {
@@ -1450,6 +1533,7 @@
                 </div>
                 <div class="toolbar">
                     <button class="create-folder-btn">📁 Nouveau Dossier</button>
+                    <button class="manage-categories-btn">🎨 Gérer les Catégories</button>
                 </div>
                 <div class="favorites-body">
                     <div class="folders-sidebar">
@@ -1478,6 +1562,9 @@
 
         // Bouton créer un dossier
         modal.querySelector('.create-folder-btn').addEventListener('click', createNewFolder);
+
+        // Bouton gérer les catégories
+        modal.querySelector('.manage-categories-btn').addEventListener('click', openCategoriesModal);
 
         // Recherche dans les dossiers
         modal.querySelector('#folder-search').addEventListener('input', (e) => {
@@ -1780,12 +1867,25 @@
     function renderFavorites(favorites) {
         try {
             const folders = getFolders();
+            const categories = getDocumentCategories();
             let html = '';
+
+            // Trier les favoris par niveau d'indentation (du plus élevé au plus bas)
+            const sortedFavorites = [...favorites].sort((a, b) => {
+                const aCat = getCategoryForTitle(a.title);
+                const bCat = getCategoryForTitle(b.title);
+
+                const aLevel = aCat ? aCat.indentLevel : -1;
+                const bLevel = bCat ? bCat.indentLevel : -1;
+
+                // Trier par niveau d'indentation décroissant (2, 1, 0, puis -1)
+                return bLevel - aLevel;
+            });
 
             // Zone de drop au début
             html += '<div class="drop-zone" data-index="0"></div>';
 
-            favorites.forEach((fav, index) => {
+            sortedFavorites.forEach((fav, index) => {
                 // Highlight le texte recherché
                 let titleHtml = fav.title;
                 let numberHtml = formatDocumentNumber(fav.number);
@@ -1807,8 +1907,25 @@
                     folderPath = `<div class="folder-path">📄 Sans dossier</div>`;
                 }
 
+                // Détecter la catégorie du document
+                const category = getCategoryForTitle(fav.title);
+                let categoryAttr = '';
+                let indentClass = '';
+                let styleAttr = '';
+
+                if (category) {
+                    categoryAttr = ` data-category="${category.id}"`;
+                    styleAttr = ` style="border-color: ${category.color}; background: ${category.color}15;"`;
+
+                    if (category.indentLevel === 1) {
+                        indentClass = ' indent-level-1';
+                    } else if (category.indentLevel === 2) {
+                        indentClass = ' indent-level-2';
+                    }
+                }
+
                 html += `
-                    <div class="favorite-item" data-number="${fav.number}" data-index="${index}">
+                    <div class="favorite-item${indentClass}" data-number="${fav.number}" data-index="${index}"${categoryAttr}${styleAttr}>
                         <span class="drag-handle" draggable="true">⋮⋮</span>
                         <div class="favorite-info">
                             <div class="favorite-title" data-number="${fav.number}">${titleHtml}</div>
@@ -2805,6 +2922,145 @@
             notification.style.animation = 'slideOut 0.3s ease';
             setTimeout(() => notification.remove(), 300);
         }, 2000);
+    }
+
+    // Modal de gestion des catégories
+    function openCategoriesModal() {
+        const categories = getDocumentCategories();
+
+        const modal = document.createElement('div');
+        modal.className = 'custom-dialog-modal';
+        modal.style.zIndex = '10003';
+
+        let categoriesHTML = categories.map(cat => `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 10px;">
+                <input type="color" value="${cat.color}" data-cat-id="${cat.id}" class="cat-color-input"
+                       style="width: 50px; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${cat.name}</div>
+                    <select data-cat-id="${cat.id}" class="cat-indent-select"
+                            style="padding: 4px 8px; background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
+                        <option value="0" ${cat.indentLevel === 0 ? 'selected' : ''}>Normal</option>
+                        <option value="1" ${cat.indentLevel === 1 ? 'selected' : ''}>Décalé -15px</option>
+                        <option value="2" ${cat.indentLevel === 2 ? 'selected' : ''}>Décalé -30px</option>
+                    </select>
+                </div>
+                <button class="delete-cat-btn" data-cat-id="${cat.id}"
+                        style="background: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                    🗑️
+                </button>
+            </div>
+        `).join('');
+
+        modal.innerHTML = `
+            <div class="dialog-content" style="max-width: 600px;">
+                <div style="font-size: 32px; text-align: center; margin-bottom: 16px;">🎨</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 24px;">
+                    Gérer les Catégories de Documents
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                    ${categoriesHTML}
+                </div>
+
+                <div style="border-top: 2px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">Ajouter une nouvelle catégorie :</div>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="text" id="new-cat-name" placeholder="Nom de la catégorie..."
+                               style="flex: 1; padding: 10px; background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px;">
+                        <input type="color" id="new-cat-color" value="#8b5cf6"
+                               style="width: 60px; height: 42px; border: none; border-radius: 8px; cursor: pointer;">
+                        <select id="new-cat-indent"
+                                style="padding: 10px; background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px;">
+                            <option value="0">Normal</option>
+                            <option value="1">Décalé -15px</option>
+                            <option value="2">Décalé -30px</option>
+                        </select>
+                        <button id="add-cat-btn" class="dialog-btn dialog-btn-primary" style="white-space: nowrap;">
+                            ➕ Ajouter
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dialog-actions">
+                    <button class="dialog-btn dialog-btn-primary">✅ Enregistrer et Fermer</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.classList.add('show');
+
+        // Gérer les changements de couleur
+        modal.querySelectorAll('.cat-color-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const catId = e.target.dataset.catId;
+                const categories = getDocumentCategories();
+                const cat = categories.find(c => c.id === catId);
+                if (cat) {
+                    cat.color = e.target.value;
+                    saveDocumentCategories(categories);
+                }
+            });
+        });
+
+        // Gérer les changements d'indentation
+        modal.querySelectorAll('.cat-indent-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const catId = e.target.dataset.catId;
+                const categories = getDocumentCategories();
+                const cat = categories.find(c => c.id === catId);
+                if (cat) {
+                    cat.indentLevel = parseInt(e.target.value);
+                    saveDocumentCategories(categories);
+                }
+            });
+        });
+
+        // Gérer la suppression
+        modal.querySelectorAll('.delete-cat-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const catId = e.target.dataset.catId;
+                const confirmed = await customConfirm('Supprimer cette catégorie ?', '🗑️');
+                if (confirmed) {
+                    removeDocumentCategory(catId);
+                    modal.remove();
+                    openCategoriesModal(); // Réouvrir pour actualiser
+                }
+            });
+        });
+
+        // Ajouter une nouvelle catégorie
+        modal.querySelector('#add-cat-btn').addEventListener('click', () => {
+            const name = modal.querySelector('#new-cat-name').value.trim();
+            const color = modal.querySelector('#new-cat-color').value;
+            const indent = parseInt(modal.querySelector('#new-cat-indent').value);
+
+            if (name) {
+                if (addDocumentCategory(name, color, indent)) {
+                    modal.remove();
+                    openCategoriesModal(); // Réouvrir pour actualiser
+                    showNotification('✅ Catégorie ajoutée !');
+                } else {
+                    customAlert('Cette catégorie existe déjà !', '⚠️');
+                }
+            }
+        });
+
+        // Fermer et rafraîchir
+        modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
+            modal.classList.remove('show');
+            setTimeout(() => modal.remove(), 300);
+            updateFavoritesList(); // Rafraîchir l'affichage
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                updateFavoritesList();
+            }
+        });
     }
 
     // Initialisation et observation
