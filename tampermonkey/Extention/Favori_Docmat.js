@@ -15,33 +15,35 @@
 
     // Styles CSS
     GM_addStyle(`
+        /* Bouton d'ajout aux favoris */
         .add-favorite-button {
             cursor: pointer;
             font-size: 24px;
-            color: #ffd700;
-            background: white;
-            border: 2px solid #ffd700;
+            color: #d8b4fe;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 2px solid #d8b4fe;
             padding: 10px 15px;
             margin-left: 15px;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             vertical-align: middle;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(216, 180, 254, 0.3);
         }
 
         .add-favorite-button:hover {
             transform: scale(1.1);
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            background: #fffef5;
-            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            box-shadow: 0 6px 20px rgba(216, 180, 254, 0.5);
+            border-color: #a855f7;
         }
 
         .add-favorite-button.added {
-            color: #28a745;
-            border-color: #28a745;
+            color: #22c55e;
+            border-color: #22c55e;
             animation: pulse 0.5s ease;
+            background: linear-gradient(135deg, #166534 0%, #15803d 100%);
         }
 
         @keyframes pulse {
@@ -56,22 +58,26 @@
         }
 
         .favorites-button {
-            background: transparent;
-            border: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 1px solid #333;
             color: white;
             cursor: pointer;
-            padding: 8px 12px;
+            padding: 10px 16px;
             margin-left: 10px;
             font-size: 16px;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .favorites-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            border-color: #d8b4fe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(216, 180, 254, 0.4);
         }
 
         .favorites-modal {
@@ -80,28 +86,36 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 10000;
+            backdrop-filter: blur(8px);
         }
 
         .favorites-modal.show {
             display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .favorites-content {
-            background: white;
+            background: #000;
             padding: 30px;
-            border-radius: 8px;
+            border-radius: 24px;
             max-width: 1200px;
             width: 95%;
             max-height: 85vh;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 40px rgba(216, 180, 254, 0.3);
             display: flex;
             flex-direction: column;
+            border: 1px solid #1a1a1a;
         }
 
         .favorites-body {
@@ -113,51 +127,60 @@
 
         .folders-sidebar {
             width: 280px;
-            border-right: 2px solid #e0e0e0;
+            border-right: 2px solid #1a1a1a;
             padding-right: 20px;
             overflow-y: auto;
             flex-shrink: 0;
+            background: rgba(26, 26, 26, 0.3);
+            padding: 20px;
+            border-radius: 12px;
         }
 
         .folders-sidebar h3 {
-            color: #0088ce;
+            color: #d8b4fe;
             margin: 0 0 15px 0;
             font-size: 18px;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 600;
         }
 
         .search-box {
             width: 100%;
-            padding: 10px;
+            padding: 14px;
             margin-bottom: 15px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
             font-size: 14px;
             transition: all 0.3s ease;
+            background: #121212;
+            color: white;
+            font-family: 'Inter', sans-serif;
         }
 
         .search-box:focus {
             outline: none;
-            border-color: #0088ce;
-            box-shadow: 0 0 8px rgba(0, 136, 206, 0.3);
+            border-color: #7e22ce;
+            box-shadow: 0 0 12px rgba(126, 34, 206, 0.4);
+            background: #1a1a1a;
         }
 
         .search-box::placeholder {
-            color: #999;
+            color: #666;
         }
 
         .highlight-match {
-            background: #fff3cd;
-            padding: 2px 4px;
-            border-radius: 3px;
+            background: #7e22ce;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-weight: bold;
         }
 
         .folder-path {
             font-size: 12px;
-            color: #666;
+            color: #888;
             margin-top: 3px;
             font-style: italic;
         }
@@ -169,9 +192,10 @@
         }
 
         .favorites-list-container h3 {
-            color: #0088ce;
+            color: #d8b4fe;
             margin: 0 0 15px 0;
             font-size: 18px;
+            font-weight: 600;
         }
 
         .favorites-header {
@@ -180,65 +204,70 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #0088ce;
+            border-bottom: 2px solid #1a1a1a;
         }
 
         .favorites-header h2 {
             margin: 0;
-            color: #0088ce;
+            color: #d8b4fe;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 26px;
+            font-weight: 600;
         }
 
         .close-modal {
-            background: none;
-            border: none;
-            font-size: 28px;
+            background: transparent;
+            border: 1px solid #333;
+            font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: #888;
             width: 35px;
             height: 35px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
 
         .close-modal:hover {
-            background: #f0f0f0;
-            color: #000;
+            background: #1a1a1a;
+            color: white;
+            border-color: #555;
         }
 
         .favorite-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #1a1a1a;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: all 0.3s ease;
             cursor: move;
+            background: rgba(26, 26, 26, 0.5);
         }
 
         .favorite-item:hover {
-            background: #f8f9fa;
-            border-color: #0088ce;
-            box-shadow: 0 2px 8px rgba(0, 136, 206, 0.1);
+            background: #1a1a1a;
+            border-color: #7e22ce;
+            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.3);
+            transform: translateY(-2px);
         }
 
         .favorite-item.dragging {
-            opacity: 0.5;
-            background: #e3f2fd;
-            border-color: #0088ce;
+            opacity: 0.6;
+            background: rgba(126, 34, 206, 0.2);
+            border-color: #7e22ce;
             transform: rotate(2deg);
         }
 
         .favorite-item .drag-handle {
-            margin-right: 10px;
-            color: #999;
+            margin-right: 12px;
+            color: #666;
             cursor: move;
             font-size: 18px;
         }
@@ -248,23 +277,23 @@
         }
 
         .favorite-title {
-            font-weight: bold;
-            color: #0088ce;
-            margin-bottom: 5px;
+            font-weight: 600;
+            color: #d8b4fe;
+            margin-bottom: 6px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
+            transition: all 0.2s ease;
         }
 
         .favorite-title:hover {
-            text-decoration: underline;
-            color: #005a9e;
+            color: #a855f7;
         }
 
         .favorite-number {
-            font-size: 14px;
-            color: #666;
+            font-size: 13px;
+            color: #888;
             margin-top: 5px;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
         }
 
         .favorite-actions {
@@ -272,36 +301,61 @@
             gap: 10px;
         }
 
-        .remove-favorite {
-            background: #dc3545;
+        .edit-favorite {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 16px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+        }
+
+        .edit-favorite:hover {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.5);
+        }
+
+        .remove-favorite {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
         }
 
         .remove-favorite:hover {
-            background: #c82333;
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
         }
 
         .no-favorites {
             text-align: center;
-            padding: 40px;
+            padding: 60px 40px;
             color: #666;
             font-style: italic;
+            font-size: 15px;
         }
 
         .favorites-count {
-            background: #ffd700;
-            color: #333;
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            color: white;
             border-radius: 50%;
-            padding: 2px 8px;
+            padding: 3px 10px;
             font-size: 12px;
             font-weight: bold;
-            margin-left: 5px;
+            margin-left: 8px;
+            box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
         }
 
         .folder-section {
@@ -311,37 +365,39 @@
         .folder-header {
             display: flex;
             align-items: center;
-            padding: 10px 12px;
-            background: #f8f9fa;
-            color: #333;
-            border-radius: 5px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 5px;
-            border: 2px solid transparent;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .folder-header:hover {
-            background: #e9ecef;
-            transform: translateX(3px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(216, 180, 254, 0.3);
+            transform: translateX(4px);
         }
 
         .folder-header.active {
-            background: linear-gradient(135deg, #0088ce 0%, #005a9e 100%);
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
             color: white;
-            border-color: #0088ce;
+            border-color: #d8b4fe;
+            box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
         }
 
         .folder-header.drag-over {
-            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
             color: white;
             transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
         }
 
         .folder-icon {
             font-size: 16px;
-            margin-right: 8px;
+            margin-right: 10px;
         }
 
         .folder-header.collapsed .folder-icon {
@@ -350,26 +406,27 @@
 
         .folder-name {
             flex: 1;
-            font-weight: bold;
-            font-size: 16px;
+            font-weight: 600;
+            font-size: 14px;
         }
 
         .folder-count {
-            background: rgba(0, 0, 0, 0.1);
-            padding: 2px 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 3px 10px;
             border-radius: 12px;
             font-size: 11px;
             margin-left: auto;
+            font-weight: 600;
         }
 
         .folder-header.active .folder-count {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
         }
 
         .folder-actions {
             display: none;
-            gap: 5px;
-            margin-left: 8px;
+            gap: 6px;
+            margin-left: 10px;
         }
 
         .folder-header:hover .folder-actions {
@@ -381,27 +438,29 @@
         }
 
         .folder-actions button {
-            background: rgba(0, 0, 0, 0.2);
-            border: none;
-            color: #333;
-            padding: 3px 8px;
-            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
             transition: all 0.2s ease;
         }
 
         .folder-header.active .folder-actions button {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
         .folder-actions button:hover {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
 
         .folder-header.active .folder-actions button:hover {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.4);
         }
 
         .folder-content {
@@ -410,31 +469,34 @@
 
         .toolbar {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(26, 26, 26, 0.5);
+            border-radius: 12px;
+            border: 1px solid #1a1a1a;
         }
 
         .toolbar button {
-            background: #0088ce;
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            padding: 12px 18px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(126, 34, 206, 0.3);
         }
 
         .toolbar button:hover {
-            background: #006bb3;
+            background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 136, 206, 0.3);
+            box-shadow: 0 6px 20px rgba(126, 34, 206, 0.5);
         }
 
         .favorite-item .favorite-folder {
@@ -466,6 +528,225 @@
                 opacity: 0;
             }
         }
+
+        /* Styles pour la modal des termes personnalisés */
+        .custom-terms-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            backdrop-filter: blur(8px);
+        }
+
+        .custom-terms-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .custom-terms-content {
+            background: #000;
+            padding: 30px;
+            border-radius: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(216, 180, 254, 0.3);
+            border: 1px solid #1a1a1a;
+        }
+
+        .custom-terms-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #1a1a1a;
+        }
+
+        .custom-terms-header h3 {
+            margin: 0;
+            color: #d8b4fe;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .terms-section {
+            margin-bottom: 28px;
+        }
+
+        .terms-section h4 {
+            color: #ccc;
+            margin-bottom: 12px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .terms-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .term-button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+        }
+
+        .term-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(216, 180, 254, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .term-button.selected {
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            color: white;
+            border-color: #d8b4fe;
+            box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
+        }
+
+        .term-button .remove-term {
+            margin-left: 6px;
+            color: #ef4444;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .term-button.selected .remove-term {
+            color: #fca5a5;
+        }
+
+        .term-button .remove-term:hover {
+            transform: scale(1.2);
+        }
+
+        .add-term-input {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .add-term-input input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #121212;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .add-term-input input:focus {
+            outline: none;
+            border-color: #7e22ce;
+            box-shadow: 0 0 12px rgba(126, 34, 206, 0.4);
+            background: #1a1a1a;
+        }
+
+        .add-term-input button {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+        }
+
+        .add-term-input button:hover {
+            background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
+        }
+
+        .preview-section {
+            background: rgba(26, 26, 26, 0.5);
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid #1a1a1a;
+        }
+
+        .preview-section h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #d8b4fe;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-validate {
+            background: linear-gradient(135deg, #7e22ce 0%, #a855f7 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(126, 34, 206, 0.3);
+        }
+
+        .btn-validate:hover {
+            background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(126, 34, 206, 0.5);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: white;
+            border: 1px solid #333;
+        }
+
+        .btn-cancel:hover {
+            background: #1a1a1a;
+            border-color: #555;
+        }
     `);
 
     // Fonctions de gestion des favoris
@@ -476,6 +757,31 @@
 
     function saveFavorites(favorites) {
         GM_setValue('docmat_favorites', JSON.stringify(favorites));
+    }
+
+    function getCustomTerms() {
+        const terms = GM_getValue('docmat_custom_terms', '[]');
+        return JSON.parse(terms);
+    }
+
+    function saveCustomTerms(terms) {
+        GM_setValue('docmat_custom_terms', JSON.stringify(terms));
+    }
+
+    function addCustomTerm(term) {
+        const terms = getCustomTerms();
+        if (term && term.trim() !== '' && !terms.includes(term.trim())) {
+            terms.push(term.trim());
+            saveCustomTerms(terms);
+            return true;
+        }
+        return false;
+    }
+
+    function removeCustomTerm(term) {
+        let terms = getCustomTerms();
+        terms = terms.filter(t => t !== term);
+        saveCustomTerms(terms);
     }
 
     function getFolders() {
@@ -583,9 +889,25 @@
         updateFavoritesCount();
     }
 
+    function updateFavorite(number, newTitle) {
+        let favorites = getFavorites();
+        const favorite = favorites.find(fav => fav.number === number);
+        if (favorite) {
+            favorite.title = newTitle;
+            saveFavorites(favorites);
+            return true;
+        }
+        return false;
+    }
+
     function isFavorite(number) {
         const favorites = getFavorites();
         return favorites.some(fav => fav.number === number);
+    }
+
+    function getFavoriteByNumber(number) {
+        const favorites = getFavorites();
+        return favorites.find(fav => fav.number === number);
     }
 
     function updateFavoritesCount() {
@@ -892,6 +1214,9 @@
                         ${folderPath}
                     </div>
                     <div class="favorite-actions">
+                        <button class="edit-favorite" data-number="${fav.number}">
+                            ✏️ Modifier
+                        </button>
                         <button class="remove-favorite" data-number="${fav.number}">
                             🗑️ Supprimer
                         </button>
@@ -911,6 +1236,14 @@
                 const number = e.target.getAttribute('data-number');
                 fillSearchField(number);
                 closeFavoritesModal();
+            });
+        });
+
+        // Modifier un favori
+        listContainer.querySelectorAll('.edit-favorite').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const number = e.target.getAttribute('data-number');
+                openEditModal(number);
             });
         });
 
@@ -1088,19 +1421,8 @@
                     return;
                 }
 
-                // Demander un titre personnalisé (optionnel)
-                const title = prompt('Donnez un nom à ce favori (optionnel):', number);
-
-                if (title !== null) { // L'utilisateur n'a pas annulé
-                    const finalTitle = title.trim() || number;
-                    if (addFavorite(number, finalTitle)) {
-                        button.classList.add('added');
-                        setTimeout(() => button.classList.remove('added'), 500);
-
-                        // Notification de succès
-                        showNotification('✅ Ajouté aux favoris !');
-                    }
-                }
+                // Ouvrir la modal de personnalisation
+                openCustomTermsModal(number);
             });
 
             // Créer un conteneur pour aligner les onglets et le bouton
@@ -1114,6 +1436,274 @@
                 container.appendChild(navTabs);
                 container.appendChild(button);
             }
+        }
+    }
+
+    // Créer la modal des termes personnalisés
+    function createCustomTermsModal() {
+        if (document.querySelector('.custom-terms-modal')) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'custom-terms-modal';
+        modal.innerHTML = `
+            <div class="custom-terms-content">
+                <div class="custom-terms-header">
+                    <h3>🏷️ Personnaliser le nom du document</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                
+                <div class="preview-section">
+                    <h4>Aperçu du nom final :</h4>
+                    <div class="preview-text" id="term-preview"></div>
+                </div>
+
+                <div class="terms-section">
+                    <h4>Sélectionnez des termes à ajouter :</h4>
+                    <div class="terms-buttons" id="terms-list"></div>
+                    <div class="add-term-input">
+                        <input type="text" id="new-term-input" placeholder="Ajouter un nouveau terme...">
+                        <button id="add-term-btn">➕ Ajouter</button>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-cancel">Annuler</button>
+                    <button class="btn-validate">✅ Valider</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Fermer la modal
+        modal.querySelector('.close-modal').addEventListener('click', closeCustomTermsModal);
+        modal.querySelector('.btn-cancel').addEventListener('click', closeCustomTermsModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeCustomTermsModal();
+            }
+        });
+    }
+
+    let currentDocNumber = '';
+    let selectedTerms = [];
+    let isEditMode = false;
+
+    function openCustomTermsModal(number) {
+        currentDocNumber = number;
+        selectedTerms = [];
+        isEditMode = false;
+
+        createCustomTermsModal();
+        const modal = document.querySelector('.custom-terms-modal');
+        
+        // Changer le titre
+        modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
+        
+        updateTermsList();
+        updatePreview();
+
+        // Valider
+        const validateBtn = modal.querySelector('.btn-validate');
+        validateBtn.onclick = () => {
+            const finalTitle = buildFinalTitle();
+            if (addFavorite(number, finalTitle)) {
+                const addButton = document.querySelector('.add-favorite-button');
+                if (addButton) {
+                    addButton.classList.add('added');
+                    setTimeout(() => addButton.classList.remove('added'), 500);
+                }
+                showNotification('✅ Ajouté aux favoris !');
+                closeCustomTermsModal();
+            }
+        };
+
+        // Ajouter un nouveau terme
+        const addTermBtn = modal.querySelector('#add-term-btn');
+        const newTermInput = modal.querySelector('#new-term-input');
+        
+        addTermBtn.onclick = () => {
+            const term = newTermInput.value.trim();
+            if (term !== '') {
+                if (addCustomTerm(term)) {
+                    newTermInput.value = '';
+                    updateTermsList();
+                    showNotification('✅ Terme ajouté !');
+                } else {
+                    alert('⚠️ Ce terme existe déjà ou est invalide.');
+                }
+            }
+        };
+
+        // Permettre d'ajouter avec Enter
+        newTermInput.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                addTermBtn.click();
+            }
+        };
+
+        modal.classList.add('show');
+    }
+
+    function openEditModal(number) {
+        const favorite = getFavoriteByNumber(number);
+        if (!favorite) return;
+
+        currentDocNumber = number;
+        isEditMode = true;
+
+        // Extraire les termes existants du titre
+        selectedTerms = extractTermsFromTitle(favorite.title, number);
+
+        createCustomTermsModal();
+        const modal = document.querySelector('.custom-terms-modal');
+        
+        // Changer le titre
+        modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
+        
+        updateTermsList();
+        updatePreview();
+
+        // Valider
+        const validateBtn = modal.querySelector('.btn-validate');
+        validateBtn.textContent = '✅ Enregistrer';
+        validateBtn.onclick = () => {
+            const finalTitle = buildFinalTitle();
+            if (updateFavorite(number, finalTitle)) {
+                showNotification('✅ Favori modifié !');
+                closeCustomTermsModal();
+                updateFavoritesList();
+            }
+        };
+
+        // Ajouter un nouveau terme
+        const addTermBtn = modal.querySelector('#add-term-btn');
+        const newTermInput = modal.querySelector('#new-term-input');
+        
+        addTermBtn.onclick = () => {
+            const term = newTermInput.value.trim();
+            if (term !== '') {
+                if (addCustomTerm(term)) {
+                    newTermInput.value = '';
+                    updateTermsList();
+                    showNotification('✅ Terme ajouté !');
+                } else {
+                    alert('⚠️ Ce terme existe déjà ou est invalide.');
+                }
+            }
+        };
+
+        // Permettre d'ajouter avec Enter
+        newTermInput.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                addTermBtn.click();
+            }
+        };
+
+        modal.classList.add('show');
+    }
+
+    function extractTermsFromTitle(title, number) {
+        // Si le titre est juste le numéro, pas de termes
+        if (title === number) {
+            return [];
+        }
+
+        // Format attendu: "Terme1 + Terme2 - Numéro"
+        const parts = title.split(' - ');
+        if (parts.length < 2) {
+            return [];
+        }
+
+        // Prendre tout sauf la dernière partie (qui est le numéro)
+        const termsPart = parts.slice(0, -1).join(' - ');
+        
+        // Séparer par " + "
+        const terms = termsPart.split(' + ').map(t => t.trim()).filter(t => t !== '');
+        
+        return terms;
+    }
+
+    function closeCustomTermsModal() {
+        const modal = document.querySelector('.custom-terms-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+        currentDocNumber = '';
+        selectedTerms = [];
+        isEditMode = false;
+    }
+
+    function updateTermsList() {
+        const termsList = document.querySelector('#terms-list');
+        if (!termsList) return;
+
+        const terms = getCustomTerms();
+        
+        if (terms.length === 0) {
+            termsList.innerHTML = '<p style="color: #999; font-style: italic;">Aucun terme personnalisé. Ajoutez-en un ci-dessous.</p>';
+            return;
+        }
+
+        termsList.innerHTML = terms.map(term => {
+            const isSelected = selectedTerms.includes(term);
+            return `
+                <div class="term-button ${isSelected ? 'selected' : ''}" data-term="${term}">
+                    ${term}
+                    <span class="remove-term" data-term="${term}" title="Supprimer ce terme">×</span>
+                </div>
+            `;
+        }).join('');
+
+        // Événements pour sélectionner/désélectionner
+        termsList.querySelectorAll('.term-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-term')) {
+                    return; // Géré par l'événement suivant
+                }
+                const term = btn.getAttribute('data-term');
+                toggleTerm(term);
+            });
+        });
+
+        // Événements pour supprimer un terme
+        termsList.querySelectorAll('.remove-term').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const term = btn.getAttribute('data-term');
+                if (confirm(`Supprimer le terme "${term}" ?\n(Il sera retiré de la liste des termes mémorisés)`)) {
+                    removeCustomTerm(term);
+                    // Retirer de la sélection si présent
+                    selectedTerms = selectedTerms.filter(t => t !== term);
+                    updateTermsList();
+                    updatePreview();
+                    showNotification('🗑️ Terme supprimé');
+                }
+            });
+        });
+    }
+
+    function toggleTerm(term) {
+        if (selectedTerms.includes(term)) {
+            selectedTerms = selectedTerms.filter(t => t !== term);
+        } else {
+            selectedTerms.push(term);
+        }
+        updateTermsList();
+        updatePreview();
+    }
+
+    function buildFinalTitle() {
+        if (selectedTerms.length === 0) {
+            return currentDocNumber;
+        }
+        return `${selectedTerms.join(' + ')} - ${currentDocNumber}`;
+    }
+
+    function updatePreview() {
+        const previewElement = document.querySelector('#term-preview');
+        if (previewElement) {
+            previewElement.textContent = buildFinalTitle();
         }
     }
 
