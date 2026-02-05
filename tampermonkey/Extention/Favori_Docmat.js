@@ -587,12 +587,14 @@
             background: var(--bg-dark);
             padding: 32px;
             border-radius: 20px;
-            max-width: 650px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            max-width: 1200px;
+            width: 95%;
+            max-height: 85vh;
+            overflow: hidden;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
         }
 
         .custom-terms-modal .custom-terms-header {
@@ -611,8 +613,112 @@
             font-weight: 700;
         }
 
+        .custom-terms-modal .custom-terms-body {
+            display: flex;
+            gap: 24px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .custom-terms-modal .left-panel {
+            width: 280px;
+            flex-shrink: 0;
+            background: rgba(30, 41, 59, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-y: auto;
+        }
+
+        .custom-terms-modal .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            padding: 0 10px;
+        }
+
+        .custom-terms-modal .right-panel {
+            width: 450px;
+            flex-shrink: 0;
+            background: rgba(30, 41, 59, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-y: auto;
+        }
+
+        .custom-terms-modal .folder-selector {
+            margin-bottom: 16px;
+        }
+
+        .custom-terms-modal .folder-search {
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .custom-terms-modal .folder-search:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .custom-terms-modal .folder-search::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .custom-terms-modal .folder-option {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-terms-modal .folder-option:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary-color);
+        }
+
+        .custom-terms-modal .folder-option.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .custom-terms-modal .folder-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .custom-terms-modal .folder-option label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .custom-terms-modal .folder-icon-small {
+            font-size: 16px;
+        }
+
         .custom-terms-modal .terms-section {
-            margin-bottom: 28px;
+            margin-bottom: 0;
         }
 
         .custom-terms-modal .terms-section h4 {
@@ -809,7 +915,250 @@
             background: var(--bg-hover);
             border-color: var(--text-secondary);
         }
+
+        /* Styles pour les modales de confirmation personnalisées */
+        .custom-dialog-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            backdrop-filter: blur(10px);
+        }
+
+        .custom-dialog-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .custom-dialog-modal .dialog-content {
+            background: var(--bg-dark);
+            padding: 28px 32px;
+            border-radius: 16px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        .custom-dialog-modal .dialog-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .custom-dialog-modal .dialog-message {
+            color: var(--text-primary);
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 24px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .custom-dialog-modal .dialog-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .custom-dialog-modal .dialog-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .custom-dialog-modal .dialog-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .custom-dialog-modal .dialog-btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .custom-dialog-modal .dialog-btn-primary {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .custom-dialog-modal .dialog-btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .custom-dialog-modal .dialog-btn-danger {
+            background: var(--danger-color);
+            color: white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .custom-dialog-modal .dialog-btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .custom-dialog-modal .dialog-btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .custom-dialog-modal .dialog-btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
+        }
     `);
+
+    // Fonctions de dialogue personnalisées
+    function customAlert(message, icon = 'ℹ️') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-dialog-modal';
+            modal.innerHTML = `
+                <div class="dialog-content">
+                    <div class="dialog-icon">${icon}</div>
+                    <div class="dialog-message">${message}</div>
+                    <div class="dialog-actions">
+                        <button class="dialog-btn dialog-btn-primary">OK</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.classList.add('show');
+
+            modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(true);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.remove(), 300);
+                    resolve(true);
+                }
+            });
+        });
+    }
+
+    function customConfirm(message, icon = '❓') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-dialog-modal';
+            modal.innerHTML = `
+                <div class="dialog-content">
+                    <div class="dialog-icon">${icon}</div>
+                    <div class="dialog-message">${message}</div>
+                    <div class="dialog-actions">
+                        <button class="dialog-btn dialog-btn-secondary">Annuler</button>
+                        <button class="dialog-btn dialog-btn-danger">Confirmer</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.classList.add('show');
+
+            modal.querySelector('.dialog-btn-danger').addEventListener('click', () => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(true);
+            });
+
+            modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(false);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.remove(), 300);
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    function customPrompt(message, defaultValue = '', icon = '✏️') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-dialog-modal';
+            modal.innerHTML = `
+                <div class="dialog-content">
+                    <div class="dialog-icon">${icon}</div>
+                    <div class="dialog-message">${message}</div>
+                    <input type="text" class="dialog-input" value="${defaultValue}" placeholder="Entrez une valeur...">
+                    <div class="dialog-actions">
+                        <button class="dialog-btn dialog-btn-secondary">Annuler</button>
+                        <button class="dialog-btn dialog-btn-primary">Valider</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.classList.add('show');
+
+            const input = modal.querySelector('.dialog-input');
+            input.focus();
+            input.select();
+
+            const validate = () => {
+                const value = input.value;
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(value || null);
+            };
+
+            modal.querySelector('.dialog-btn-primary').addEventListener('click', validate);
+
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    validate();
+                }
+            });
+
+            modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(null);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.remove(), 300);
+                    resolve(null);
+                }
+            });
+        });
+    }
 
     // Fonctions de gestion des favoris
     function getFavorites() {
@@ -819,6 +1168,14 @@
 
     function saveFavorites(favorites) {
         GM_setValue('docmat_favorites', JSON.stringify(favorites));
+    }
+
+    function formatDocumentNumber(number) {
+        // Si le numéro a exactement 9 caractères, le formater en "00-0000 00"
+        if (number && number.length === 9 && /^\d{9}$/.test(number)) {
+            return `${number.substring(0, 2)}-${number.substring(2, 6)} ${number.substring(6, 9)}`;
+        }
+        return number;
     }
 
     function getCustomTerms() {
@@ -1154,13 +1511,13 @@
 
         // Événements pour renommer
         treeContainer.querySelectorAll('.rename-folder').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const folderId = e.target.getAttribute('data-folder-id');
                 const folders = getFolders();
                 const folder = folders.find(f => f.id === folderId);
                 if (folder) {
-                    const newName = prompt('Nouveau nom du dossier:', folder.name);
+                    const newName = await customPrompt('Nouveau nom du dossier:', folder.name, '📁');
                     if (newName && newName.trim() !== '') {
                         renameFolder(folderId, newName);
                         updateFavoritesList();
@@ -1171,10 +1528,11 @@
 
         // Événements pour supprimer
         treeContainer.querySelectorAll('.delete-folder').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const folderId = e.target.getAttribute('data-folder-id');
-                if (confirm('Supprimer ce dossier ? (Les favoris seront déplacés dans "Sans dossier")')) {
+                const confirmed = await customConfirm('Supprimer ce dossier ?\n(Les favoris seront déplacés dans "Sans dossier")', '🗑️');
+                if (confirmed) {
                     deleteFolder(folderId);
                     if (currentFolderId === folderId) {
                         currentFolderId = 'all';
@@ -1248,12 +1606,12 @@
         return favorites.map(fav => {
             // Highlight le texte recherché
             let titleHtml = fav.title;
-            let numberHtml = fav.number;
+            let numberHtml = formatDocumentNumber(fav.number);
 
             if (favoritesSearchQuery) {
                 const regex = new RegExp(`(${favoritesSearchQuery})`, 'gi');
                 titleHtml = fav.title.replace(regex, '<span class="highlight-match">$1</span>');
-                numberHtml = fav.number.replace(regex, '<span class="highlight-match">$1</span>');
+                numberHtml = formatDocumentNumber(fav.number).replace(regex, '<span class="highlight-match">$1</span>');
             }
 
             // Afficher le chemin du dossier si on est en mode recherche
@@ -1416,14 +1774,14 @@
     }
 
     // Fonction pour créer un nouveau dossier
-    function createNewFolder() {
-        const name = prompt('Nom du nouveau dossier:');
+    async function createNewFolder() {
+        const name = await customPrompt('Nom du nouveau dossier:', '', '📁');
         if (name && name.trim() !== '') {
             if (createFolder(name)) {
                 updateFavoritesList();
                 showNotification('✅ Dossier créé !');
             } else {
-                alert('⚠️ Ce dossier existe déjà !');
+                await customAlert('Ce dossier existe déjà !', '⚠️');
             }
         }
     }
@@ -1462,24 +1820,24 @@
             button.innerHTML = '⭐';
             button.title = 'Ajouter ce numéro aux favoris';
 
-            button.addEventListener('click', (e) => {
+            button.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const searchInput = document.querySelector('#input-search-field');
 
                 if (!searchInput) {
-                    alert('⚠️ Champ de recherche non trouvé.');
+                    await customAlert('Champ de recherche non trouvé.', '⚠️');
                     return;
                 }
 
                 const number = searchInput.value.trim();
 
                 if (number === '') {
-                    alert('⚠️ Veuillez entrer un numéro de document avant de l\'ajouter aux favoris.');
+                    await customAlert('Veuillez entrer un numéro de document avant de l\'ajouter aux favoris.', '⚠️');
                     return;
                 }
 
                 if (isFavorite(number)) {
-                    alert('ℹ️ Ce numéro est déjà dans vos favoris.');
+                    await customAlert('Ce numéro est déjà dans vos favoris.', 'ℹ️');
                     return;
                 }
 
@@ -1514,22 +1872,36 @@
                     <button class="close-modal">&times;</button>
                 </div>
 
-                <div class="terms-section">
-                    <h4>📝 Nom personnalisé du document :</h4>
-                    <input type="text" id="custom-doc-name" placeholder="Entrez un nom personnalisé..." style="margin-bottom: 20px;">
-                </div>
+                <div class="custom-terms-body">
+                    <div class="left-panel">
+                        <div class="terms-section">
+                            <h4>� Ajouter dans un dossier :</h4>
+                            <input type="text" class="folder-search" id="folder-search-modal" placeholder="🔍 Rechercher...">
+                            <div class="folder-selector" id="folder-selector-list"></div>
+                        </div>
+                    </div>
 
-                <div class="preview-section">
-                    <h4>Aperçu du nom final :</h4>
-                    <div class="preview-text" id="term-preview"></div>
-                </div>
+                    <div class="center-panel">
+                        <div class="terms-section">
+                            <h4>�📝 Nom personnalisé du document :</h4>
+                            <input type="text" id="custom-doc-name" placeholder="Entrez un nom personnalisé...">
+                        </div>
 
-                <div class="terms-section">
-                    <h4>Ou sélectionnez des termes prédéfinis :</h4>
-                    <div class="terms-buttons" id="terms-list"></div>
-                    <div class="add-term-input">
-                        <input type="text" id="new-term-input" placeholder="Ajouter un nouveau terme...">
-                        <button id="add-term-btn">➕ Ajouter</button>
+                        <div class="preview-section">
+                            <h4>Aperçu du nom final :</h4>
+                            <div class="preview-text" id="term-preview"></div>
+                        </div>
+                    </div>
+
+                    <div class="right-panel">
+                        <div class="terms-section">
+                            <h4>Ou sélectionnez des termes prédéfinis :</h4>
+                            <div class="terms-buttons" id="terms-list"></div>
+                            <div class="add-term-input">
+                                <input type="text" id="new-term-input" placeholder="Ajouter un nouveau terme...">
+                                <button id="add-term-btn">➕ Ajouter</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1556,12 +1928,16 @@
     let selectedTerms = [];
     let customDocName = '';
     let isEditMode = false;
+    let selectedFolderId = null;
+    let folderSearchQueryModal = '';
 
     function openCustomTermsModal(number) {
         currentDocNumber = number;
         selectedTerms = [];
         customDocName = '';
         isEditMode = false;
+        selectedFolderId = null;
+        folderSearchQueryModal = '';
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
@@ -1570,7 +1946,15 @@
         modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
 
         updateTermsList();
+        updateFolderSelector();
         updatePreview();
+
+        // Gérer la recherche de dossiers
+        const folderSearchInput = modal.querySelector('#folder-search-modal');
+        folderSearchInput.addEventListener('input', (e) => {
+            folderSearchQueryModal = e.target.value.trim();
+            updateFolderSelector();
+        });
 
         // Gérer le champ de nom personnalisé
         const customNameInput = modal.querySelector('#custom-doc-name');
@@ -1584,7 +1968,7 @@
         const validateBtn = modal.querySelector('.btn-validate');
         validateBtn.onclick = () => {
             const finalTitle = buildFinalTitle();
-            if (addFavorite(number, finalTitle)) {
+            if (addFavorite(number, finalTitle, selectedFolderId)) {
                 const addButton = document.querySelector('.add-favorite-button');
                 if (addButton) {
                     addButton.classList.add('added');
@@ -1607,7 +1991,7 @@
                     updateTermsList();
                     showNotification('✅ Terme ajouté !');
                 } else {
-                    alert('⚠️ Ce terme existe déjà ou est invalide.');
+                    customAlert('Ce terme existe déjà ou est invalide.', '⚠️');
                 }
             }
         };
@@ -1628,6 +2012,8 @@
 
         currentDocNumber = number;
         isEditMode = true;
+        selectedFolderId = favorite.folderId || null;
+        folderSearchQueryModal = '';
 
         // Extraire les termes et le nom personnalisé du titre
         const extracted = extractTermsAndCustomName(favorite.title, number);
@@ -1641,7 +2027,15 @@
         modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
 
         updateTermsList();
+        updateFolderSelector();
         updatePreview();
+
+        // Gérer la recherche de dossiers
+        const folderSearchInput = modal.querySelector('#folder-search-modal');
+        folderSearchInput.addEventListener('input', (e) => {
+            folderSearchQueryModal = e.target.value.trim();
+            updateFolderSelector();
+        });
 
         // Pré-remplir le champ de nom personnalisé
         const customNameInput = modal.querySelector('#custom-doc-name');
@@ -1657,6 +2051,10 @@
         validateBtn.onclick = () => {
             const finalTitle = buildFinalTitle();
             if (updateFavorite(number, finalTitle)) {
+                // Mettre à jour le dossier
+                if (selectedFolderId !== favorite.folderId) {
+                    moveToFolder(number, selectedFolderId);
+                }
                 showNotification('✅ Favori modifié !');
                 closeCustomTermsModal();
                 updateFavoritesList();
@@ -1675,7 +2073,7 @@
                     updateTermsList();
                     showNotification('✅ Terme ajouté !');
                 } else {
-                    alert('⚠️ Ce terme existe déjà ou est invalide.');
+                    customAlert('Ce terme existe déjà ou est invalide.', '⚠️');
                 }
             }
         };
@@ -1744,6 +2142,70 @@
         selectedTerms = [];
         customDocName = '';
         isEditMode = false;
+        selectedFolderId = null;
+        folderSearchQueryModal = '';
+    }
+
+    function updateFolderSelector() {
+        const folderSelectorList = document.querySelector('#folder-selector-list');
+        if (!folderSelectorList) return;
+
+        const folders = getFolders();
+
+        // Filtrer les dossiers selon la recherche
+        const filteredFolders = folderSearchQueryModal
+            ? folders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
+            : folders;
+
+        if (filteredFolders.length === 0) {
+            folderSelectorList.innerHTML = '<p style="color: #999; font-style: italic; font-size: 13px;">Aucun dossier disponible.</p>';
+            return;
+        }
+
+        folderSelectorList.innerHTML = filteredFolders.map(folder => {
+            const isSelected = selectedFolderId === folder.id;
+            return `
+                <div class="folder-option ${isSelected ? 'selected' : ''}" data-folder-id="${folder.id}">
+                    <input type="checkbox" id="folder-${folder.id}" ${isSelected ? 'checked' : ''}>
+                    <span class="folder-icon-small">📁</span>
+                    <label for="folder-${folder.id}">${folder.name}</label>
+                </div>
+            `;
+        }).join('');
+
+        // Événements pour sélectionner/désélectionner un dossier
+        folderSelectorList.querySelectorAll('.folder-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                const folderId = option.getAttribute('data-folder-id');
+                const checkbox = option.querySelector('input[type="checkbox"]');
+
+                // Toggle la sélection
+                if (selectedFolderId === folderId) {
+                    selectedFolderId = null;
+                    checkbox.checked = false;
+                } else {
+                    selectedFolderId = folderId;
+                    checkbox.checked = true;
+                }
+
+                updateFolderSelector();
+            });
+
+            // Empêcher le double toggle quand on clique sur la checkbox
+            const checkbox = option.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const folderId = option.getAttribute('data-folder-id');
+
+                if (e.target.checked) {
+                    selectedFolderId = folderId;
+                } else {
+                    selectedFolderId = null;
+                }
+
+                updateFolderSelector();
+            });
+        });
     }
 
     function updateTermsList() {
@@ -1780,10 +2242,11 @@
 
         // Événements pour supprimer un terme
         termsList.querySelectorAll('.remove-term').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const term = btn.getAttribute('data-term');
-                if (confirm(`Supprimer le terme "${term}" ?\n(Il sera retiré de la liste des termes mémorisés)`)) {
+                const confirmed = await customConfirm(`Supprimer le terme "${term}" ?\n(Il sera retiré de la liste des termes mémorisés)`, '🗑️');
+                if (confirmed) {
                     removeCustomTerm(term);
                     // Retirer de la sélection si présent
                     selectedTerms = selectedTerms.filter(t => t !== term);
@@ -1834,7 +2297,12 @@
     function updatePreview() {
         const previewElement = document.querySelector('#term-preview');
         if (previewElement) {
-            previewElement.textContent = buildFinalTitle();
+            const title = buildFinalTitle();
+            const formattedNumber = formatDocumentNumber(currentDocNumber);
+            previewElement.innerHTML = `
+                <div style="margin-bottom: 8px;">${title}</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">Numéro: ${formattedNumber}</div>
+            `;
         }
     }
 
