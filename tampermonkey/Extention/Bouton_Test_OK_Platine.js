@@ -17,6 +17,9 @@
             const texteExistant = textarea.value;
             const nouveauTexte = 'JH --> test sur banc 0037 --> OK';
 
+            // Focus sur le textarea pour activer le champ
+            textarea.focus();
+
             // Ajouter le texte à la fin avec un saut de ligne si le textarea n'est pas vide
             if (texteExistant.trim() !== '') {
                 textarea.value = texteExistant + '\n' + nouveauTexte;
@@ -24,13 +27,29 @@
                 textarea.value = nouveauTexte;
             }
 
-            // Déclencher un événement pour que l'application détecte le changement
+            // Déclencher tous les événements possibles pour que l'application détecte le changement
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
             textarea.dispatchEvent(new Event('change', { bubbles: true }));
+            textarea.dispatchEvent(new Event('keyup', { bubbles: true }));
+            textarea.dispatchEvent(new Event('keydown', { bubbles: true }));
+            textarea.dispatchEvent(new Event('blur', { bubbles: true }));
+
+            // Déclencher un événement natif pour forcer la détection
+            const event = new Event('input', { bubbles: true, cancelable: true });
+            textarea.dispatchEvent(event);
+
+            // Simuler une interaction utilisateur avec le clavier
+            const inputEvent = new InputEvent('input', {
+                bubbles: true,
+                cancelable: true,
+                inputType: 'insertText',
+                data: nouveauTexte
+            });
+            textarea.dispatchEvent(inputEvent);
 
             console.log('Texte ajouté avec succès dans le textarea');
 
-            // Simuler un clic sur le bouton Valider après un court délai
+            // Simuler un clic sur le bouton Valider après un délai
             setTimeout(function() {
                 const btnValider = document.getElementById('fonctionnel_validate_form');
                 if (btnValider) {
@@ -39,7 +58,7 @@
                 } else {
                     console.error('Bouton Valider (fonctionnel_validate_form) non trouvé');
                 }
-            }, 500); // Délai de 500ms pour laisser le temps aux événements de se propager
+            }, 1000); // Délai de 1000ms (1 seconde) avant validation
 
         } else {
             console.error('Textarea S_observation_reparation non trouvé');
