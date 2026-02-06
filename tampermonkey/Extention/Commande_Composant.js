@@ -433,76 +433,24 @@
         panel.style.cssText = `
             position: relative;
             flex: 0 0 auto;
-            width: 300px;
+            width: 600px;
             margin-left: 20px;
             animation: slideIn 0.3s ease-out;
         `;
 
-        // Intégrer votre interface complète dans le panel avec le style cyberpunk
+        // Intégrer votre interface avec le nouveau style
         panel.innerHTML = `
-            <div class="glitch-form-wrapper">
-                <div class="glitch-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M12 1v6m0 6v6"/>
-                                <path d="m9 9 3 3 3-3"/>
-                            </svg>
-                            Interface Commande
-                        </div>
-                        <div class="card-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group-inline">
-                            <div class="form-group" style="flex: 1;">
-                                <input type="text" id="collectorLink" placeholder=" " />
-                                <label class="form-label" data-text="Lien CollectorPlus">Lien CollectorPlus</label>
-                            </div>
-                            <div class="button-group-inline">
-                                <button id="fetchData" class="submit-btn-mini" data-text="🔍" title="Récupérer">
-                                    <span class="btn-text">🔍</span>
-                                </button>
-                                <button id="toggleEdit" class="submit-btn-mini" data-text="✏️" title="Éditer">
-                                    <span class="btn-text">✏️</span>
-                                </button>
-                                <button id="closePanel" class="submit-btn-mini" data-text="❌" title="Fermer" style="border-color: #dc3545; color: #dc3545;">
-                                    <span class="btn-text">❌</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="editSection" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(0, 242, 234, 0.2);">
-                            <div class="form-group" style="margin-bottom: 0.5rem;">
-                                <input type="text" id="manualNumSer" value="${numSer}" placeholder=" " />
-                                <label class="form-label" data-text="N° Série">N° Série</label>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 0.5rem;">
-                                <input type="text" id="manualSymbole" value="${symbole}" placeholder=" " />
-                                <label class="form-label" data-text="Symbole">Symbole</label>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 0.5rem;">
-                                <input type="text" id="manualNumOF" value="${numOF}" placeholder=" " />
-                                <label class="form-label" data-text="N° OF">N° OF</label>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 0.5rem;">
-                                <input type="text" id="manualComposant" value="${composant}" placeholder=" " />
-                                <label class="form-label" data-text="Composant">Composant</label>
-                            </div>
-
-                            <button id="updateValues" class="submit-btn" data-text="Update">
-                                <span class="btn-text">💾 Update</span>
-                            </button>
-                        </div>
-                    </div>
+            <div class="form">
+                <div id="email-area">
+                    <input type="text" id="collectorLink" placeholder="Lien CollectorPlus" />
                 </div>
+
+                <div id="password-area">
+                    <button id="fetchData" class="icon-btn" title="Récupérer">🔍</button>
+                    <button id="closePanel" class="icon-btn close-btn" title="Fermer">❌</button>
+                </div>
+
+                <div id="whitefilter"></div>
             </div>
         `;
 
@@ -510,301 +458,158 @@
         container.appendChild(panel);
         console.log('[DEBUG PANEL] ✅ Panel inséré dans le conteneur !');
 
-        // Ajouter les styles CSS cyberpunk complets
+        // Ajouter les styles CSS du nouveau design
         const style = document.createElement('style');
         style.textContent = `
-            /* --- Root Variables for the component --- */
-            .glitch-form-wrapper {
-              --bg-color: #0d0d0d;
-              --primary-color: #00f2ea;
-              --secondary-color: #a855f7;
-              --text-color: #e5e5e5;
-              --font-family: "Fira Code", Consolas, "Courier New", Courier, monospace;
-              --glitch-anim-duration: 0.5s;
-            }
-
-            .glitch-form-wrapper {
+            /* From Uiverse.io by Novaxlo */
+            .form {
               display: flex;
-              justify-content: center;
+              flex-direction: row;
               align-items: center;
-              font-family: var(--font-family);
-              background-color: #050505;
-            }
-
-            /* --- Card Structure (Compact) --- */
-            .glitch-card {
-              background-color: var(--bg-color);
+              justify-content: space-around;
+              background-color: white;
               width: 100%;
-              max-width: 300px;
-              border: 1px solid rgba(0, 242, 234, 0.2);
+              height: 56px;
+              min-width: 600px;
+              border: 2px solid #24135a;
+              border-radius: 16px;
               box-shadow:
-                0 0 15px rgba(0, 242, 234, 0.1),
-                inset 0 0 8px rgba(0, 0, 0, 0.5);
-              overflow: hidden;
-              margin: 0;
-            }
-
-            .card-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              background-color: rgba(0, 0, 0, 0.3);
-              padding: 0.3em 0.5em;
-              border-bottom: 1px solid rgba(0, 242, 234, 0.2);
-            }
-
-            .card-title {
-              color: var(--primary-color);
-              font-size: 0.6rem;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              display: flex;
-              align-items: center;
-              gap: 0.3em;
-            }
-
-            .card-title svg {
-              width: 0.8em;
-              height: 0.8em;
-              stroke: var(--primary-color);
-            }
-
-            .card-dots span {
-              display: inline-block;
-              width: 4px;
-              height: 4px;
-              border-radius: 50%;
-              background-color: #333;
-              margin-left: 2px;
-            }
-
-            .card-body {
-              padding: 0.6rem;
-            }
-
-            /* --- Form Elements (Compact) --- */
-            .form-group {
+                -5px 0px 0px #24135a,
+                -5px 3px 3px rgb(0, 0, 0, 0.2);
+              overflow: visible;
               position: relative;
-              margin-bottom: 0.6rem;
+              transition: all 0.25s ease;
+              padding: 0 20px;
             }
 
-            .form-group-inline {
-              display: flex;
-              align-items: flex-end;
-              gap: 0.3rem;
-              margin-bottom: 0.6rem;
+            /* Style de la barre de défilement */
+            .form::-webkit-scrollbar {
+              width: 8px;
             }
 
-            .button-group-inline {
+            .form::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 10px;
+              margin: 5px;
+            }
+
+            .form::-webkit-scrollbar-thumb {
+              background: #6041bf;
+              border-radius: 10px;
+              border: 2px solid #f1f1f1;
+            }
+
+            .form::-webkit-scrollbar-thumb:hover {
+              background: #24135a;
+            }
+
+            #email-area,
+            #password-area,
+            #footer-area,
+            #editSection {
+              position: relative;
+              z-index: 2;
+            }
+
+            #email-area {
               display: flex;
-              gap: 0.2rem;
+              justify-content: center;
+              align-items: center;
+              flex: 1;
+              height: 100%;
+              margin: 0 10px;
+              transition: all 0.25s ease;
+            }
+
+            #email-area input {
+              width: 100%;
+              border: 2px solid #6041bf;
+              border-radius: 8px;
+              height: 36px;
+              padding-left: 0.8em;
+              padding-right: 0.8em;
+              font-family: Arial, "Open Sans", sans-serif !important;
+              font-size: 1em !important;
+              font-weight: bold !important;
+              font-style: normal !important;
+              color: #6041bf !important;
+              text-decoration: none !important;
+              transition: all 0.5s ease;
+              outline: none;
+              box-shadow: 0px 2px 3px -1px rgb(0, 0, 0, 0.2);
+            }
+
+            #email-area input::placeholder {
+              font-family: Arial, "Open Sans", sans-serif !important;
+              font-size: 1em !important;
+              font-weight: bold !important;
+              color: #6041bf !important;
+            }
+
+            #password-area {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              flex-direction: row;
+              gap: 8px;
+              transition: all 0.25s ease;
               flex-shrink: 0;
-            }
-
-            .form-label {
-              position: absolute;
-              top: 0.4em;
-              left: 0;
-              font-size: 0.65rem;
-              color: var(--primary-color);
-              opacity: 0.6;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              pointer-events: none;
-              transition: all 0.3s ease;
-            }
-
-            .form-group input {
-              width: 100%;
-              background: transparent;
-              border: none;
-              border-bottom: 2px solid rgba(0, 242, 234, 0.3);
-              padding: 0.4em 0;
-              font-size: 0.75rem;
-              color: var(--text-color);
-              font-family: inherit;
-              outline: none;
-              transition: border-color 0.3s ease;
-            }
-
-            .form-group input:focus {
-              border-color: var(--primary-color);
-            }
-
-            .form-group input:focus + .form-label,
-            .form-group input:not(:placeholder-shown) + .form-label {
-              top: -0.8em;
-              font-size: 0.6rem;
-              opacity: 1;
-            }
-
-            .form-group input:focus + .form-label::before,
-            .form-group input:focus + .form-label::after {
-              content: attr(data-text);
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
               height: 100%;
-              background-color: var(--bg-color);
+              margin-left: 10px;
             }
 
-            .form-group input:focus + .form-label::before {
-              color: var(--secondary-color);
-              animation: glitch-anim var(--glitch-anim-duration)
-                cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-            }
-
-            .form-group input:focus + .form-label::after {
-              color: var(--primary-color);
-              animation: glitch-anim var(--glitch-anim-duration)
-                cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both;
-            }
-
-            @keyframes glitch-anim {
-              0% {
-                transform: translate(0);
-                clip-path: inset(0 0 0 0);
-              }
-              20% {
-                transform: translate(-5px, 3px);
-                clip-path: inset(50% 0 20% 0);
-              }
-              40% {
-                transform: translate(3px, -2px);
-                clip-path: inset(20% 0 60% 0);
-              }
-              60% {
-                transform: translate(-4px, 2px);
-                clip-path: inset(80% 0 5% 0);
-              }
-              80% {
-                transform: translate(4px, -3px);
-                clip-path: inset(30% 0 45% 0);
-              }
-              100% {
-                transform: translate(0);
-                clip-path: inset(0 0 0 0);
-              }
-            }
-
-            /* --- Button Styling (Compact) --- */
-            .submit-btn {
-              width: 100%;
-              padding: 0.4em;
-              margin-top: 0.5rem;
-              background-color: transparent;
-              border: 2px solid var(--primary-color);
-              color: var(--primary-color);
-              font-family: inherit;
-              font-size: 0.7rem;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.1em;
+            .icon-btn {
+              border: 2px solid #6041bf;
+              border-radius: 8px;
+              padding: 0 12px;
+              font-size: 1em;
+              background-color: white;
               cursor: pointer;
-              position: relative;
-              transition: all 0.3s;
-              overflow: hidden;
-            }
-
-            .submit-btn-mini {
-              padding: 0.35em 0.6em;
-              background-color: transparent;
-              border: 2px solid var(--primary-color);
-              color: var(--primary-color);
-              font-family: inherit;
-              font-size: 0.85rem;
-              font-weight: 700;
-              cursor: pointer;
-              position: relative;
-              transition: all 0.3s;
-              overflow: hidden;
-              border-radius: 4px;
-              min-width: 32px;
-            }
-
-            .submit-btn-mini:hover,
-            .submit-btn-mini:focus {
-              background-color: var(--primary-color);
-              color: var(--bg-color);
-              box-shadow: 0 0 15px var(--primary-color);
-              outline: none;
-            }
-
-            .submit-btn-mini:active {
-              transform: scale(0.95);
-            }
-
-            .submit-btn:hover,
-            .submit-btn:focus {
-              background-color: var(--primary-color);
-              color: var(--bg-color);
-              box-shadow: 0 0 25px var(--primary-color);
-              outline: none;
-            }
-
-            .submit-btn:active {
-              transform: scale(0.97);
-            }
-
-            /* --- Glitch Effect for Button --- */
-            .submit-btn .btn-text {
-              position: relative;
-              z-index: 1;
-              transition: opacity 0.2s ease;
-            }
-
-            .submit-btn:hover .btn-text {
-              opacity: 0;
-            }
-
-            .submit-btn::before,
-            .submit-btn::after {
-              content: attr(data-text);
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
+              transition: all 0.25s ease;
+              box-shadow: 0px 2px 3px -1px rgb(0, 0, 0, 0.2);
+              height: 36px;
+              width: 36px;
               display: flex;
               align-items: center;
               justify-content: center;
-              opacity: 0;
-              background-color: var(--primary-color);
-              transition: opacity 0.2s ease;
             }
 
-            .submit-btn:hover::before,
-            .submit-btn:focus::before {
-              opacity: 1;
-              color: var(--secondary-color);
-              animation: glitch-anim var(--glitch-anim-duration)
-                cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            .icon-btn:hover {
+              background-color: #6041bf;
+              transform: scale(1.1);
             }
 
-            .submit-btn:hover::after,
-            .submit-btn:focus::after {
-              opacity: 1;
-              color: var(--bg-color);
-              animation: glitch-anim var(--glitch-anim-duration)
-                cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both;
+            .close-btn {
+              border-color: #dc3545;
             }
 
-            @media (prefers-reduced-motion: reduce) {
-              .form-group input:focus + .form-label::before,
-              .form-group input:focus + .form-label::after,
-              .submit-btn:hover::before,
-              .submit-btn:focus::before,
-              .submit-btn:hover::after,
-              .submit-btn:focus::after {
-                animation: none;
-                opacity: 0;
-              }
+            .close-btn:hover {
+              background-color: #dc3545;
+            }
 
-              .submit-btn:hover .btn-text {
-                opacity: 1;
-              }
+            #whitefilter {
+              display: none;
+            }
+
+            ::placeholder {
+              color: #6041bf;
+              font-weight: bold;
+            }
+
+            .form:hover {
+              transform: scale(1.02);
+            }
+
+            #email-area:hover input {
+              border-color: #24135a;
+              box-shadow: 0px 3px 5px -1px rgb(0, 0, 0, 0.3);
+            }
+
+            .icon-btn:hover {
+              background-color: #6041bf;
+              border-color: #6041bf;
+              color: white;
+              transform: scale(1.1);
             }
 
             @keyframes slideIn {
@@ -832,12 +637,6 @@
 
         // Ajouter les event listeners pour votre interface
 
-        // Toggle edit section
-        document.getElementById('toggleEdit').addEventListener('click', () => {
-            const editSection = document.getElementById('editSection');
-            editSection.style.display = editSection.style.display === 'none' ? 'block' : 'none';
-        });
-
         // Close panel button
         document.getElementById('closePanel').addEventListener('click', () => {
             if (panel && panel.parentNode) {
@@ -857,30 +656,8 @@
             numOF = newNumOF || '';
             composant = newComposant || '';
 
-            // Update UI inputs
-            document.getElementById('manualNumSer').value = numSer;
-            document.getElementById('manualSymbole').value = symbole;
-            document.getElementById('manualNumOF').value = numOF;
-            document.getElementById('manualComposant').value = composant;
-
             fillInput();
         }
-
-        // Manual update button
-        document.getElementById('updateValues').addEventListener('click', () => {
-            const newNumSer = document.getElementById('manualNumSer').value;
-            const newSymbole = document.getElementById('manualSymbole').value;
-            const newNumOF = document.getElementById('manualNumOF').value;
-            const newComposant = document.getElementById('manualComposant').value;
-
-            updateConstants(newNumSer, newSymbole, newNumOF, newComposant);
-
-            // Ajouter la même logique de test que "Tester champs"
-            console.log('[MANUAL UPDATE] Mise à jour effectuée, vérification et remplissage forcé...');
-            setTimeout(() => {
-                testPowerAppsFields();
-            }, 500);
-        });
 
         // Collector fetch button
         const input = document.getElementById('collectorLink');
@@ -889,6 +666,31 @@
         button.addEventListener('click', () => {
             let lien = input.value.trim();
             if (!lien) return alert("Merci de mettre le lien CollectorPlus");
+
+            // Vérifier que le bouton "OF" est présent/actif
+            const ofButton = Array.from(document.querySelectorAll('.appmagic-button-label')).find(
+                label => label.textContent.trim() === 'OF'
+            );
+
+            if (!ofButton) {
+                console.log('[CollectorPlus Script] ⚠️ Bouton "OF" non trouvé');
+                return alert("Veuillez d'abord sélectionner l'option 'OF' dans le formulaire");
+            }
+
+            // Vérifier que "Oui" ou "Non" est sélectionné
+            const ouiButton = Array.from(document.querySelectorAll('.appmagic-button-label')).find(
+                label => label.textContent.trim() === 'Oui'
+            );
+            const nonButton = Array.from(document.querySelectorAll('.appmagic-button-label')).find(
+                label => label.textContent.trim() === 'Non'
+            );
+
+            if (!ouiButton && !nonButton) {
+                console.log('[CollectorPlus Script] ⚠️ Aucun bouton "Oui" ou "Non" trouvé');
+                return alert("Veuillez d'abord sélectionner 'Oui' ou 'Non' dans le formulaire");
+            }
+
+            console.log('[CollectorPlus Script] ✅ Vérifications passées - Boutons OF et Oui/Non détectés');
 
             // Utiliser directement l'URL fournie sans conversion
             console.log('[CollectorPlus Script] URL utilisée:', lien);
