@@ -1,15 +1,116 @@
 // ==UserScript==
-// @name         Power BI Favoris
+// @name         Où est mon composant Favoris
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Système de favoris pour Power BI
 // @match        https://app.powerbi.com/groups/me/apps/ab9bbd67-d4d2-48c1-8869-22d78efe9963/reports/*
+// @match        https://app.powerbi.com/*/cvSandboxPack.cshtml*
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        unsafeWindow
+// @run-at       document-end
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    // Vérifier si on est dans l'iframe ou dans la page principale
+    const isInIframe = window.self !== window.top;
+    const isMainPage = !isInIframe;
+
+    console.log('Script exécuté dans:', isInIframe ? 'IFRAME' : 'PAGE PRINCIPALE');
+
+    // Si on est dans une iframe, attendre et exposer la fonction pour remplir l'input
+    if (isInIframe) {
+        console.log('Mode IFRAME activé');
+
+        // Fonction pour remplir l'input dans l'iframe
+        window.fillSearchInput = function(text) {
+            const searchInput = document.querySelector('input[name="search-field"]') ||
+                               document.querySelector('input.accessibility-compliant') ||
+                               document.querySelector('input[placeholder="Search"]');
+
+            if (searchInput) {
+                console.log('✓ Input trouvé dans iframe!', text);
+                searchInput.value = text;
+                searchInput.focus();
+
+                // Déclencher les événements
+                const events = ['input', 'change', 'keyup', 'keydown'];
+                events.forEach(eventType => {
+                    const event = new Event(eventType, { bubbles: true, cancelable: true });
+                    searchInput.dispatchEvent(event);
+                });
+
+                // Trouver et cliquer sur le bouton de recherche
+                setTimeout(() => {
+                    const searchButton = document.querySelector('button[name="search-button"]') ||
+                                        document.querySelector('button.search-button') ||
+                                        document.querySelector('.c-glyph.search-button');
+
+                    if (searchButton) {
+                        console.log('✓ Bouton de recherche trouvé, clic...');
+                        searchButton.click();
+                    } else {
+                        console.log('⚠️ Bouton de recherche non trouvé');
+                    }
+                }, 100); // Petit délai pour s'assurer que l'input est bien rempli
+
+                return true;
+            }
+            return false;
+        };
+
+        // Fonction pour cliquer sur le bouton AppMagic dans l'iframe
+        window.clickAppMagicButton = function() {
+            // Chercher la div avec la classe appmagic-button
+            const appmagicButton = document.querySelector('div.appmagic-button.middle.center') ||
+                                   document.querySelector('div.appmagic-button') ||
+                                   document.querySelector('div[data-bind*="appmagic-button"]');
+
+            if (appmagicButton) {
+                console.log('✓ Bouton AppMagic trouvé dans cette iframe, clic...');
+                appmagicButton.click();
+                return true;
+            } else {
+                // Essayer de le trouver via le data-control-part
+                const textDiv = document.querySelector('[data-control-part="text"]');
+                if (textDiv && textDiv.parentElement && textDiv.parentElement.classList.contains('appmagic-button-label')) {
+                    const button = textDiv.parentElement.parentElement;
+                    if (button.classList.contains('appmagic-button')) {
+                        console.log('✓ Bouton AppMagic trouvé via data-control-part dans cette iframe, clic...');
+                        button.click();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        // Écouter les messages de la page principale
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'FILL_SEARCH') {
+                const success = window.fillSearchInput(event.data.text);
+                // Renvoyer une confirmation
+                event.source.postMessage({
+                    type: 'FILL_SEARCH_RESPONSE',
+                    success: success
+                }, event.origin);
+            } else if (event.data && event.data.type === 'CLICK_APPMAGIC') {
+                const success = window.clickAppMagicButton();
+                // Renvoyer une confirmation
+                event.source.postMessage({
+                    type: 'CLICK_APPMAGIC_RESPONSE',
+                    success: success
+                }, event.origin);
+            }
+        });
+
+        console.log('Iframe prête à recevoir des messages');
+        return; // Ne pas exécuter le reste du script dans l'iframe
+    }
+
+    // === CODE POUR LA PAGE PRINCIPALE === //
 
     // Fonction pour créer la fenêtre modale de saisie
     function createInputModal() {
@@ -38,7 +139,7 @@
                 font-family: 'Segoe UI', sans-serif;
             ">
                 <h3 style="margin: 0 0 20px 0; color: #2771c2; font-size: 18px;">⭐ Ajouter aux favoris</h3>
-                
+
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Numéro de Symbole: <span style="color: red;">*</span></label>
                     <input type="text" id="modal-symbole" style="
@@ -50,7 +151,7 @@
                         box-sizing: border-box;
                     " placeholder="Ex: SY123">
                 </div>
-                
+
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Repère de composant: <span style="color: #999; font-weight: normal;">(optionnel)</span></label>
                     <input type="text" id="modal-repere" style="
@@ -62,7 +163,7 @@
                         box-sizing: border-box;
                     " placeholder="Ex: R1, C2, U3...">
                 </div>
-                
+
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="modal-cancel" style="
                         padding: 10px 20px;
@@ -256,7 +357,7 @@
 
         // Afficher la modale pour saisir symbole et repère
         const result = await showInputModal();
-        
+
         if (!result) {
             // L'utilisateur a annulé
             return;
@@ -265,7 +366,7 @@
         const { symbole, repere } = result;
 
         let favoris = GM_getValue('powerbi_favoris', []);
-        
+
         // Vérifier si l'élément existe déjà
         const exists = favoris.some(fav => fav.title === selectedItem.title && fav.symbole === symbole && fav.repere === repere);
         if (exists) {
@@ -308,7 +409,7 @@
         Object.keys(groupedBySymbole).sort().forEach(symbole => {
             const items = groupedBySymbole[symbole];
             const folderId = `folder-${symbole.replace(/\s+/g, '-')}`;
-            
+
             html += `
                 <div style="margin-bottom: 10px;">
                     <div class="folder-header" data-folder="${folderId}" style="
@@ -350,7 +451,7 @@
                 const content = document.getElementById(folderId);
                 const icon = e.currentTarget.querySelector('.folder-icon');
                 const arrow = e.currentTarget.querySelector('span:last-child');
-                
+
                 if (content.style.display === 'none') {
                     content.style.display = 'block';
                     icon.textContent = '📁';
@@ -377,30 +478,122 @@
             item.addEventListener('mouseenter', () => {
                 item.style.background = '#f5f5f5';
             });
-            
+
             item.addEventListener('mouseleave', () => {
                 item.style.background = 'white';
             });
-            
+
             item.addEventListener('click', (e) => {
                 // Ne pas déclencher si on clique sur le bouton de suppression
                 if (e.target.classList.contains('remove-fav')) return;
-                
+
                 const text = item.getAttribute('data-text');
-                const searchInput = document.querySelector('input[name="search-field"]');
-                
-                if (searchInput) {
-                    searchInput.value = text;
-                    searchInput.focus();
-                    
-                    // Déclencher l'événement input pour que Power BI détecte le changement
-                    const inputEvent = new Event('input', { bubbles: true });
-                    searchInput.dispatchEvent(inputEvent);
-                    
-                    // Déclencher aussi keyup au cas où
-                    const keyupEvent = new Event('keyup', { bubbles: true });
-                    searchInput.dispatchEvent(keyupEvent);
-                }
+
+                // Envoyer un message aux iframes une par une jusqu'à ce qu'une réponde
+                const iframes = document.querySelectorAll('iframe');
+                let success = false;
+                let responseReceived = false;
+
+                // Fonction pour essayer chaque iframe pour remplir le champ de recherche
+                const tryIframe = (index) => {
+                    if (index >= iframes.length || success) return;
+
+                    try {
+                        iframes[index].contentWindow.postMessage({
+                            type: 'FILL_SEARCH',
+                            text: text
+                        }, '*');
+                        console.log(`Message FILL_SEARCH envoyé à iframe ${index}`);
+                    } catch (e) {
+                        console.log(`Erreur iframe ${index}:`, e.message);
+                        // Essayer la suivante
+                        tryIframe(index + 1);
+                    }
+                };
+
+                // Fonction pour envoyer le message de clic AppMagic à toutes les iframes
+                const clickAppMagicInIframes = () => {
+                    console.log('Envoi du message CLICK_APPMAGIC à toutes les iframes...');
+                    let appMagicClicked = false;
+
+                    const appMagicHandler = (event) => {
+                        if (event.data && event.data.type === 'CLICK_APPMAGIC_RESPONSE') {
+                            if (event.data.success && !appMagicClicked) {
+                                console.log('✓ Bouton AppMagic cliqué avec succès!');
+                                appMagicClicked = true;
+                                window.removeEventListener('message', appMagicHandler);
+                            }
+                        }
+                    };
+
+                    window.addEventListener('message', appMagicHandler);
+
+                    // Envoyer le message à toutes les iframes
+                    iframes.forEach((iframe, index) => {
+                        try {
+                            iframe.contentWindow.postMessage({
+                                type: 'CLICK_APPMAGIC'
+                            }, '*');
+                            console.log(`Message CLICK_APPMAGIC envoyé à iframe ${index}`);
+                        } catch (e) {
+                            console.log(`Erreur envoi CLICK_APPMAGIC iframe ${index}:`, e.message);
+                        }
+                    });
+
+                    // Timeout pour nettoyer
+                    setTimeout(() => {
+                        if (!appMagicClicked) {
+                            console.log('⚠️ Bouton AppMagic non trouvé dans aucune iframe');
+                        }
+                        window.removeEventListener('message', appMagicHandler);
+                    }, 1000);
+                };
+
+                // Écouter la réponse pour le remplissage du champ
+                const messageHandler = (event) => {
+                    if (event.data && event.data.type === 'FILL_SEARCH_RESPONSE') {
+                        if (event.data.success && !responseReceived) {
+                            console.log('✓ Input rempli avec succès!');
+                            success = true;
+                            responseReceived = true;
+                            window.removeEventListener('message', messageHandler);
+
+                            // Attendre un peu puis cliquer sur le bouton AppMagic
+                            setTimeout(() => {
+                                clickAppMagicInIframes();
+                            }, 300);
+                        } else if (!responseReceived) {
+                            // Cette iframe n'a pas l'input, essayer la suivante
+                            const currentIndex = Array.from(iframes).findIndex(iframe => {
+                                try {
+                                    return iframe.contentWindow === event.source;
+                                } catch (e) {
+                                    return false;
+                                }
+                            });
+                            tryIframe(currentIndex + 1);
+                        }
+                    }
+                };
+
+                window.addEventListener('message', messageHandler);
+
+                // Commencer par la première iframe
+                tryIframe(0);
+
+                // Afficher une notification visuelle
+                item.style.background = '#d4edda';
+                setTimeout(() => {
+                    item.style.background = 'white';
+                }, 300);
+
+                // Timeout si pas de réponse
+                setTimeout(() => {
+                    if (!success) {
+                        console.log('⚠️ Aucune iframe n\'a répondu pour FILL_SEARCH');
+                    }
+                    window.removeEventListener('message', messageHandler);
+                }, 1000);
             });
         });
     }
@@ -444,21 +637,21 @@
                 document.getElementById('search-favoris').addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase();
                     const folders = document.querySelectorAll('.folder-header').length > 0;
-                    
+
                     if (!folders) return;
 
                     document.querySelectorAll('.folder-header').forEach(folderHeader => {
                         const folderId = folderHeader.getAttribute('data-folder');
                         const folderContent = document.getElementById(folderId);
                         const folderName = folderHeader.textContent.toLowerCase();
-                        
+
                         let hasVisibleItems = false;
-                        
+
                         // Filtrer les éléments dans le dossier
                         folderContent.querySelectorAll('.favori-item').forEach(item => {
                             const itemText = item.textContent.toLowerCase();
                             const itemRepere = (item.getAttribute('data-repere') || '').toLowerCase();
-                            
+
                             // Rechercher dans le texte OU dans le repère
                             if (itemText.includes(searchTerm) || itemRepere.includes(searchTerm)) {
                                 item.style.display = 'block';
@@ -467,7 +660,7 @@
                                 item.style.display = 'none';
                             }
                         });
-                        
+
                         // Afficher/masquer le dossier selon si le nom du dossier correspond ou s'il contient des éléments visibles
                         if (folderName.includes(searchTerm) || hasVisibleItems) {
                             folderHeader.parentElement.style.display = 'block';
@@ -476,7 +669,7 @@
                                 folderContent.style.display = 'block';
                                 folderHeader.querySelector('.folder-icon').textContent = '📁';
                                 folderHeader.querySelector('span:last-child').textContent = '▼';
-                                
+
                                 // Si c'est le nom du dossier qui correspond, montrer tous les items
                                 if (folderName.includes(searchTerm)) {
                                     folderContent.querySelectorAll('.favori-item').forEach(item => {
