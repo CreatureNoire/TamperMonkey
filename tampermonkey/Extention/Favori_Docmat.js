@@ -1,15 +1,3 @@
-// ==UserScript==
-// @name         DOCMAT - Système de Favoris
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Ajoute un système de favoris avec étoiles sur DOCMAT
-// @author       Vous
-// @match        https://docmat.sncf.fr/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_addStyle
-// ==/UserScript==
-
 (function() {
     'use strict';
 
