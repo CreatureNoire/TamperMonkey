@@ -1,3 +1,22 @@
+// ==UserScript==
+// @name         GEQUI Notification Checker
+// @namespace    http://tampermonkey.net/
+// @version      2.3
+// @description  Vérifie toutes les heures si un chiffre > 0 apparaît sur GEQUI et affiche une notification
+// @author       You
+// @match        https://gequi.mt.sncf.fr/*
+// @match        http://gequi.mt.sncf.fr/*
+// @match        https://app.powerbi.com/*
+// @match        https://*/*
+// @match        http://*/*
+
+// @exclude      http://wr46cogp05:8089/*
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_openInTab
+// @run-at       document-end
+// ==/UserScript==
+
 (function() {
     'use strict';
 
