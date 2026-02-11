@@ -1,20 +1,13 @@
 // ==UserScript==
-// @name         GEQUI Notification Checker
+// @name         DOCMAT - Système de Favoris
 // @namespace    http://tampermonkey.net/
-// @version      2.3
-// @description  Vérifie toutes les heures si un chiffre > 0 apparaît sur GEQUI et affiche une notification
-// @author       You
-// @match        https://gequi.mt.sncf.fr/*
-// @match        http://gequi.mt.sncf.fr/*
-// @match        https://app.powerbi.com/*
-// @match        https://*/*
-// @match        http://*/*
-
-// @exclude      http://wr46cogp05:8089/*
+// @version      1.0
+// @description  Ajoute un système de favoris avec étoiles sur DOCMAT
+// @author       Vous
+// @match        https://docmat.sncf.fr/*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @grant        GM_openInTab
-// @run-at       document-end
+// @grant        GM_addStyle
 // ==/UserScript==
 
 (function() {
