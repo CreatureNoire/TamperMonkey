@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Power BI Favoris
+// @name         Power BI Favoris - Modern UI
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Système de favoris pour Power BI
+// @version      2.0
+// @description  Système de favoris moderne pour Power BI
 // @match        https://app.powerbi.com/groups/me/apps/*
 // @match        https://app.powerbi.com/*/cvSandboxPack.cshtml*
 // @grant        GM_setValue
@@ -14,1654 +14,2301 @@
 (function() {
     'use strict';
 
-    // Vérifier si on est dans l'iframe ou dans la page principale
     const isInIframe = window.self !== window.top;
     const isMainPage = !isInIframe;
+    
+    console.log('Script Modern UI:', isInIframe ? 'IFRAME' : 'PAGE PRINCIPALE');
 
-    console.log('Script exécuté dans:', isInIframe ? 'IFRAME' : 'PAGE PRINCIPALE');
-
-    // Si on est dans une iframe, attendre et exposer la fonction pour remplir l'input
+    // ============================================================================
+    // PARTIE IFRAME - Gestion de la recherche
+    // ============================================================================
     if (isInIframe) {
-        console.log('Mode IFRAME activé');
-
-        // Fonction pour remplir l'input dans l'iframe
         window.fillSearchInput = function(text) {
-            const searchInput = document.querySelector('input[name="search-field"]') ||
+            const searchInput = document.querySelector('input[name="search-field"]') || 
                                document.querySelector('input.accessibility-compliant') ||
                                document.querySelector('input[placeholder="Search"]');
-
+            
             if (searchInput) {
-                console.log('✓ Input trouvé dans iframe!', text);
+                console.log('✓ Input trouvé:', text);
                 searchInput.value = text;
                 searchInput.focus();
-
-                // Déclencher les événements
+                
                 const events = ['input', 'change', 'keyup', 'keydown'];
                 events.forEach(eventType => {
-                    const event = new Event(eventType, { bubbles: true, cancelable: true });
-                    searchInput.dispatchEvent(event);
+                    searchInput.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }));
                 });
-
-                // Trouver et cliquer sur le bouton de recherche
+                
                 setTimeout(() => {
                     const searchButton = document.querySelector('button[name="search-button"]') ||
                                         document.querySelector('button.search-button') ||
                                         document.querySelector('.c-glyph.search-button');
-
                     if (searchButton) {
-                        console.log('✓ Bouton de recherche trouvé, clic...');
+                        console.log('✓ Bouton trouvé, clic!');
                         searchButton.click();
-                    } else {
-                        console.log('⚠️ Bouton de recherche non trouvé');
                     }
                 }, 100);
-
+                
                 return true;
             }
             return false;
         };
-
-        // Fonction pour cliquer sur le bouton AppMagic dans l'iframe
-        window.clickAppMagicButton = function() {
-            const appmagicButton = document.querySelector('div.appmagic-button.middle.center') ||
-                                   document.querySelector('div.appmagic-button') ||
-                                   document.querySelector('div[data-bind*="appmagic-button"]');
-
-            if (appmagicButton) {
-                console.log('✓ Bouton AppMagic trouvé dans cette iframe, clic...');
-                appmagicButton.click();
-                return true;
-            } else {
-                const textDiv = document.querySelector('[data-control-part="text"]');
-                if (textDiv && textDiv.parentElement && textDiv.parentElement.classList.contains('appmagic-button-label')) {
-                    const button = textDiv.parentElement.parentElement;
-                    if (button.classList.contains('appmagic-button')) {
-                        console.log('✓ Bouton AppMagic trouvé via data-control-part dans cette iframe, clic...');
-                        button.click();
-                        return true;
-                    }
-                }
-            }
-            return false;
-        };
-
+        
         // Écouter les messages de la page principale
-        window.addEventListener('message', function(event) {
+        window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'FILL_SEARCH') {
+                console.log('Message FILL_SEARCH reçu dans iframe:', event.data.text);
                 const success = window.fillSearchInput(event.data.text);
+                
+                // Répondre à la page principale
                 event.source.postMessage({
                     type: 'FILL_SEARCH_RESPONSE',
                     success: success
                 }, event.origin);
-            } else if (event.data && event.data.type === 'CLICK_APPMAGIC') {
-                const success = window.clickAppMagicButton();
-                event.source.postMessage({
-                    type: 'CLICK_APPMAGIC_RESPONSE',
-                    success: success
-                }, event.origin);
             }
         });
-
+        
         console.log('Iframe prête à recevoir des messages');
         return;
     }
 
-    // === CODE POUR LA PAGE PRINCIPALE === //
-
-    // Fonction pour créer la fenêtre modale de saisie
-    function createInputModal() {
-        const modal = document.createElement('div');
-        modal.id = 'input-modal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10002;
+    // ============================================================================
+    // PARTIE PRINCIPALE - Interface et logique
+    // ============================================================================
+    
+    // ===== STYLES GLOBAUX =====
+    function injectGlobalStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            * { box-sizing: border-box; }
+            
+            /* Scrollbar personnalisée */
+            .modern-scrollbar::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+            .modern-scrollbar::-webkit-scrollbar-track {
+                background: rgba(255,255,255,0.05);
+                border-radius: 4px;
+            }
+            .modern-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.2);
+                border-radius: 4px;
+            }
+            .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: rgba(255,255,255,0.3);
+            }
+            
+            /* Animations */
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .fade-in {
+                animation: fadeIn 0.3s ease-out;
+            }
+            
+            .slide-in {
+                animation: slideIn 0.3s ease-out;
+            }
+            
+            /* Drag and Drop styles */
+            .dragging {
+                opacity: 0.5;
+                transform: scale(0.95);
+                transition: all 0.2s;
+            }
+            
+            .drag-over {
+                border-top: 3px solid #4a90e2 !important;
+            }
+            
+            .drag-ghost {
+                position: fixed;
+                pointer-events: none;
+                z-index: 10000;
+                opacity: 0.8;
+                transform: rotate(2deg) scale(1.05);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+                transition: none;
+            }
         `;
+        document.head.appendChild(style);
+    }
 
+    // ===== MODAL D'AJOUT =====
+    function createModal() {
+        const modal = document.createElement('div');
+        modal.id = 'favoris-modal';
         modal.innerHTML = `
-            <div style="
-                background: white;
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                width: 600px;
-                font-family: 'Segoe UI', sans-serif;
-                display: flex;
-                gap: 20px;
+            <div class="modal-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.85);
+                backdrop-filter: blur(8px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             ">
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 20px 0; color: #2771c2; font-size: 18px;">⭐ Ajouter aux favoris</h3>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Numéro de Symbole: <span style="color: red;">*</span></label>
-                        <input type="text" id="modal-symbole" style="
-                            width: 100%;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
-                            font-size: 14px;
-                            box-sizing: border-box;
-                        " placeholder="Ex: SY123">
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Désignation: <span style="color: #999; font-weight: normal;">(optionnel)</span></label>
-                        <input type="text" id="modal-designation" style="
-                            width: 100%;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
-                            font-size: 14px;
-                            box-sizing: border-box;
-                        " placeholder="Ex: Résistance 10kΩ">
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Repère de composant: <span style="color: #999; font-weight: normal;">(optionnel)</span></label>
-                        <input type="text" id="modal-repere" style="
-                            width: 100%;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 5px;
-                            font-size: 14px;
-                            box-sizing: border-box;
-                        " placeholder="Ex: R1, C2, U3...">
-                    </div>
-
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button id="modal-cancel" style="
-                            padding: 10px 20px;
-                            background: #6c757d;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-weight: bold;
-                        ">Annuler</button>
-                        <button id="modal-confirm" style="
-                            padding: 10px 20px;
-                            background: #2771c2;
-                            color: white;
-                            border: none;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-weight: bold;
-                        ">Ajouter</button>
-                    </div>
-                </div>
-
-                <div style="
-                    width: 200px;
-                    border-left: 1px solid #ddd;
-                    padding-left: 20px;
+                <div class="modal-content fade-in" style="
+                    background: linear-gradient(145deg, #2a2a2a 0%, #1f1f1f 100%);
+                    border-radius: 20px;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+                    width: 90%;
+                    max-width: 900px;
+                    max-height: 90vh;
+                    overflow: hidden;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    display: flex;
+                    flex-direction: column;
                 ">
-                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📋 Symboles existants</h4>
-                    <div id="symbole-list" style="
-                        max-height: 300px;
-                        overflow-y: auto;
-                        background: #f8f9fa;
-                        border-radius: 5px;
-                        padding: 5px;
+                    <!-- Header -->
+                    <div style="
+                        background: linear-gradient(135deg, #3d3d3d 0%, #2d2d2d 100%);
+                        padding: 28px 32px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
                     ">
-                        <p style="color: #999; font-size: 12px; padding: 10px; text-align: center;">Aucun symbole</p>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h2 id="modal-title" style="
+                                    margin: 0;
+                                    font-size: 26px;
+                                    font-weight: 700;
+                                    color: #ffffff;
+                                    letter-spacing: -0.5px;
+                                ">✨ Nouveau Favori</h2>
+                                <p id="modal-subtitle" style="
+                                    margin: 6px 0 0 0;
+                                    font-size: 14px;
+                                    color: rgba(255,255,255,0.5);
+                                ">Ajouter un composant à vos favoris</p>
+                            </div>
+                            <button class="close-modal" style="
+                                background: rgba(255,255,255,0.1);
+                                border: none;
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 8px;
+                                color: rgba(255,255,255,0.7);
+                                font-size: 24px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                transition: all 0.2s;
+                            ">×</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Body with 2 columns -->
+                    <div style="
+                        display: flex;
+                        flex: 1;
+                        overflow: hidden;
+                    ">
+                        <!-- Left Column - Dossiers existants -->
+                        <div style="
+                            width: 320px;
+                            background: rgba(0,0,0,0.3);
+                            border-right: 1px solid rgba(255,255,255,0.08);
+                            display: flex;
+                            flex-direction: column;
+                        ">
+                            <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                <h3 style="
+                                    margin: 0 0 12px 0;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.8);
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                ">📁 Sélectionner les dossiers</h3>
+                                
+                                <!-- Nouveau dossier - Symbole -->
+                                <div style="margin-bottom: 12px;">
+                                    <label style="
+                                        display: block;
+                                        margin-bottom: 6px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: rgba(255,255,255,0.6);
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                    ">Nouveau Symbole</label>
+                                    <input type="text" id="input-symbole" class="modern-input" placeholder="Ex: 08661123" style="font-size: 14px; padding: 10px 12px;" />
+                                </div>
+                                
+                                <!-- Nouveau dossier - Désignation -->
+                                <div style="margin-bottom: 12px;">
+                                    <label style="
+                                        display: block;
+                                        margin-bottom: 6px;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: rgba(255,255,255,0.6);
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                    ">Nouvelle Désignation</label>
+                                    <input type="text" id="input-designation" class="modern-input" placeholder="Ex: PRM Tiroir JTS 3C" style="font-size: 14px; padding: 10px 12px;" />
+                                </div>
+                                
+                                <!-- Bouton Ajouter dossier -->
+                                <button id="btn-add-folder" style="
+                                    width: 100%;
+                                    padding: 10px 16px;
+                                    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                                    border: none;
+                                    border-radius: 8px;
+                                    color: #ffffff;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                    box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+                                ">+ Ajouter ce dossier</button>
+                            </div>
+                            
+                            <div style="
+                                flex: 1;
+                                overflow-y: auto;
+                                padding: 12px;
+                            " class="modern-scrollbar" id="folders-checkboxes">
+                                <!-- Liste des dossiers avec checkboxes -->
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column - Détails du composant -->
+                        <div style="
+                            flex: 1;
+                            padding: 32px;
+                            overflow-y: auto;
+                        " class="modern-scrollbar">
+                            <!-- Nom du composant sélectionné -->
+                            <div id="selected-component-display" style="
+                                margin-bottom: 24px;
+                                padding: 16px;
+                                background: linear-gradient(135deg, rgba(74,144,226,0.15) 0%, rgba(53,122,189,0.15) 100%);
+                                border: 1px solid rgba(74,144,226,0.3);
+                                border-radius: 12px;
+                                display: none;
+                            ">
+                                <div style="
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.6);
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                    margin-bottom: 8px;
+                                ">Composant sélectionné</div>
+                                <div id="selected-component-name" style="
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                    color: #4a90e2;
+                                    word-wrap: break-word;
+                                "></div>
+                            </div>
+                            
+                            <!-- Repère -->
+                            <div class="form-group" style="margin-bottom: 24px;">
+                                <label style="
+                                    display: block;
+                                    margin-bottom: 10px;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.8);
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                ">Repère</label>
+                                <input type="text" id="input-repere" class="modern-input" placeholder="Ex: R1, R2, R3" />
+                            </div>
+                            
+                            <!-- Commentaire -->
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="
+                                    display: block;
+                                    margin-bottom: 10px;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.8);
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                ">Commentaire</label>
+                                <textarea id="input-commentaire" class="modern-input" placeholder="Notes supplémentaires..." style="
+                                    min-height: 200px;
+                                    resize: vertical;
+                                    font-family: inherit;
+                                "></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="
+                        padding: 24px 32px;
+                        background: rgba(0,0,0,0.3);
+                        border-top: 1px solid rgba(255,255,255,0.08);
+                        display: flex;
+                        gap: 12px;
+                        justify-content: flex-end;
+                    ">
+                        <button class="btn-cancel" style="
+                            padding: 12px 28px;
+                            background: rgba(255,255,255,0.08);
+                            border: 1px solid rgba(255,255,255,0.12);
+                            border-radius: 10px;
+                            color: rgba(255,255,255,0.7);
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        ">Annuler</button>
+                        <button class="btn-save" style="
+                            padding: 12px 36px;
+                            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+                            border: none;
+                            border-radius: 10px;
+                            color: #ffffff;
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            box-shadow: 0 4px 15px rgba(74,144,226,0.4);
+                        ">Enregistrer</button>
                     </div>
                 </div>
             </div>
         `;
-
+        
+        // Styles pour les inputs
+        const inputStyles = document.createElement('style');
+        inputStyles.textContent = `
+            .modern-input {
+                width: 100%;
+                padding: 14px 16px;
+                background: rgba(255,255,255,0.06);
+                border: 1.5px solid rgba(255,255,255,0.12);
+                border-radius: 10px;
+                color: #ffffff;
+                font-size: 15px;
+                outline: none;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .modern-input:focus {
+                background: rgba(255,255,255,0.09);
+                border-color: #4a90e2;
+                box-shadow: 0 0 0 4px rgba(74,144,226,0.15);
+            }
+            
+            .modern-input::placeholder {
+                color: rgba(255,255,255,0.35);
+            }
+            
+            .close-modal:hover {
+                background: rgba(255,255,255,0.15) !important;
+                color: #ffffff !important;
+            }
+            
+            .btn-cancel:hover {
+                background: rgba(255,255,255,0.12) !important;
+                border-color: rgba(255,255,255,0.2) !important;
+                color: #ffffff !important;
+                transform: translateY(-1px);
+            }
+            
+            .btn-save:hover {
+                background: linear-gradient(135deg, #5a9ef2 0%, #4580cd 100%) !important;
+                box-shadow: 0 6px 20px rgba(74,144,226,0.5) !important;
+                transform: translateY(-2px);
+            }
+            
+            .btn-cancel:active, .btn-save:active {
+                transform: translateY(0);
+            }
+            
+            .folder-checkbox-item {
+                padding: 10px 12px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 8px;
+                margin-bottom: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .folder-checkbox-item:hover {
+                background: rgba(255,255,255,0.08);
+                border-color: rgba(255,255,255,0.2);
+            }
+            
+            .folder-checkbox-item input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+                accent-color: #4a90e2;
+            }
+            
+            .folder-checkbox-item label {
+                flex: 1;
+                cursor: pointer;
+                color: rgba(255,255,255,0.8);
+                font-size: 13px;
+                font-weight: 500;
+            }
+            
+            .folder-checkbox-item.checked {
+                background: rgba(74,144,226,0.2);
+                border-color: rgba(74,144,226,0.4);
+            }
+            
+            #btn-add-folder:hover {
+                background: linear-gradient(135deg, #5cbd5f 0%, #4db84d 100%) !important;
+                box-shadow: 0 4px 12px rgba(76,175,80,0.4) !important;
+                transform: translateY(-1px);
+            }
+            
+            #btn-add-folder:active {
+                transform: translateY(0);
+            }
+        `;
+        document.head.appendChild(inputStyles);
+        
         return modal;
     }
 
-    // Fonction pour afficher la modale et récupérer les valeurs
-    function showInputModal() {
-        return new Promise((resolve) => {
-            const modal = document.getElementById('input-modal');
-            const symboleInput = document.getElementById('modal-symbole');
-            const designationInput = document.getElementById('modal-designation');
-            const repereInput = document.getElementById('modal-repere');
-            const confirmBtn = document.getElementById('modal-confirm');
-            const cancelBtn = document.getElementById('modal-cancel');
-            const symboleListDiv = document.getElementById('symbole-list');
-
-            symboleInput.value = '';
-            designationInput.value = '';
-            repereInput.value = '';
-
-            const favoris = GM_getValue('powerbi_favoris', []);
-            const symboles = [...new Set(favoris.map(fav => fav.symbole).filter(s => s))];
-
-            if (symboles.length > 0) {
-                symboleListDiv.innerHTML = symboles.sort().map(symbole => `
-                    <div class="symbole-item" data-symbole="${symbole}" style="
-                        padding: 8px 10px;
-                        margin: 3px 0;
-                        background: white;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 13px;
-                        transition: all 0.2s;
-                    ">${symbole}</div>
-                `).join('');
-
-                document.querySelectorAll('.symbole-item').forEach(item => {
-                    item.addEventListener('mouseenter', () => {
-                        item.style.background = '#e3f2fd';
-                        item.style.borderColor = '#2771c2';
-                    });
-                    item.addEventListener('mouseleave', () => {
-                        item.style.background = 'white';
-                        item.style.borderColor = '#ddd';
-                    });
-                    item.addEventListener('click', () => {
-                        symboleInput.value = item.getAttribute('data-symbole');
-                        symboleInput.focus();
-                    });
-                });
+    // ===== FONCTION POUR REMPLIR LA LISTE DES DOSSIERS =====
+    function updateFoldersCheckboxes() {
+        const container = document.getElementById('folders-checkboxes');
+        if (!container) return;
+        
+        const favoris = loadFavoris();
+        const existingFolders = GM_getValue('powerbi_folders', []);
+        const folders = {};
+        
+        // D'abord, initialiser tous les dossiers existants
+        existingFolders.forEach(folderKey => {
+            if (folderKey !== 'Sans PRM associé') { // Ne pas afficher "Sans PRM associé" dans la modal
+                folders[folderKey] = true;
             }
-
-            modal.style.display = 'flex';
-            symboleInput.focus();
-
-            const handleConfirm = () => {
-                const symbole = symboleInput.value.trim();
-                const designation = designationInput.value.trim();
-                const repere = repereInput.value.trim();
-
-                if (symbole === '') {
-                    alert('Le numéro de symbole ne peut pas être vide');
-                    return;
-                }
-
-                modal.style.display = 'none';
-                cleanup();
-                resolve({ symbole, designation, repere });
-            };
-
-            const handleCancel = () => {
-                modal.style.display = 'none';
-                cleanup();
-                resolve(null);
-            };
-
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter') {
-                    handleConfirm();
-                } else if (e.key === 'Escape') {
-                    handleCancel();
-                }
-            };
-
-            const cleanup = () => {
-                confirmBtn.removeEventListener('click', handleConfirm);
-                cancelBtn.removeEventListener('click', handleCancel);
-                symboleInput.removeEventListener('keypress', handleKeyPress);
-                designationInput.removeEventListener('keypress', handleKeyPress);
-                repereInput.removeEventListener('keypress', handleKeyPress);
-            };
-
-            confirmBtn.addEventListener('click', handleConfirm);
-            cancelBtn.addEventListener('click', handleCancel);
-            symboleInput.addEventListener('keypress', handleKeyPress);
-            designationInput.addEventListener('keypress', handleKeyPress);
-            repereInput.addEventListener('keypress', handleKeyPress);
         });
-    }
-
-    // Fonction pour créer la fenêtre de favoris
-    function createFavorisWindow() {
-        const favorisDiv = document.createElement('div');
-        favorisDiv.id = 'favoris-window';
-        favorisDiv.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        `;
-
-        favorisDiv.innerHTML = `
-            <div style="
-                background: white;
-                width: 90%;
-                max-width: 1400px;
-                height: 90%;
-                border-radius: 15px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                display: flex;
-                flex-direction: column;
-                font-family: 'Segoe UI', sans-serif;
-            ">
-                <div style="background: #2771c2; color: white; padding: 20px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="margin: 0; font-size: 24px;">📌 Mes Favoris</h2>
-                    <button id="close-favoris" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 5px; transition: background 0.2s;">×</button>
-                </div>
-
-                <div style="display: flex; flex: 1; overflow: hidden;">
-                    <div style="width: 300px; border-right: 2px solid #e0e0e0; display: flex; flex-direction: column; background: #f8f9fa;">
-                        <div style="padding: 15px; border-bottom: 1px solid #ddd;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h3 style="margin: 0; font-size: 16px; color: #333;">📁 Dossiers</h3>
-                                <button id="create-folder-btn" style="
-                                    background: #28a745;
-                                    color: white;
-                                    border: none;
-                                    width: 32px;
-                                    height: 32px;
-                                    border-radius: 50%;
-                                    cursor: pointer;
-                                    font-size: 20px;
-                                    font-weight: bold;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    transition: all 0.2s;
-                                    line-height: 1;
-                                    padding: 0;
-                                " title="Créer un nouveau dossier">+</button>
-                            </div>
-                            <input type="text" id="search-folders" placeholder="🔍 Rechercher..." style="
-                                width: 100%;
-                                padding: 10px 12px;
-                                border: 2px solid #ddd;
-                                border-radius: 6px;
-                                font-size: 14px;
-                                outline: none;
-                                box-sizing: border-box;
-                                transition: border-color 0.2s;
-                            ">
-                        </div>
-                        <div id="folders-list" style="flex: 1; overflow-y: auto; padding: 10px;">
-                            <p style="color: #999; font-style: italic; text-align: center; padding: 20px;">Aucun dossier</p>
-                        </div>
-                    </div>
-
-                    <div style="flex: 1; display: flex; flex-direction: column;">
-                        <div style="padding: 15px; border-bottom: 1px solid #ddd;">
-                            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #333;">📂 Dossier<span id="current-folder-name" style="color: #2771c2; font-weight: normal;"></span></h3>
-                            <input type="text" id="search-components" placeholder="🔍 Rechercher un composant..." style="
-                                width: 100%;
-                                padding: 10px 12px;
-                                border: 2px solid #ddd;
-                                border-radius: 6px;
-                                font-size: 14px;
-                                outline: none;
-                                box-sizing: border-box;
-                                transition: border-color 0.2s;
-                            ">
-                        </div>
-                        <div id="components-list" style="flex: 1; overflow-y: auto; padding: 20px;">
-                            <p style="color: #999; font-style: italic; text-align: center; padding: 50px 20px;">
-                                Sélectionnez un dossier à gauche pour voir ses composants
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        return favorisDiv;
-    }
-
-    function createShowListButton() {
-        const button = document.createElement('button');
-        button.id = 'show-favoris-list';
-        button.innerHTML = '📋 Liste Favoris';
-        button.style.cssText = `
-            position: fixed;
-            top: 60px;
-            right: 20px;
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 10001;
-            transition: background 0.3s;
-        `;
-
-        button.addEventListener('mouseenter', () => {
-            button.style.background = '#218838';
-        });
-        button.addEventListener('mouseleave', () => {
-            button.style.background = '#28a745';
-        });
-
-        return button;
-    }
-
-    function createAddButton() {
-        const button = document.createElement('button');
-        button.id = 'add-to-favoris';
-        button.innerHTML = '⭐';
-        button.title = 'Ajouter aux favoris';
-        button.style.cssText = `
-            position: fixed;
-            top: 15px;
-            right: 20px;
-            background: #2771c2;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 10001;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-
-        button.addEventListener('mouseenter', () => {
-            button.style.background = '#1a5a9a';
-            button.style.transform = 'scale(1.1)';
-        });
-        button.addEventListener('mouseleave', () => {
-            button.style.background = '#2771c2';
-            button.style.transform = 'scale(1)';
-        });
-
-        return button;
-    }
-
-    function createNewFolder() {
-        const folderName = prompt('Entrez le nom du nouveau dossier (symbole) :');
-
-        if (!folderName || folderName.trim() === '') {
-            return;
-        }
-
-        const trimmedName = folderName.trim();
-        const favoris = GM_getValue('powerbi_favoris', []);
-        const exists = favoris.some(fav => fav.symbole === trimmedName);
-
-        if (exists) {
-            alert(`Le dossier "${trimmedName}" existe déjà.`);
-            return;
-        }
-
-        const emptyFolder = {
-            title: `__EMPTY_FOLDER_${trimmedName}__`,
-            text: '',
-            symbole: trimmedName,
-            designation: '',
-            repere: '',
-            isEmpty: true
-        };
-
-        favoris.push(emptyFolder);
-        GM_setValue('powerbi_favoris', favoris);
-        updateFavorisList();
-
-        alert(`✓ Dossier "${trimmedName}" créé avec succès !`);
-    }
-
-    function getSelectedItem() {
-        const selectedDiv = document.querySelector('.slicerItemContainer[aria-checked="true"]');
-        if (!selectedDiv) return null;
-
-        const title = selectedDiv.getAttribute('title');
-        const slicerText = selectedDiv.querySelector('.slicerText');
-        const textContent = slicerText ? slicerText.textContent : title;
-
-        return {
-            title: title,
-            text: textContent
-        };
-    }
-
-    async function addToFavoris() {
-        const selectedItem = getSelectedItem();
-        if (!selectedItem) {
-            alert('Aucun élément sélectionné');
-            return;
-        }
-
-        const result = await showInputModal();
-
-        if (!result) {
-            return;
-        }
-
-        const { symbole, designation, repere } = result;
-        let favoris = GM_getValue('powerbi_favoris', []);
-
-        const exists = favoris.some(fav => fav.title === selectedItem.title && fav.symbole === symbole && fav.repere === repere);
-        if (exists) {
-            alert('Cet élément existe déjà dans ce symbole avec ce repère');
-            return;
-        }
-
-        selectedItem.symbole = symbole;
-        selectedItem.designation = designation;
-        selectedItem.repere = repere;
-        favoris.push(selectedItem);
-        GM_setValue('powerbi_favoris', favoris);
-        updateFavorisList();
-        alert('✓ Ajouté aux favoris !');
-    }
-
-    function removeFavori(index) {
-        let favoris = GM_getValue('powerbi_favoris', []);
-        const removedItem = favoris[index];
-        favoris.splice(index, 1);
-
-        // Vérifier si c'était le dernier composant réel du symbole
-        const symbole = removedItem.symbole;
-        const hasOtherItems = favoris.some(fav => fav.symbole === symbole && !fav.isEmpty);
-
-        // Si plus de composants réels dans ce symbole, créer un marqueur de dossier vide
-        if (!hasOtherItems && !removedItem.isEmpty) {
-            const emptyFolder = {
-                title: `__EMPTY_FOLDER_${symbole}__`,
-                text: '',
-                symbole: symbole,
-                designation: '',
-                repere: '',
-                isEmpty: true
-            };
-            favoris.push(emptyFolder);
-        }
-
-        GM_setValue('powerbi_favoris', favoris);
-        updateFavorisList();
-    }
-
-    function renameFolder(oldSymbole) {
-        const newSymbole = prompt(`Renommer le dossier "${oldSymbole}" :`, oldSymbole);
-
-        if (!newSymbole || newSymbole.trim() === '' || newSymbole.trim() === oldSymbole) {
-            return;
-        }
-
-        const trimmedName = newSymbole.trim();
-        let favoris = GM_getValue('powerbi_favoris', []);
-
-        // Vérifier si le nouveau nom existe déjà
-        const exists = favoris.some(fav => fav.symbole === trimmedName && fav.symbole !== oldSymbole);
-        if (exists) {
-            alert(`Le dossier "${trimmedName}" existe déjà.`);
-            return;
-        }
-
-        // Renommer tous les éléments de ce symbole
-        favoris.forEach(fav => {
-            if (fav.symbole === oldSymbole) {
-                fav.symbole = trimmedName;
-                if (fav.isEmpty) {
-                    fav.title = `__EMPTY_FOLDER_${trimmedName}__`;
+        
+        // Ensuite, ajouter les dossiers des favoris existants
+        favoris.forEach(item => {
+            // Si symbole et désignation sont vides, c'est "Sans PRM associé"
+            if (!item.symbole && !item.designation) {
+                return; // Ne pas l'ajouter à la liste
+            }
+            
+            const key = [item.symbole, item.designation].filter(Boolean).join(' - ');
+            if (key) {
+                folders[key] = true;
+                // Ajouter ce dossier à la liste s'il n'existe pas encore
+                if (!existingFolders.includes(key)) {
+                    existingFolders.push(key);
+                    GM_setValue('powerbi_folders', existingFolders);
                 }
             }
         });
-
-        GM_setValue('powerbi_favoris', favoris);
-        updateFavorisList();
-
-        // Afficher le dossier renommé
-        setTimeout(() => {
-            const folderItem = document.querySelector(`.folder-item[data-symbole="${trimmedName}"]`);
-            if (folderItem) {
-                folderItem.click();
-            }
-        }, 100);
-
-        alert(`✓ Dossier renommé en "${trimmedName}" !`);
-    }
-
-    function deleteFolder(symbole) {
-        let favoris = GM_getValue('powerbi_favoris', []);
-        const itemsInFolder = favoris.filter(fav => fav.symbole === symbole);
-        const realItemsCount = itemsInFolder.filter(fav => !fav.isEmpty).length;
-
-        let confirmMessage = `Êtes-vous sûr de vouloir supprimer le dossier "${symbole}"`;
-        if (realItemsCount > 0) {
-            confirmMessage += ` et ses ${realItemsCount} composant${realItemsCount > 1 ? 's' : ''}`;
-        }
-        confirmMessage += ' ?';
-
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        // Supprimer tous les éléments de ce symbole
-        favoris = favoris.filter(fav => fav.symbole !== symbole);
-
-        GM_setValue('powerbi_favoris', favoris);
-        updateFavorisList();
-        alert(`✓ Dossier "${symbole}" supprimé !`);
-    }
-
-    function updateFavorisList() {
-        const foldersListDiv = document.getElementById('folders-list');
-        const componentsListDiv = document.getElementById('components-list');
-
-        if (!foldersListDiv || !componentsListDiv) return;
-
-        const favoris = GM_getValue('powerbi_favoris', []);
-
-        if (favoris.length === 0) {
-            foldersListDiv.innerHTML = '<p style="color: #999; font-style: italic; text-align: center; padding: 20px;">Aucun dossier</p>';
-            componentsListDiv.innerHTML = '<p style="color: #999; font-style: italic; text-align: center; padding: 50px 20px;">Aucun favori pour le moment</p>';
-            return;
-        }
-
-        const groupedBySymbole = {};
-        favoris.forEach((fav, index) => {
-            const symbole = fav.symbole || 'Sans symbole';
-            if (!groupedBySymbole[symbole]) {
-                groupedBySymbole[symbole] = [];
-            }
-            groupedBySymbole[symbole].push({ ...fav, originalIndex: index });
-        });
-
-        let selectedFolder = null;
-
-        function setupComponentEvents() {
-            document.querySelectorAll('.remove-fav').forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.background = '#c82333';
-                    btn.style.transform = 'scale(1.1)';
-                });
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.background = '#dc3545';
-                    btn.style.transform = 'scale(1)';
-                });
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const index = parseInt(e.target.getAttribute('data-index'));
-                    if (confirm('Êtes-vous sûr de vouloir supprimer ce favori ?')) {
-                        removeFavori(index);
-                    }
-                });
-            });
-
-            let draggedElement = null;
-            let draggedIndex = null;
-
-            document.querySelectorAll('.component-item').forEach(item => {
-                const dragHandle = item.querySelector('.drag-handle');
-
-                if (dragHandle) {
-                    dragHandle.addEventListener('mousedown', () => {
-                        item.setAttribute('draggable', 'true');
-                    });
-                }
-
-                item.addEventListener('dragstart', (e) => {
-                    draggedElement = item;
-                    draggedIndex = parseInt(item.getAttribute('data-index'));
-                    item.style.opacity = '0.5';
-                    e.dataTransfer.effectAllowed = 'move';
-                });
-
-                item.addEventListener('dragend', () => {
-                    item.style.opacity = '1';
-                    item.setAttribute('draggable', 'false');
-                    document.querySelectorAll('.folder-item').forEach(folder => {
-                        const folderSymbole = folder.getAttribute('data-symbole');
-                        if (folderSymbole !== selectedFolder) {
-                            folder.style.background = 'white';
-                            folder.style.borderColor = '#e0e0e0';
-                        }
-                    });
-                });
-
-                const content = item.querySelector('.component-content');
-                if (content) {
-                    content.addEventListener('mouseenter', () => {
-                        item.style.borderColor = '#2771c2';
-                        item.style.transform = 'translateY(-2px)';
-                        item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                    });
-
-                    content.addEventListener('mouseleave', () => {
-                        item.style.borderColor = '#e0e0e0';
-                        item.style.transform = 'translateY(0)';
-                        item.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
-                    });
-
-                    content.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('remove-fav')) return;
-
-                        const text = item.getAttribute('data-text');
-                        document.getElementById('favoris-window').style.display = 'none';
-
-                        const iframes = document.querySelectorAll('iframe');
-                        let success = false;
-                        let responseReceived = false;
-
-                        const tryIframe = (index) => {
-                            if (index >= iframes.length || success) return;
-
-                            try {
-                                iframes[index].contentWindow.postMessage({
-                                    type: 'FILL_SEARCH',
-                                    text: text
-                                }, '*');
-                                console.log(`Message FILL_SEARCH envoyé à iframe ${index}`);
-                            } catch (e) {
-                                console.log(`Erreur iframe ${index}:`, e.message);
-                                tryIframe(index + 1);
-                            }
-                        };
-
-                        const clickAppMagicInIframes = () => {
-                            console.log('Envoi du message CLICK_APPMAGIC...');
-                            let appMagicClicked = false;
-
-                            const appMagicHandler = (event) => {
-                                if (event.data && event.data.type === 'CLICK_APPMAGIC_RESPONSE') {
-                                    if (event.data.success && !appMagicClicked) {
-                                        console.log('✓ Bouton AppMagic cliqué avec succès!');
-                                        appMagicClicked = true;
-                                        window.removeEventListener('message', appMagicHandler);
-                                    }
-                                }
-                            };
-
-                            window.addEventListener('message', appMagicHandler);
-
-                            iframes.forEach((iframe, index) => {
-                                try {
-                                    iframe.contentWindow.postMessage({
-                                        type: 'CLICK_APPMAGIC'
-                                    }, '*');
-                                } catch (e) {
-                                    console.log(`Erreur envoi CLICK_APPMAGIC iframe ${index}:`, e.message);
-                                }
-                            });
-
-                            setTimeout(() => {
-                                if (!appMagicClicked) {
-                                    console.log('⚠️ Bouton AppMagic non trouvé');
-                                }
-                                window.removeEventListener('message', appMagicHandler);
-                            }, 1000);
-                        };
-
-                        const messageHandler = (event) => {
-                            if (event.data && event.data.type === 'FILL_SEARCH_RESPONSE') {
-                                if (event.data.success && !responseReceived) {
-                                    console.log('✓ Input rempli avec succès!');
-                                    success = true;
-                                    responseReceived = true;
-                                    window.removeEventListener('message', messageHandler);
-
-                                    setTimeout(() => {
-                                        clickAppMagicInIframes();
-                                    }, 300);
-                                } else if (!responseReceived) {
-                                    const currentIndex = Array.from(iframes).findIndex(iframe => {
-                                        try {
-                                            return iframe.contentWindow === event.source;
-                                        } catch (e) {
-                                            return false;
-                                        }
-                                    });
-                                    tryIframe(currentIndex + 1);
-                                }
-                            }
-                        };
-
-                        window.addEventListener('message', messageHandler);
-                        tryIframe(0);
-
-                        setTimeout(() => {
-                            if (!success) {
-                                console.log('⚠️ Aucune iframe n\'a répondu');
-                            }
-                            window.removeEventListener('message', messageHandler);
-                        }, 1000);
-                    });
-                }
-            });
-
-            document.querySelectorAll('.folder-item').forEach(folder => {
-                folder.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    const folderSymbole = folder.getAttribute('data-symbole');
-                    if (folderSymbole !== selectedFolder) {
-                        folder.style.background = '#c5e1a5';
-                        folder.style.borderColor = '#4caf50';
-                        folder.style.transform = 'scale(1.05)';
-                    }
-                });
-
-                folder.addEventListener('dragleave', () => {
-                    const folderSymbole = folder.getAttribute('data-symbole');
-                    if (folderSymbole !== selectedFolder) {
-                        folder.style.background = 'white';
-                        folder.style.borderColor = '#e0e0e0';
-                        folder.style.transform = 'scale(1)';
-                    }
-                });
-
-                folder.addEventListener('drop', (e) => {
-                    e.preventDefault();
-
-                    if (draggedElement && draggedIndex !== null) {
-                        const targetSymbole = folder.getAttribute('data-symbole');
-                        const sourceSymbole = draggedElement.getAttribute('data-symbole');
-
-                        if (targetSymbole !== sourceSymbole) {
-                            let favoris = GM_getValue('powerbi_favoris', []);
-
-                            if (draggedIndex >= 0 && draggedIndex < favoris.length) {
-                                favoris[draggedIndex].symbole = targetSymbole;
-                                GM_setValue('powerbi_favoris', favoris);
-
-                                console.log(`✓ Favori déplacé vers ${targetSymbole}`);
-                                updateFavorisList();
-                                setTimeout(() => {
-                                    displayComponents(targetSymbole);
-                                }, 100);
-                            }
-                        }
-                    }
-                });
-            });
-        }
-
-        // Compter le total de composants réels
-        const totalRealComponents = favoris.filter(fav => !fav.isEmpty).length;
-
-        // Ajouter le dossier "Tous les composants" en premier
-        let foldersHtml = `
-            <div class="folder-item" data-symbole="__ALL__" style="
-                padding: 12px 15px;
-                margin-bottom: 10px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border: 2px solid #667eea;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: all 0.2s;
-                user-select: none;
-                color: white;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: bold; font-size: 14px; color: white;">
-                            📋 Tous les composants
-                        </div>
-                        <div style="font-size: 12px; margin-top: 2px; color: rgba(255,255,255,0.9);">
-                            ${totalRealComponents} composant${totalRealComponents > 1 ? 's' : ''} au total
-                        </div>
-                    </div>
-                    <div style="font-size: 20px; color: white;">›</div>
-                </div>
-            </div>
-        `;
-
-        Object.keys(groupedBySymbole).sort().forEach(symbole => {
-            const items = groupedBySymbole[symbole];
-            const realItemsCount = items.filter(item => !item.isEmpty).length;
-
-            foldersHtml += `
-                <div class="folder-item" data-symbole="${symbole}" style="
-                    padding: 12px 15px;
-                    margin-bottom: 5px;
-                    background: white;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    user-select: none;
-                    position: relative;
+        
+        const folderKeys = Object.keys(folders).sort();
+        
+        if (folderKeys.length === 0) {
+            container.innerHTML = `
+                <div style="
+                    text-align: center;
+                    padding: 20px;
+                    color: rgba(255,255,255,0.4);
+                    font-size: 12px;
                 ">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="flex: 1; min-width: 0;" class="folder-main-content">
-                            <div style="font-weight: bold; color: #333; font-size: 14px;">
-                                📁 ${symbole}
-                            </div>
-                            <div style="font-size: 12px; color: #666; margin-top: 2px;">
-                                ${realItemsCount} composant${realItemsCount > 1 ? 's' : ''}
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <button class="rename-folder-icon" data-symbole="${symbole}" style="
-                                background: #ffc107;
-                                color: #000;
-                                border: none;
-                                width: 28px;
-                                height: 28px;
-                                border-radius: 5px;
-                                cursor: pointer;
-                                font-size: 14px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                transition: all 0.2s;
-                                padding: 0;
-                            " title="Renommer le dossier">✏️</button>
-                            <button class="delete-folder-icon" data-symbole="${symbole}" style="
-                                background: #dc3545;
-                                color: white;
-                                border: none;
-                                width: 28px;
-                                height: 28px;
-                                border-radius: 5px;
-                                cursor: pointer;
-                                font-size: 14px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                transition: all 0.2s;
-                                padding: 0;
-                            " title="Supprimer le dossier">🗑️</button>
-                            <div style="font-size: 20px; color: #2771c2; margin-left: 5px;">›</div>
-                        </div>
-                    </div>
+                    Aucun dossier existant<br>
+                    Créez-en un ci-dessus
                 </div>
             `;
-        });
-
-        foldersListDiv.innerHTML = foldersHtml;
-
-        function displayComponents(symbole) {
-            selectedFolder = symbole;
-
-            // Si c'est le dossier "Tous les composants"
-            if (symbole === '__ALL__') {
-                document.getElementById('current-folder-name').textContent = ` - Tous les composants`;
-
-                // Mettre à jour les styles des dossiers
-                document.querySelectorAll('.folder-item').forEach(folder => {
-                    if (folder.getAttribute('data-symbole') === '__ALL__') {
-                        folder.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                        folder.style.borderColor = '#667eea';
-                        folder.style.color = 'white';
-                        folder.querySelectorAll('div').forEach(div => div.style.color = 'white');
+        } else {
+            container.innerHTML = folderKeys.map(key => `
+                <div class="folder-checkbox-item" data-folder="${key}">
+                    <input type="checkbox" id="folder-${key}" value="${key}">
+                    <label for="folder-${key}">${key}</label>
+                </div>
+            `).join('');
+            
+            // Ajouter les event listeners pour le toggle de classe
+            container.querySelectorAll('.folder-checkbox-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const label = item.querySelector('label');
+                
+                const toggleChecked = () => {
+                    if (checkbox.checked) {
+                        item.classList.add('checked');
                     } else {
-                        folder.style.background = 'white';
-                        folder.style.borderColor = '#e0e0e0';
-                        folder.style.color = '#333';
-                        folder.querySelectorAll('div')[0].style.color = '#333';
-                        folder.querySelectorAll('div')[1].style.color = '#666';
-                        folder.querySelectorAll('div')[2].style.color = '#2771c2';
+                        item.classList.remove('checked');
                     }
+                };
+                
+                checkbox.addEventListener('change', toggleChecked);
+                label.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
                 });
-
-                // Récupérer tous les composants réels (non vides)
-                const allRealItems = favoris.filter(fav => !fav.isEmpty).map((fav, index) => ({
-                    ...fav,
-                    originalIndex: favoris.indexOf(fav)
-                }));
-
-                if (allRealItems.length === 0) {
-                    componentsListDiv.innerHTML = '<p style="color: #999; font-style: italic; text-align: center; padding: 50px 20px;">Aucun composant pour le moment. Ajoutez-en en cliquant sur l\'étoile ⭐</p>';
-                    return;
-                }
-
-                // Afficher tous les composants groupés par symbole
-                let componentsHtml = '';
-                const symbolesOrdered = Object.keys(groupedBySymbole).sort();
-
-                symbolesOrdered.forEach(sym => {
-                    const items = groupedBySymbole[sym].filter(item => !item.isEmpty);
-                    if (items.length === 0) return;
-
-                    componentsHtml += `<div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-                        <h4 style="margin: 0 0 10px 0; color: #2771c2; font-size: 14px; font-weight: bold;">📁 ${sym}</h4>`;
-
-                    items.forEach(item => {
-                        componentsHtml += `
-                            <div class="component-item"
-                                 data-index="${item.originalIndex}"
-                                 data-text="${item.text.replace(/"/g, '&quot;')}"
-                                 data-repere="${item.repere || ''}"
-                                 data-symbole="${item.symbole}"
-                                 style="
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 10px;
-                                    margin-bottom: 15px;
-                                    position: relative;
-                                    background: white;
-                                    transition: all 0.2s;
-                                    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-                                    overflow: hidden;
-                                ">
-                                <div class="drag-handle" style="
-                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                    padding: 8px 15px;
-                                    cursor: move;
-                                    color: white;
-                                    font-size: 12px;
-                                    font-weight: bold;
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                ">
-                                    <span style="font-size: 16px;">⋮⋮</span>
-                                    <span>Glisser pour déplacer</span>
-                                </div>
-                                <div class="component-content" style="padding: 15px; cursor: pointer; position: relative;">
-                                    <button class="remove-fav" data-index="${item.originalIndex}" style="
-                                        position: absolute;
-                                        top: 15px;
-                                        right: 12px;
-                                        background: #dc3545;
-                                        color: white;
-                                        border: none;
-                                        border-radius: 50%;
-                                        width: 28px;
-                                        height: 28px;
-                                        cursor: pointer;
-                                        font-size: 16px;
-                                        z-index: 10;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        transition: background 0.2s;
-                                        font-weight: bold;
-                                    ">×</button>
-                                    <div style="font-weight: bold; color: #333; padding-right: 45px; font-size: 15px; margin-bottom: 8px;">
-                                        ${item.text}
-                                    </div>
-                                    ${item.designation ? `<div style="font-size: 13px; color: #666; margin-bottom: 6px; padding-left: 20px; border-left: 3px solid #2771c2;">📝 ${item.designation}</div>` : ''}
-                                    ${item.repere ? `
-                                        <div style="
-                                            position: absolute;
-                                            bottom: 10px;
-                                            right: 10px;
-                                            display: flex;
-                                            flex-wrap: wrap;
-                                            gap: 5px;
-                                            justify-content: flex-end;
-                                            max-width: 60%;
-                                        ">
-                                            ${item.repere.split(',').map(r => `
-                                                <span style="
-                                                    background: linear-gradient(135deg, #2771c2 0%, #1a5a9a 100%);
-                                                    color: white;
-                                                    padding: 4px 10px;
-                                                    border-radius: 12px;
-                                                    font-size: 12px;
-                                                    font-weight: 600;
-                                                    white-space: nowrap;
-                                                    box-shadow: 0 2px 4px rgba(39, 113, 194, 0.3);
-                                                ">📍 ${r.trim()}</span>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    componentsHtml += '</div>';
-                });
-
-                componentsListDiv.innerHTML = componentsHtml;
-                setupComponentEvents();
-                return;
-            }
-
-            // Sinon, afficher un dossier spécifique
-            const items = groupedBySymbole[symbole];
-            document.getElementById('current-folder-name').textContent = ` - ${symbole}`;
-
-            document.querySelectorAll('.folder-item').forEach(folder => {
-                if (folder.getAttribute('data-symbole') === symbole) {
-                    folder.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    folder.style.borderColor = '#667eea';
-                    folder.style.color = 'white';
-                    folder.querySelectorAll('div').forEach(div => div.style.color = 'white');
-                } else if (folder.getAttribute('data-symbole') === '__ALL__') {
-                    folder.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    folder.style.borderColor = '#667eea';
-                    folder.style.color = 'white';
-                } else {
-                    folder.style.background = 'white';
-                    folder.style.borderColor = '#e0e0e0';
-                    folder.style.color = '#333';
-                    folder.querySelectorAll('div')[0].style.color = '#333';
-                    folder.querySelectorAll('div')[1].style.color = '#666';
-                    folder.querySelectorAll('div')[2].style.color = '#2771c2';
-                }
             });
+        }
+    }
 
-            const realItems = items.filter(item => !item.isEmpty);
-
-            if (realItems.length === 0) {
-                componentsListDiv.innerHTML = '<p style="color: #999; font-style: italic; text-align: center; padding: 50px 20px;">Ce dossier est vide. Ajoutez des composants en cliquant sur l\'étoile ⭐</p>';
-                return;
-            }
-
-            let componentsHtml = '';
-            realItems.forEach(item => {
-                componentsHtml += `
-                    <div class="component-item"
-                         data-index="${item.originalIndex}"
-                         data-text="${item.text.replace(/"/g, '&quot;')}"
-                         data-repere="${item.repere || ''}"
-                         data-symbole="${item.symbole}"
-                         style="
-                            border: 2px solid #e0e0e0;
-                            border-radius: 10px;
-                            margin-bottom: 15px;
-                            position: relative;
-                            background: white;
-                            transition: all 0.2s;
-                            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-                            overflow: hidden;
-                        ">
-                        <div class="drag-handle" style="
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            padding: 8px 15px;
-                            cursor: move;
-                            color: white;
-                            font-size: 12px;
-                            font-weight: bold;
+    // ===== FENÊTRE PRINCIPALE DES FAVORIS =====
+    function createMainWindow() {
+        const win = document.createElement('div');
+        win.id = 'favoris-window';
+        win.innerHTML = `
+            <div class="window-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                backdrop-filter: blur(12px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 99998;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            ">
+                <div class="window-content fade-in" style="
+                    background: linear-gradient(145deg, #252525 0%, #1a1a1a 100%);
+                    border-radius: 24px;
+                    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+                    width: 95%;
+                    max-width: 1400px;
+                    height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    overflow: hidden;
+                ">
+                    <!-- Header -->
+                    <div style="
+                        background: linear-gradient(135deg, #3d3d3d 0%, #2d2d2d 100%);
+                        padding: 24px 32px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        <div>
+                            <h1 style="
+                                margin: 0;
+                                font-size: 32px;
+                                font-weight: 800;
+                                color: #ffffff;
+                                letter-spacing: -1px;
+                            ">⭐ Mes Favoris</h1>
+                            <p style="
+                                margin: 4px 0 0 0;
+                                font-size: 14px;
+                                color: rgba(255,255,255,0.5);
+                            ">Gérez vos composants favoris</p>
+                        </div>
+                        <button class="close-window" style="
+                            background: rgba(255,255,255,0.1);
+                            border: none;
+                            width: 44px;
+                            height: 44px;
+                            border-radius: 12px;
+                            color: rgba(255,255,255,0.7);
+                            font-size: 28px;
+                            cursor: pointer;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            justify-content: center;
+                            transition: all 0.2s;
+                        ">×</button>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="
+                        flex: 1;
+                        display: flex;
+                        overflow: hidden;
+                    ">
+                        <!-- Sidebar -->
+                        <div style="
+                            width: 33%;
+                            min-width: 350px;
+                            background: rgba(0,0,0,0.3);
+                            border-right: 1px solid rgba(255,255,255,0.08);
+                            display: flex;
+                            flex-direction: column;
                         ">
-                            <span style="font-size: 16px;">⋮⋮</span>
-                            <span>Glisser pour déplacer</span>
-                        </div>
-                        <div class="component-content" style="padding: 15px; ${item.repere ? 'padding-bottom: 45px;' : ''} cursor: pointer; position: relative;">
-                            <button class="remove-fav" data-index="${item.originalIndex}" style="
-                                position: absolute;
-                                top: 15px;
-                                right: 12px;
-                                background: #dc3545;
-                                color: white;
-                                border: none;
-                                border-radius: 50%;
-                                width: 28px;
-                                height: 28px;
-                                cursor: pointer;
-                                font-size: 16px;
-                                z-index: 10;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                transition: background 0.2s;
-                                font-weight: bold;
-                            ">×</button>
-                            <div style="font-weight: bold; color: #333; padding-right: 45px; font-size: 15px; margin-bottom: 8px;">
-                                ${item.text}
-                            </div>
-                            ${item.designation ? `<div style="font-size: 13px; color: #666; margin-bottom: 6px; padding-left: 20px; border-left: 3px solid #2771c2;">📝 ${item.designation}</div>` : ''}
-                            ${item.repere ? `
-                                <div style="
-                                    position: absolute;
-                                    bottom: 10px;
-                                    right: 10px;
+                            <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                <h3 style="
+                                    margin: 0 0 16px 0;
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.9);
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                ">📁 Dossiers</h3>
+                                <button id="btn-all-folders" class="folder-btn active" data-folder="__ALL__" style="
+                                    width: 100%;
+                                    padding: 14px 16px;
+                                    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+                                    border: none;
+                                    border-radius: 10px;
+                                    color: #ffffff;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                    text-align: left;
                                     display: flex;
-                                    flex-wrap: wrap;
-                                    gap: 5px;
-                                    justify-content: flex-end;
-                                    max-width: 60%;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    box-shadow: 0 4px 12px rgba(74,144,226,0.3);
                                 ">
+                                    <span>Tous les composants</span>
+                                    <span class="count-badge" style="
+                                        background: rgba(255,255,255,0.2);
+                                        padding: 4px 10px;
+                                        border-radius: 20px;
+                                        font-size: 12px;
+                                        font-weight: 700;
+                                    ">0</span>
+                                </button>
+                                <button id="btn-sans-prm" class="folder-btn" data-folder="Sans PRM associé" style="
+                                    width: 100%;
+                                    padding: 14px 16px;
+                                    background: rgba(244,67,54,0.2);
+                                    border: 1px solid rgba(244,67,54,0.4);
+                                    border-radius: 10px;
+                                    color: #f44336;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                    text-align: left;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    margin-top: 8px;
+                                ">
+                                    <span>Sans PRM associé</span>
+                                    <span class="count-badge" style="
+                                        background: rgba(255,255,255,0.15);
+                                        padding: 4px 10px;
+                                        border-radius: 20px;
+                                        font-size: 12px;
+                                        font-weight: 700;
+                                    ">0</span>
+                                </button>
+                            </div>
+                            <div id="folders-list" style="
+                                flex: 1;
+                                overflow-y: auto;
+                                padding: 12px;
+                            " class="modern-scrollbar"></div>
+                        </div>
+                        
+                        <!-- Main Content -->
+                        <div style="
+                            flex: 1;
+                            display: flex;
+                            flex-direction: column;
+                            background: rgba(0,0,0,0.2);
+                        ">
+                            <div style="
+                                padding: 20px 32px;
+                                border-bottom: 1px solid rgba(255,255,255,0.08);
+                            ">
+                                <input type="text" id="search-input" placeholder="🔍 Rechercher un composant..." class="modern-input" style="
+                                    width: 100%;
+                                " />
+                            </div>
+                            <div id="components-list" style="
+                                flex: 1;
+                                overflow-y: auto;
+                                padding: 24px 32px;
+                            " class="modern-scrollbar">
+                                <div style="
+                                    text-align: center;
+                                    padding: 60px 20px;
+                                    color: rgba(255,255,255,0.4);
+                                ">
+                                    <div style="font-size: 48px; margin-bottom: 16px;">📂</div>
+                                    <p style="font-size: 16px; margin: 0;">Aucun favori pour le moment</p>
+                                    <p style="font-size: 14px; margin: 8px 0 0 0;">Cliquez sur "+ Ajouter" pour commencer</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Styles supplémentaires
+        const styles = document.createElement('style');
+        styles.textContent = `
+            .close-window:hover {
+                background: rgba(255,90,90,0.2) !important;
+                color: #ff5a5a !important;
+            }
+            
+            .folder-btn {
+                width: 100%;
+                padding: 14px 16px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 10px;
+                color: rgba(255,255,255,0.7);
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                text-align: left;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+            
+            .folder-btn:hover {
+                background: rgba(255,255,255,0.08);
+                border-color: rgba(255,255,255,0.2);
+                color: #ffffff;
+                transform: translateX(4px);
+            }
+            
+            .folder-btn.active {
+                background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+                border-color: transparent;
+                color: #ffffff;
+                box-shadow: 0 4px 12px rgba(74,144,226,0.3);
+            }
+            
+            .component-card {
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 16px;
+                transition: all 0.2s;
+                position: relative;
+            }
+            
+            .component-card:hover {
+                background: rgba(255,255,255,0.08);
+                border-color: rgba(255,255,255,0.2);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            }
+        `;
+        document.head.appendChild(styles);
+        
+        return win;
+    }
+
+    // ===== BOUTONS D'ACTION =====
+    function createActionButtons() {
+        const addBtn = document.createElement('button');
+        addBtn.id = 'btn-add-favori';
+        addBtn.innerHTML = '⭐ Ajouter';
+        addBtn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+            transition: all 0.2s;
+            z-index: 99997;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        const listBtn = document.createElement('button');
+        listBtn.id = 'btn-show-list';
+        listBtn.innerHTML = '📋 Mes Favoris';
+        listBtn.style.cssText = `
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(74,144,226,0.4);
+            transition: all 0.2s;
+            z-index: 99997;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        const hoverStyle = document.createElement('style');
+        hoverStyle.textContent = `
+            #btn-add-favori:hover {
+                background: linear-gradient(135deg, #5cbd5f 0%, #4db84d 100%) !important;
+                box-shadow: 0 8px 25px rgba(76,175,80,0.5) !important;
+                transform: translateY(-2px);
+            }
+            #btn-show-list:hover {
+                background: linear-gradient(135deg, #5a9ef2 0%, #4580cd 100%) !important;
+                box-shadow: 0 8px 25px rgba(74,144,226,0.5) !important;
+                transform: translateY(-2px);
+            }
+            #btn-add-favori:active, #btn-show-list:active {
+                transform: translateY(0);
+            }
+        `;
+        document.head.appendChild(hoverStyle);
+        
+        return { addBtn, listBtn };
+    }
+
+    // ===== VARIABLES GLOBALES POUR DRAG AND DROP =====
+    let draggedCard = null;  // Carte en cours de déplacement
+    let ghostElement = null; // Élément fantôme pour le drag
+
+    // ===== FONCTIONS DE GESTION DES DONNÉES =====
+    function loadFavoris() {
+        return GM_getValue('powerbi_favoris', []);
+    }
+
+    function saveFavoris(favoris) {
+        GM_setValue('powerbi_favoris', favoris);
+    }
+    
+    function loadFoldersOrder() {
+        return GM_getValue('powerbi_folders_order', []);
+    }
+    
+    function saveFoldersOrder(order) {
+        GM_setValue('powerbi_folders_order', order);
+    }
+
+    function addFavori(data) {
+        const favoris = loadFavoris();
+        favoris.push({
+            ...data,
+            timestamp: Date.now()
+        });
+        saveFavoris(favoris);
+        return favoris;
+    }
+
+    function deleteFavori(index) {
+        const favoris = loadFavoris();
+        favoris.splice(index, 1);
+        saveFavoris(favoris);
+        return favoris;
+    }
+
+    function deleteFolder(folderKey) {
+        // Supprimer tous les composants du dossier
+        const favoris = loadFavoris();
+        const filtered = favoris.filter(item => {
+            // Déterminer la clé du dossier pour ce favori
+            let itemKey;
+            if (!item.symbole && !item.designation) {
+                itemKey = 'Sans PRM associé';
+            } else {
+                itemKey = [item.symbole, item.designation].filter(Boolean).join(' - ');
+            }
+            return itemKey !== folderKey;
+        });
+        saveFavoris(filtered);
+        
+        // Supprimer le dossier de la liste des dossiers
+        const existingFolders = GM_getValue('powerbi_folders', []);
+        const updatedFolders = existingFolders.filter(f => f !== folderKey);
+        GM_setValue('powerbi_folders', updatedFolders);
+        
+        updateFoldersList();
+        displayComponents('__ALL__');
+        document.getElementById('btn-all-folders').classList.add('active');
+        document.querySelectorAll('.folder-btn[data-folder]').forEach(b => b.classList.remove('active'));
+    }
+
+    function renameFolder(oldKey, newKey) {
+        const favoris = loadFavoris();
+        const [oldSymbole, oldDesignation] = oldKey.includes(' - ') ? oldKey.split(' - ') : [oldKey, ''];
+        const [newSymbole, newDesignation] = newKey.includes(' - ') ? newKey.split(' - ') : [newKey, ''];
+        
+        favoris.forEach(item => {
+            // Déterminer la clé du dossier pour ce favori
+            let itemKey;
+            if (!item.symbole && !item.designation) {
+                itemKey = 'Sans PRM associé';
+            } else {
+                itemKey = [item.symbole, item.designation].filter(Boolean).join(' - ');
+            }
+            
+            if (itemKey === oldKey) {
+                // Mettre à jour uniquement le symbole et la désignation du dossier
+                item.symbole = newSymbole || '';
+                item.designation = newDesignation || '';
+                // NE PAS modifier item.text car c'est le nom du composant Power BI
+            }
+        });
+        
+        saveFavoris(favoris);
+        
+        // Mettre à jour la liste des dossiers
+        const existingFolders = GM_getValue('powerbi_folders', []);
+        const folderIndex = existingFolders.indexOf(oldKey);
+        if (folderIndex !== -1) {
+            existingFolders[folderIndex] = newKey;
+            GM_setValue('powerbi_folders', existingFolders);
+        }
+        
+        updateFoldersList();
+        displayComponents(newKey);
+        
+        // Sélectionner le dossier renommé
+        setTimeout(() => {
+            const renamedBtn = document.querySelector(`.folder-btn[data-folder="${newKey}"]`);
+            if (renamedBtn) {
+                document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+                renamedBtn.classList.add('active');
+            }
+        }, 100);
+    }
+
+    // ===== RÉCUPÉRATION SÉLECTION POWER BI =====
+    function getSelectedItem() {
+        try {
+            // Essayer d'abord avec aria-selected="true" (slicer moderne)
+            let slicerItem = document.querySelector('.slicerItemContainer[aria-selected="true"]');
+            
+            // Si pas trouvé, essayer avec aria-checked="true" (ancien format)
+            if (!slicerItem) {
+                slicerItem = document.querySelector('.slicerItemContainer[aria-checked="true"]');
+            }
+            
+            console.log('🔍 Recherche élément sélectionné dans Power BI...');
+            console.log('   Élément trouvé:', slicerItem);
+            
+            if (!slicerItem) {
+                console.log('   ❌ Aucun élément .slicerItemContainer avec aria-selected ou aria-checked trouvé');
+                return null;
+            }
+
+            // Récupérer le texte depuis le span.slicerText
+            const textSpan = slicerItem.querySelector('.slicerText');
+            const text = textSpan ? textSpan.textContent.trim() : slicerItem.textContent.trim();
+            const title = slicerItem.getAttribute('title') || text;
+            
+            console.log('   ✅ Texte extrait:', text);
+            console.log('   ✅ Title extrait:', title);
+
+            return { title: title, text: text };
+        } catch (error) {
+            console.error('❌ Erreur lors de la récupération de l\'élément sélectionné:', error);
+            return null;
+        }
+    }
+
+    // ===== AFFICHAGE DES COMPOSANTS =====
+    function displayComponents(folder = '__ALL__', openModalFn = null) {
+        const favoris = loadFavoris();
+        const container = document.getElementById('components-list');
+        
+        if (favoris.length === 0) {
+            container.innerHTML = `
+                <div style="
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: rgba(255,255,255,0.4);
+                ">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📂</div>
+                    <p style="font-size: 16px; margin: 0;">Aucun favori pour le moment</p>
+                    <p style="font-size: 14px; margin: 8px 0 0 0;">Cliquez sur "+ Ajouter" pour commencer</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const filtered = folder === '__ALL__' ? favoris : favoris.filter(f => {
+            // Déterminer la clé du dossier pour ce favori
+            let folderKey;
+            if (!f.symbole && !f.designation) {
+                folderKey = 'Sans PRM associé';
+            } else {
+                folderKey = [f.symbole, f.designation].filter(Boolean).join(' - ');
+            }
+            return folderKey === folder;
+        });
+        
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div style="
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: rgba(255,255,255,0.4);
+                ">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                    <p style="font-size: 16px; margin: 0;">Aucun composant dans ce dossier</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = filtered.map((item, index) => `
+            <div class="component-card" draggable="false" data-index="${favoris.indexOf(item)}" data-folder="${folder}" style="position: relative; padding-right: 100px; word-wrap: break-word; overflow-wrap: break-word;">
+                <!-- Poignée de drag à gauche -->
+                <div class="drag-handle" draggable="true" style="
+                    position: absolute;
+                    top: 20px;
+                    left: 20px;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 6px;
+                    color: rgba(255,255,255,0.4);
+                    font-size: 18px;
+                    cursor: grab;
+                    transition: all 0.2s;
+                    z-index: 10;
+                " title="Glisser pour réorganiser">⋮⋮</div>
+                
+                <!-- Boutons en position absolue à droite -->
+                <div style="
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    display: flex;
+                    gap: 8px;
+                    z-index: 10;
+                ">
+                    <button class="btn-edit" data-index="${favoris.indexOf(item)}" style="
+                        background: rgba(255,193,7,0.2);
+                        border: 1px solid rgba(255,193,7,0.4);
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        color: #ffc107;
+                        font-size: 16px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    ">✏️</button>
+                    <button class="btn-delete" data-index="${favoris.indexOf(item)}" style="
+                        background: rgba(244,67,54,0.2);
+                        border: 1px solid rgba(244,67,54,0.4);
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        color: #f44336;
+                        font-size: 18px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    ">×</button>
+                </div>
+                
+                <!-- Contenu de la carte -->
+                <div style="margin-bottom: 12px; margin-left: 44px; max-width: calc(100% - 144px);">
+                    <h4 style="
+                        margin: 0 0 8px 0;
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #ffffff;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        white-space: normal;
+                        line-height: 1.4;
+                    ">${item.text}</h4>
+                    
+                    <!-- Ligne combinée Dossier et Repère -->
+                    ${(item.symbole || item.designation || item.repere) ? `
+                    <div style="margin-bottom: 12px;">
+                        <!-- Ligne des libellés -->
+                        <div style="display: flex; gap: 24px; margin-bottom: 6px;">
+                            ${item.symbole || item.designation ? `
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="
+                                    font-size: 11px;
+                                    color: rgba(255,255,255,0.5);
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                    font-weight: 600;
+                                ">📁 Dossier</div>
+                            </div>
+                            ` : ''}
+                            ${item.repere ? `
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="
+                                    font-size: 11px;
+                                    color: rgba(255,255,255,0.5);
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                    font-weight: 600;
+                                ">📍 Repère</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Ligne des badges -->
+                        <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+                            ${item.symbole || item.designation ? `
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${item.symbole ? `<div style="
+                                        display: inline-block;
+                                        padding: 4px 10px;
+                                        background: rgba(74,144,226,0.2);
+                                        border: 1px solid rgba(74,144,226,0.4);
+                                        border-radius: 6px;
+                                        color: #4a90e2;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        word-wrap: break-word;
+                                        overflow-wrap: break-word;
+                                    ">${item.symbole}</div>` : ''}
+                                    ${item.designation ? `<div style="
+                                        display: inline-block;
+                                        padding: 4px 10px;
+                                        background: rgba(156,39,176,0.2);
+                                        border: 1px solid rgba(156,39,176,0.4);
+                                        border-radius: 6px;
+                                        color: #9c27b0;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        word-wrap: break-word;
+                                        overflow-wrap: break-word;
+                                    ">${item.designation}</div>` : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+                            ${item.repere ? `
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                                     ${item.repere.split(',').map(r => `
                                         <span style="
-                                            background: linear-gradient(135deg, #2771c2 0%, #1a5a9a 100%);
-                                            color: white;
-                                            padding: 4px 10px;
-                                            border-radius: 12px;
+                                            padding: 6px 12px;
+                                            background: rgba(255,193,7,0.2);
+                                            border: 1px solid rgba(255,193,7,0.4);
+                                            border-radius: 20px;
+                                            color: #ffc107;
                                             font-size: 12px;
                                             font-weight: 600;
-                                            white-space: nowrap;
-                                            box-shadow: 0 2px 4px rgba(39, 113, 194, 0.3);
-                                        ">📍 ${r.trim()}</span>
+                                        ">${r.trim()}</span>
                                     `).join('')}
                                 </div>
+                            </div>
                             ` : ''}
                         </div>
                     </div>
-                `;
+                    ` : ''}
+                </div>
+                ${item.designationComposant ? `
+                    <div style="
+                        padding: 12px;
+                        background: rgba(255,255,255,0.03);
+                        border-left: 3px solid #4a90e2;
+                        border-radius: 6px;
+                        margin-bottom: 12px;
+                        margin-left: 44px;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                    ">
+                        <div style="
+                            font-size: 12px;
+                            color: rgba(255,255,255,0.5);
+                            margin-bottom: 4px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        ">💬 Commentaire</div>
+                        <div style="
+                            color: rgba(255,255,255,0.8); 
+                            font-size: 14px;
+                            word-wrap: break-word;
+                            overflow-wrap: break-word;
+                            white-space: pre-wrap;
+                        ">${item.designationComposant}</div>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+        
+        // Event listeners pour suppression
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                if (confirm('Supprimer ce favori ?')) {
+                    deleteFavori(index);
+                    displayComponents(folder, openModalFn);
+                    updateFoldersList();
+                }
             });
+            
+            btn.addEventListener('mouseenter', () => {
+                btn.style.background = 'rgba(244,67,54,0.3)';
+                btn.style.borderColor = 'rgba(244,67,54,0.6)';
+            });
+            
+            btn.addEventListener('mouseleave', () => {
+                btn.style.background = 'rgba(244,67,54,0.2)';
+                btn.style.borderColor = 'rgba(244,67,54,0.4)';
+            });
+        });
+        
+        // Event listeners pour éditer les composants
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.index);
+                const favoris = loadFavoris();
+                const item = favoris[index];
+                
+                console.log('✏️ Bouton Éditer cliqué');
+                console.log('   Index:', index);
+                console.log('   Item:', item);
+                console.log('   openModalFn disponible:', !!openModalFn);
+                
+                if (item && openModalFn) {
+                    console.log('✅ Ouverture de la modal pour édition');
+                    openModalFn({
+                        symbole: item.symbole,
+                        designation: item.designation,
+                        designationComposant: item.designationComposant,
+                        repere: item.repere,
+                        title: item.title
+                    }, index);
+                } else {
+                    console.error('❌ Impossible d\'ouvrir la modal - item:', !!item, 'openModalFn:', !!openModalFn);
+                }
+            });
+            
+            btn.addEventListener('mouseenter', () => {
+                btn.style.background = 'rgba(255,193,7,0.3)';
+                btn.style.borderColor = 'rgba(255,193,7,0.6)';
+            });
+            
+            btn.addEventListener('mouseleave', () => {
+                btn.style.background = 'rgba(255,193,7,0.2)';
+                btn.style.borderColor = 'rgba(255,193,7,0.4)';
+            });
+        });
+        
+        // Event listener pour clic sur carte
+        document.querySelectorAll('.component-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const index = parseInt(card.dataset.index);
+                const item = favoris[index];
+                
+                // Construire le texte de recherche
+                const searchText = item.text || [item.symbole, item.designation].filter(Boolean).join(' ');
+                
+                console.log('Clic sur composant:', searchText);
+                searchInIframe(searchText);
+                
+                // Fermer la fenêtre principale
+                const windowOverlay = document.querySelector('.window-overlay');
+                if (windowOverlay) {
+                    windowOverlay.style.display = 'none';
+                }
+            });
+        });
+        
+        // ===== DRAG AND DROP pour les composants =====
+        const componentCards = document.querySelectorAll('.component-card');
+        
+        componentCards.forEach(card => {
+            const dragHandle = card.querySelector('.drag-handle');
+            
+            // Effet hover sur la poignée
+            dragHandle.addEventListener('mouseenter', () => {
+                dragHandle.style.background = 'rgba(255,255,255,0.1)';
+                dragHandle.style.borderColor = 'rgba(255,255,255,0.2)';
+                dragHandle.style.color = 'rgba(255,255,255,0.7)';
+            });
+            
+            dragHandle.addEventListener('mouseleave', () => {
+                dragHandle.style.background = 'rgba(255,255,255,0.05)';
+                dragHandle.style.borderColor = 'rgba(255,255,255,0.1)';
+                dragHandle.style.color = 'rgba(255,255,255,0.4)';
+            });
+            
+            // Le drag commence depuis la poignée
+            dragHandle.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                draggedCard = card;
+                card.classList.add('dragging');
+                dragHandle.style.cursor = 'grabbing';
+                
+                // Créer un élément fantôme
+                ghostElement = card.cloneNode(true);
+                ghostElement.classList.add('drag-ghost');
+                ghostElement.style.position = 'fixed';
+                ghostElement.style.width = card.offsetWidth + 'px';
+                ghostElement.style.left = '-9999px';
+                document.body.appendChild(ghostElement);
+                
+                // Utiliser le clone comme image de drag
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setDragImage(ghostElement, e.offsetX, e.offsetY);
+            });
+            
+            dragHandle.addEventListener('dragend', (e) => {
+                e.stopPropagation();
+                card.classList.remove('dragging');
+                document.querySelectorAll('.component-card').forEach(c => {
+                    c.classList.remove('drag-over');
+                });
+                dragHandle.style.cursor = 'grab';
+                
+                // Supprimer l'élément fantôme
+                if (ghostElement && ghostElement.parentNode) {
+                    ghostElement.parentNode.removeChild(ghostElement);
+                }
+                ghostElement = null;
+                draggedCard = null;
+            });
+            
+            // Les événements de drop sur la carte entière
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                if (draggedCard && draggedCard !== card && 
+                    draggedCard.dataset.folder === card.dataset.folder) {
+                    card.classList.add('drag-over');
+                }
+            });
+            
+            card.addEventListener('dragleave', () => {
+                card.classList.remove('drag-over');
+            });
+            
+            card.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                card.classList.remove('drag-over');
+                
+                if (draggedCard && draggedCard !== card && 
+                    draggedCard.dataset.folder === card.dataset.folder) {
+                    
+                    const draggedIndex = parseInt(draggedCard.dataset.index);
+                    const targetIndex = parseInt(card.dataset.index);
+                    
+                    // Réorganiser dans le tableau favoris
+                    const favoris = loadFavoris();
+                    const [movedItem] = favoris.splice(draggedIndex, 1);
+                    
+                    // Recalculer l'index cible après la suppression
+                    let newTargetIndex = targetIndex;
+                    if (draggedIndex < targetIndex) {
+                        newTargetIndex--;
+                    }
+                    
+                    favoris.splice(newTargetIndex + 1, 0, movedItem);
+                    saveFavoris(favoris);
+                    
+                    // Rafraîchir l'affichage
+                    displayComponents(folder, openModalFn);
+                }
+            });
+        });
+    }
 
-            componentsListDiv.innerHTML = componentsHtml;
-            setupComponentEvents();
+    // ===== MISE À JOUR DE LA LISTE DES DOSSIERS =====
+    function updateFoldersList() {
+        const favoris = loadFavoris();
+        const foldersList = document.getElementById('folders-list');
+        
+        // Récupérer les dossiers existants (y compris les vides)
+        const existingFolders = GM_getValue('powerbi_folders', []);
+        
+        // Grouper par dossier
+        const folders = {};
+        
+        // D'abord, initialiser tous les dossiers existants avec des tableaux vides
+        existingFolders.forEach(folderKey => {
+            folders[folderKey] = [];
+        });
+        
+        // Ensuite, ajouter les composants dans leurs dossiers respectifs
+        favoris.forEach(item => {
+            // Si symbole et désignation sont vides, c'est "Sans PRM associé"
+            let key;
+            if (!item.symbole && !item.designation) {
+                key = 'Sans PRM associé';
+            } else {
+                key = [item.symbole, item.designation].filter(Boolean).join(' - ');
+            }
+            
+            if (!folders[key]) {
+                folders[key] = [];
+                // Ajouter ce nouveau dossier à la liste des dossiers existants
+                if (!existingFolders.includes(key)) {
+                    existingFolders.push(key);
+                }
+            }
+            folders[key].push(item);
+        });
+        
+        // Sauvegarder la liste des dossiers
+        GM_setValue('powerbi_folders', existingFolders);
+        
+        // Mettre à jour le compteur "Tous"
+        const allCount = document.querySelector('#btn-all-folders .count-badge');
+        if (allCount) {
+            allCount.textContent = favoris.length;
         }
-
-        document.querySelectorAll('.folder-item').forEach(folder => {
-            folder.addEventListener('mouseenter', function() {
-                if (this.getAttribute('data-symbole') !== selectedFolder && this.getAttribute('data-symbole') !== '__ALL__') {
-                    this.style.background = '#e3f2fd';
-                    this.style.borderColor = '#2771c2';
-                    this.style.transform = 'translateX(5px)';
-                }
+        
+        // Mettre à jour le compteur "Sans PRM associé"
+        const sansPRMCount = document.querySelector('#btn-sans-prm .count-badge');
+        if (sansPRMCount && folders['Sans PRM associé']) {
+            sansPRMCount.textContent = folders['Sans PRM associé'].length;
+        } else if (sansPRMCount) {
+            sansPRMCount.textContent = '0';
+        }
+        
+        // Afficher les dossiers
+        if (Object.keys(folders).length === 0) {
+            foldersList.innerHTML = `
+                <div style="
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: rgba(255,255,255,0.3);
+                ">
+                    <p style="font-size: 14px; margin: 0;">Aucun dossier</p>
+                </div>
+            `;
+        } else {
+            // Ne pas afficher "Sans PRM associé" dans la liste dynamique (il est maintenant fixe en haut)
+            const otherFolders = Object.entries(folders).filter(([key]) => key !== 'Sans PRM associé');
+            
+            // Charger l'ordre des dossiers
+            const foldersOrder = loadFoldersOrder();
+            
+            // Trier les autres dossiers selon l'ordre sauvegardé
+            otherFolders.sort((a, b) => {
+                const indexA = foldersOrder.indexOf(a[0]);
+                const indexB = foldersOrder.indexOf(b[0]);
+                if (indexA === -1 && indexB === -1) return 0;
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
             });
-
-            folder.addEventListener('mouseleave', function() {
-                if (this.getAttribute('data-symbole') !== selectedFolder && this.getAttribute('data-symbole') !== '__ALL__') {
-                    this.style.background = 'white';
-                    this.style.borderColor = '#e0e0e0';
-                    this.style.transform = 'translateX(0)';
-                }
-            });
-
-            // Gérer le clic sur le contenu principal du dossier
-            const mainContent = folder.querySelector('.folder-main-content');
-            if (mainContent) {
-                mainContent.addEventListener('click', function(e) {
+            
+            let html = '';
+            
+            // Ajouter les dossiers (déplaçables)
+            html += otherFolders.map(([key, items]) => `
+                <div class="draggable-folder" draggable="false" data-folder-key="${key}" style="
+                    display: flex; 
+                    align-items: center; 
+                    gap: 8px; 
+                    margin-bottom: 8px;
+                    border: 2px solid transparent;
+                    padding: 2px;
+                    transition: all 0.2s;
+                ">
+                    <div class="folder-drag-handle" draggable="true" style="
+                        width: 28px;
+                        height: 28px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 6px;
+                        color: rgba(255,255,255,0.4);
+                        font-size: 14px;
+                        cursor: grab;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    " title="Glisser pour réorganiser">⋮⋮</div>
+                    <button class="folder-btn" data-folder="${key}" style="
+                        flex: 1;
+                        margin-bottom: 0;
+                        min-width: 0;
+                    ">
+                        <span style="
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                            flex: 1;
+                            min-width: 0;
+                        ">${key}</span>
+                        <span class="count-badge" style="
+                            background: rgba(255,255,255,0.15);
+                            padding: 4px 10px;
+                            border-radius: 20px;
+                            font-size: 12px;
+                            font-weight: 700;
+                            flex-shrink: 0;
+                            margin-left: 8px;
+                        ">${items.length}</span>
+                    </button>
+                    <button class="btn-rename-folder" data-folder="${key}" style="
+                        background: rgba(255,193,7,0.2);
+                        border: 1px solid rgba(255,193,7,0.4);
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        color: #ffc107;
+                        font-size: 14px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    " title="Renommer le dossier">✏️</button>
+                    <button class="btn-delete-folder" data-folder="${key}" style="
+                        background: rgba(244,67,54,0.2);
+                        border: 1px solid rgba(244,67,54,0.4);
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        color: #f44336;
+                        font-size: 16px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    " title="Supprimer le dossier">🗑️</button>
+                </div>
+            `).join('');
+            
+            foldersList.innerHTML = html;
+            
+            // ===== DRAG AND DROP pour les dossiers =====
+            const draggableFolders = document.querySelectorAll('.draggable-folder');
+            let draggedFolder = null;
+            let folderGhostElement = null;
+            
+            draggableFolders.forEach(folder => {
+                const dragHandle = folder.querySelector('.folder-drag-handle');
+                
+                // Effet hover sur la poignée
+                dragHandle.addEventListener('mouseenter', () => {
+                    dragHandle.style.background = 'rgba(255,255,255,0.1)';
+                    dragHandle.style.borderColor = 'rgba(255,255,255,0.2)';
+                    dragHandle.style.color = 'rgba(255,255,255,0.7)';
+                });
+                
+                dragHandle.addEventListener('mouseleave', () => {
+                    dragHandle.style.background = 'rgba(255,255,255,0.05)';
+                    dragHandle.style.borderColor = 'rgba(255,255,255,0.1)';
+                    dragHandle.style.color = 'rgba(255,255,255,0.4)';
+                });
+                
+                // Le drag commence depuis la poignée
+                dragHandle.addEventListener('dragstart', (e) => {
                     e.stopPropagation();
-                    const symbole = folder.getAttribute('data-symbole');
-                    displayComponents(symbole);
+                    draggedFolder = folder;
+                    folder.classList.add('dragging');
+                    dragHandle.style.cursor = 'grabbing';
+                    
+                    // Créer un élément fantôme
+                    folderGhostElement = folder.cloneNode(true);
+                    folderGhostElement.classList.add('drag-ghost');
+                    folderGhostElement.style.position = 'fixed';
+                    folderGhostElement.style.width = folder.offsetWidth + 'px';
+                    folderGhostElement.style.left = '-9999px';
+                    document.body.appendChild(folderGhostElement);
+                    
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setDragImage(folderGhostElement, e.offsetX, e.offsetY);
                 });
-            }
-        });
-
-        // Attacher les événements pour les boutons renommer/supprimer
-        document.querySelectorAll('.rename-folder-icon').forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = '#e0a800';
-                btn.style.transform = 'scale(1.1)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = '#ffc107';
-                btn.style.transform = 'scale(1)';
-            });
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const symbole = e.currentTarget.getAttribute('data-symbole');
-                renameFolder(symbole);
-            });
-        });
-
-        document.querySelectorAll('.delete-folder-icon').forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = '#c82333';
-                btn.style.transform = 'scale(1.1)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = '#dc3545';
-                btn.style.transform = 'scale(1)';
-            });
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const symbole = e.currentTarget.getAttribute('data-symbole');
-                deleteFolder(symbole);
-            });
-        });
-
-        // Afficher le dossier "Tous les composants" par défaut
-        displayComponents('__ALL__');
-    }
-
-    function init() {
-        const checkInterval = setInterval(() => {
-            const viewport = document.querySelector('.displayAreaViewport');
-            if (viewport) {
-                clearInterval(checkInterval);
-
-                const inputModal = createInputModal();
-                document.body.appendChild(inputModal);
-
-                const favorisWindow = createFavorisWindow();
-                document.body.appendChild(favorisWindow);
-
-                const addButton = createAddButton();
-                document.body.appendChild(addButton);
-
-                const showListButton = createShowListButton();
-                document.body.appendChild(showListButton);
-
-                const closeBtn = document.getElementById('close-favoris');
-                closeBtn.addEventListener('mouseenter', () => {
-                    closeBtn.style.background = 'rgba(255,255,255,0.2)';
+                
+                dragHandle.addEventListener('dragend', (e) => {
+                    e.stopPropagation();
+                    folder.classList.remove('dragging');
+                    document.querySelectorAll('.draggable-folder').forEach(f => {
+                        f.classList.remove('drag-over');
+                    });
+                    dragHandle.style.cursor = 'grab';
+                    
+                    // Supprimer l'élément fantôme
+                    if (folderGhostElement && folderGhostElement.parentNode) {
+                        folderGhostElement.parentNode.removeChild(folderGhostElement);
+                    }
+                    folderGhostElement = null;
+                    draggedFolder = null;
                 });
-                closeBtn.addEventListener('mouseleave', () => {
-                    closeBtn.style.background = 'none';
-                });
-                closeBtn.addEventListener('click', () => {
-                    favorisWindow.style.display = 'none';
-                });
-
-                showListButton.addEventListener('click', () => {
-                    favorisWindow.style.display = 'flex';
-                    updateFavorisList();
-                });
-
-                addButton.addEventListener('click', addToFavoris);
-
-                const createFolderBtn = document.getElementById('create-folder-btn');
-                createFolderBtn.addEventListener('mouseenter', () => {
-                    createFolderBtn.style.background = '#218838';
-                });
-                createFolderBtn.addEventListener('mouseleave', () => {
-                    createFolderBtn.style.background = '#28a745';
-                });
-                createFolderBtn.addEventListener('click', createNewFolder);
-
-                const searchFolders = document.getElementById('search-folders');
-                const searchComponents = document.getElementById('search-components');
-
-                searchFolders.addEventListener('focus', () => {
-                    searchFolders.style.borderColor = '#2771c2';
-                });
-                searchFolders.addEventListener('blur', () => {
-                    searchFolders.style.borderColor = '#ddd';
-                });
-
-                searchComponents.addEventListener('focus', () => {
-                    searchComponents.style.borderColor = '#2771c2';
-                });
-                searchComponents.addEventListener('blur', () => {
-                    searchComponents.style.borderColor = '#ddd';
-                });
-
-                searchFolders.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const favoris = GM_getValue('powerbi_favoris', []);
-
-                    if (searchTerm === '') {
-                        document.querySelectorAll('.folder-item').forEach(folder => {
-                            folder.style.display = 'block';
-                        });
-                    } else {
-                        const matchingSymboles = new Set();
-                        favoris.forEach(fav => {
-                            const symbole = fav.symbole || 'Sans symbole';
-                            const itemText = (fav.text || '').toLowerCase();
-                            const itemDesignation = (fav.designation || '').toLowerCase();
-                            const itemRepere = (fav.repere || '').toLowerCase();
-                            const symboleText = symbole.toLowerCase();
-
-                            if (symboleText.includes(searchTerm) ||
-                                itemText.includes(searchTerm) ||
-                                itemDesignation.includes(searchTerm) ||
-                                itemRepere.includes(searchTerm)) {
-                                matchingSymboles.add(symbole);
-                            }
-                        });
-
-                        document.querySelectorAll('.folder-item').forEach(folder => {
-                            const folderSymbole = folder.getAttribute('data-symbole');
-                            if (matchingSymboles.has(folderSymbole)) {
-                                folder.style.display = 'block';
-                            } else {
-                                folder.style.display = 'none';
-                            }
-                        });
+                
+                // Les événements de drop sur le dossier entier
+                folder.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    
+                    if (draggedFolder && draggedFolder !== folder) {
+                        folder.classList.add('drag-over');
                     }
                 });
-
-                searchComponents.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const componentsListDiv = document.getElementById('components-list');
-
-                    if (searchTerm === '') {
-                        updateFavorisList();
-                        return;
-                    }
-
-                    const favoris = GM_getValue('powerbi_favoris', []);
-                    const matchingItems = [];
-
-                    favoris.forEach((fav, index) => {
-                        if (fav.isEmpty) return;
-
-                        const itemText = (fav.text || '').toLowerCase();
-                        const itemDesignation = (fav.designation || '').toLowerCase();
-                        const itemRepere = (fav.repere || '').toLowerCase();
-                        const itemSymbole = (fav.symbole || '').toLowerCase();
-
-                        if (itemText.includes(searchTerm) ||
-                            itemDesignation.includes(searchTerm) ||
-                            itemRepere.includes(searchTerm) ||
-                            itemSymbole.includes(searchTerm)) {
-                            matchingItems.push({ ...fav, originalIndex: index });
+                
+                folder.addEventListener('dragleave', () => {
+                    folder.classList.remove('drag-over');
+                });
+                
+                folder.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    folder.classList.remove('drag-over');
+                    
+                    if (draggedFolder && draggedFolder !== folder) {
+                        // Réorganiser les dossiers
+                        const allFolders = Array.from(document.querySelectorAll('.draggable-folder'));
+                        const draggedIndex = allFolders.indexOf(draggedFolder);
+                        const targetIndex = allFolders.indexOf(folder);
+                        
+                        if (draggedIndex < targetIndex) {
+                            folder.parentNode.insertBefore(draggedFolder, folder.nextSibling);
+                        } else {
+                            folder.parentNode.insertBefore(draggedFolder, folder);
                         }
-                    });
-
-                    if (matchingItems.length === 0) {
-                        componentsListDiv.innerHTML = '<p style="color: #999; font-style: italic; text-align: center; padding: 50px 20px;">Aucun composant trouvé</p>';
-                        document.getElementById('current-folder-name').textContent = ' - Résultats';
-                        return;
+                        
+                        // Sauvegarder le nouvel ordre
+                        const newOrder = Array.from(document.querySelectorAll('.draggable-folder'))
+                            .map(f => f.dataset.folderKey);
+                        saveFoldersOrder(newOrder);
                     }
-
-                    document.getElementById('current-folder-name').textContent = ` - Résultats (${matchingItems.length})`;
-
-                    let componentsHtml = '';
-                    matchingItems.forEach(item => {
-                        componentsHtml += `
-                            <div class="component-item"
-                                 data-index="${item.originalIndex}"
-                                 data-text="${item.text.replace(/"/g, '&quot;')}"
-                                 data-repere="${item.repere || ''}"
-                                 data-symbole="${item.symbole}"
-                                 style="
-                                    border: 2px solid #e0e0e0;
-                                    border-radius: 10px;
-                                    margin-bottom: 15px;
-                                    position: relative;
-                                    background: white;
-                                    transition: all 0.2s;
-                                    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-                                    overflow: hidden;
-                                ">
-                                <div class="drag-handle" style="
-                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                    padding: 8px 15px;
-                                    cursor: move;
-                                    color: white;
-                                    font-size: 12px;
-                                    font-weight: bold;
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                ">
-                                    <span style="font-size: 16px;">⋮⋮</span>
-                                    <span>Glisser pour déplacer</span>
-                                </div>
-                                <div class="component-content" style="padding: 15px; ${item.repere ? 'padding-bottom: 45px;' : ''} cursor: pointer; position: relative;">
-                                    <button class="remove-fav" data-index="${item.originalIndex}" style="
-                                        position: absolute;
-                                        top: 15px;
-                                        right: 12px;
-                                        background: #dc3545;
-                                        color: white;
-                                        border: none;
-                                        border-radius: 50%;
-                                        width: 28px;
-                                        height: 28px;
-                                        cursor: pointer;
-                                        font-size: 16px;
-                                        z-index: 10;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        transition: background 0.2s;
-                                        font-weight: bold;
-                                    ">×</button>
-                                    <div style="font-size: 11px; color: #999; margin-bottom: 5px;">
-                                        📁 ${item.symbole || 'Sans symbole'}
-                                    </div>
-                                    <div style="font-weight: bold; color: #333; padding-right: 45px; font-size: 15px; margin-bottom: 8px;">
-                                        ${item.text}
-                                    </div>
-                                    ${item.designation ? `<div style="font-size: 13px; color: #666; margin-bottom: 6px; padding-left: 20px; border-left: 3px solid #2771c2;">📝 ${item.designation}</div>` : ''}
-                                    ${item.repere ? `
-                                        <div style="
-                                            position: absolute;
-                                            bottom: 10px;
-                                            right: 10px;
-                                            display: flex;
-                                            flex-wrap: wrap;
-                                            gap: 5px;
-                                            justify-content: flex-end;
-                                            max-width: 60%;
-                                        ">
-                                            ${item.repere.split(',').map(r => `
-                                                <span style="
-                                                    background: linear-gradient(135deg, #2771c2 0%, #1a5a9a 100%);
-                                                    color: white;
-                                                    padding: 4px 10px;
-                                                    border-radius: 12px;
-                                                    font-size: 12px;
-                                                    font-weight: 600;
-                                                    white-space: nowrap;
-                                                    box-shadow: 0 2px 4px rgba(39, 113, 194, 0.3);
-                                                ">📍 ${r.trim()}</span>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    componentsListDiv.innerHTML = componentsHtml;
-
-                    // Réattacher les événements uniquement pour les composants affichés
-                    document.querySelectorAll('.remove-fav').forEach(btn => {
-                        btn.addEventListener('mouseenter', () => {
-                            btn.style.background = '#c82333';
-                            btn.style.transform = 'scale(1.1)';
-                        });
-                        btn.addEventListener('mouseleave', () => {
-                            btn.style.background = '#dc3545';
-                            btn.style.transform = 'scale(1)';
-                        });
-                        btn.addEventListener('click', (e) => {
+                });
+            });
+            
+            // Event listeners pour les dossiers
+            document.querySelectorAll('.folder-btn[data-folder]').forEach(btn => {
+                const parentDiv = btn.closest('div[style*="display: flex"]');
+                
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    displayComponents(btn.dataset.folder, window.openModalFunction);
+                });
+                
+                // ===== DRAG AND DROP - Accepter les favoris =====
+                if (parentDiv && btn.dataset.folder !== '__ALL__') {
+                    parentDiv.addEventListener('dragover', (e) => {
+                        // Vérifier si c'est un favori qui est en cours de drag
+                        if (draggedCard) {
+                            e.preventDefault();
                             e.stopPropagation();
-                            const index = parseInt(e.target.getAttribute('data-index'));
-                            if (confirm('Êtes-vous sûr de vouloir supprimer ce favori ?')) {
-                                removeFavori(index);
-                            }
-                        });
-                    });
-
-                    document.querySelectorAll('.component-item').forEach(item => {
-                        const content = item.querySelector('.component-content');
-                        if (content) {
-                            content.addEventListener('mouseenter', () => {
-                                item.style.borderColor = '#2771c2';
-                                item.style.transform = 'translateY(-2px)';
-                                item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                            });
-
-                            content.addEventListener('mouseleave', () => {
-                                item.style.borderColor = '#e0e0e0';
-                                item.style.transform = 'translateY(0)';
-                                item.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
-                            });
-
-                            content.addEventListener('click', (e) => {
-                                if (e.target.classList.contains('remove-fav')) return;
-
-                                const text = item.getAttribute('data-text');
-                                document.getElementById('favoris-window').style.display = 'none';
-
-                                const iframes = document.querySelectorAll('iframe');
-                                let success = false;
-                                let responseReceived = false;
-
-                                const tryIframe = (index) => {
-                                    if (index >= iframes.length || success) return;
-
-                                    try {
-                                        iframes[index].contentWindow.postMessage({
-                                            type: 'FILL_SEARCH',
-                                            text: text
-                                        }, '*');
-                                        console.log(`Message FILL_SEARCH envoyé à iframe ${index}`);
-                                    } catch (e) {
-                                        console.log(`Erreur iframe ${index}:`, e.message);
-                                        tryIframe(index + 1);
-                                    }
-                                };
-
-                                const clickAppMagicInIframes = () => {
-                                    console.log('Envoi du message CLICK_APPMAGIC...');
-                                    let appMagicClicked = false;
-
-                                    const appMagicHandler = (event) => {
-                                        if (event.data && event.data.type === 'CLICK_APPMAGIC_RESPONSE') {
-                                            if (event.data.success && !appMagicClicked) {
-                                                console.log('✓ Bouton AppMagic cliqué avec succès!');
-                                                appMagicClicked = true;
-                                                window.removeEventListener('message', appMagicHandler);
-                                            }
-                                        }
-                                    };
-
-                                    window.addEventListener('message', appMagicHandler);
-
-                                    iframes.forEach((iframe, index) => {
-                                        try {
-                                            iframe.contentWindow.postMessage({
-                                                type: 'CLICK_APPMAGIC'
-                                            }, '*');
-                                        } catch (e) {
-                                            console.log(`Erreur envoi CLICK_APPMAGIC iframe ${index}:`, e.message);
-                                        }
-                                    });
-
-                                    setTimeout(() => {
-                                        if (!appMagicClicked) {
-                                            console.log('⚠️ Bouton AppMagic non trouvé');
-                                        }
-                                        window.removeEventListener('message', appMagicHandler);
-                                    }, 1000);
-                                };
-
-                                const messageHandler = (event) => {
-                                    if (event.data && event.data.type === 'FILL_SEARCH_RESPONSE') {
-                                        if (event.data.success && !responseReceived) {
-                                            console.log('✓ Input rempli avec succès!');
-                                            success = true;
-                                            responseReceived = true;
-                                            window.removeEventListener('message', messageHandler);
-
-                                            setTimeout(() => {
-                                                clickAppMagicInIframes();
-                                            }, 300);
-                                        } else if (!responseReceived) {
-                                            const currentIndex = Array.from(iframes).findIndex(iframe => {
-                                                try {
-                                                    return iframe.contentWindow === event.source;
-                                                } catch (e) {
-                                                    return false;
-                                                }
-                                            });
-                                            tryIframe(currentIndex + 1);
-                                        }
-                                    }
-                                };
-
-                                window.addEventListener('message', messageHandler);
-                                tryIframe(0);
-
-                                setTimeout(() => {
-                                    if (!success) {
-                                        console.log('⚠️ Aucune iframe n\'a répondu');
-                                    }
-                                    window.removeEventListener('message', messageHandler);
-                                }, 1000);
-                            });
+                            e.dataTransfer.dropEffect = 'move';
+                            parentDiv.style.background = 'rgba(74,144,226,0.2)';
+                            parentDiv.style.borderColor = 'rgba(74,144,226,0.6)';
                         }
                     });
+                    
+                    parentDiv.addEventListener('dragleave', (e) => {
+                        if (draggedCard) {
+                            e.stopPropagation();
+                            parentDiv.style.background = '';
+                            parentDiv.style.borderColor = '';
+                        }
+                    });
+                    
+                    parentDiv.addEventListener('drop', (e) => {
+                        if (draggedCard) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            parentDiv.style.background = '';
+                            parentDiv.style.borderColor = '';
+                            
+                            const targetFolder = btn.dataset.folder;
+                            const draggedIndex = parseInt(draggedCard.dataset.index);
+                            
+                            // Déplacer le favori vers le nouveau dossier
+                            const favoris = loadFavoris();
+                            const item = favoris[draggedIndex];
+                            
+                            if (targetFolder === 'Sans PRM associé') {
+                                // Mettre à vide pour "Sans PRM associé"
+                                item.symbole = '';
+                                item.designation = '';
+                            } else {
+                                // Extraire symbole et désignation du nom du dossier
+                                const parts = targetFolder.split(' - ');
+                                if (parts.length === 2) {
+                                    item.symbole = parts[0];
+                                    item.designation = parts[1];
+                                } else if (parts.length === 1) {
+                                    // Si un seul élément, le mettre dans symbole
+                                    item.symbole = parts[0];
+                                    item.designation = '';
+                                }
+                            }
+                            
+                            saveFavoris(favoris);
+                            
+                            // Rafraîchir l'affichage
+                            updateFoldersList();
+                            displayComponents(targetFolder, window.openModalFunction);
+                            
+                            // Activer le dossier cible
+                            document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+            });
+            
+            // Event listeners pour renommer les dossiers
+            document.querySelectorAll('.btn-rename-folder').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const oldKey = btn.dataset.folder;
+                    const newName = prompt('Nouveau nom du dossier:', oldKey);
+                    
+                    if (newName && newName.trim() && newName !== oldKey) {
+                        renameFolder(oldKey, newName.trim());
+                    }
                 });
-            }
-        }, 500);
+                
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = 'rgba(255,193,7,0.3)';
+                    btn.style.borderColor = 'rgba(255,193,7,0.6)';
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = 'rgba(255,193,7,0.2)';
+                    btn.style.borderColor = 'rgba(255,193,7,0.4)';
+                });
+            });
+            
+            // Event listeners pour supprimer les dossiers
+            document.querySelectorAll('.btn-delete-folder').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const folderKey = btn.dataset.folder;
+                    const count = folders[folderKey].length;
+                    
+                    if (confirm(`Supprimer le dossier "${folderKey}" et ses ${count} composant(s) ?`)) {
+                        deleteFolder(folderKey);
+                    }
+                });
+                
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = 'rgba(244,67,54,0.3)';
+                    btn.style.borderColor = 'rgba(244,67,54,0.6)';
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = 'rgba(244,67,54,0.2)';
+                    btn.style.borderColor = 'rgba(244,67,54,0.4)';
+                });
+            });
+            
+        }
     }
 
-    init();
+    // ===== RECHERCHE DANS IFRAME =====
+    function searchInIframe(text) {
+        const iframes = document.querySelectorAll('iframe');
+        console.log(`Tentative de remplissage avec: "${text}"`);
+        
+        let success = false;
+        let responseReceived = false;
+        
+        const tryIframe = (index) => {
+            if (index >= iframes.length || success) return;
+            
+            try {
+                iframes[index].contentWindow.postMessage({
+                    type: 'FILL_SEARCH',
+                    text: text
+                }, '*');
+                console.log(`Message FILL_SEARCH envoyé à iframe ${index}`);
+            } catch (e) {
+                console.log(`Erreur iframe ${index}:`, e.message);
+                tryIframe(index + 1);
+            }
+        };
+        
+        const messageHandler = (event) => {
+            if (event.data && event.data.type === 'FILL_SEARCH_RESPONSE') {
+                if (event.data.success && !responseReceived) {
+                    console.log('✓ Recherche effectuée avec succès!');
+                    responseReceived = true;
+                    success = true;
+                    window.removeEventListener('message', messageHandler);
+                } else if (!responseReceived) {
+                    console.log('Iframe ne peut pas remplir, essai suivant...');
+                    const currentIndex = Array.from(iframes).findIndex(iframe => {
+                        try {
+                            return iframe.contentWindow === event.source;
+                        } catch (e) {
+                            return false;
+                        }
+                    });
+                    if (currentIndex !== -1) {
+                        tryIframe(currentIndex + 1);
+                    }
+                }
+            }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        tryIframe(0);
+        
+        setTimeout(() => {
+            if (!responseReceived) {
+                console.log('⚠️ Aucun iframe n\'a pu remplir le champ');
+            }
+            window.removeEventListener('message', messageHandler);
+        }, 3000);
+    }
+
+    // ===== INITIALISATION =====
+    function init() {
+        console.log('🚀 Initialisation de l\'interface moderne');
+        
+        // Injecter les styles globaux
+        injectGlobalStyles();
+        
+        // Créer les éléments
+        const modal = createModal();
+        const mainWindow = createMainWindow();
+        const { addBtn, listBtn } = createActionButtons();
+        
+        // Ajouter au DOM
+        document.body.appendChild(modal);
+        document.body.appendChild(mainWindow);
+        document.body.appendChild(addBtn);
+        document.body.appendChild(listBtn);
+        
+        // Event listeners - Modal
+        const overlay = modal.querySelector('.modal-overlay');
+        const closeModal = modal.querySelector('.close-modal');
+        const cancelBtn = modal.querySelector('.btn-cancel');
+        const saveBtn = modal.querySelector('.btn-save');
+        
+        const openModal = (initialValues = {}, editIndex = null) => {
+            console.log('🔍 openModal appelé avec:', initialValues);
+            console.log('   - title:', initialValues.title);
+            console.log('   - designation:', initialValues.designation);
+            console.log('   - symbole:', initialValues.symbole);
+            console.log('   - editIndex:', editIndex);
+            
+            overlay.style.display = 'flex';
+            
+            // Charger la liste des dossiers existants
+            updateFoldersCheckboxes();
+            
+            // Afficher le nom du composant sélectionné si présent
+            const selectedDisplay = document.getElementById('selected-component-display');
+            const selectedName = document.getElementById('selected-component-name');
+            
+            console.log('📦 Élément d\'affichage trouvé:', selectedDisplay);
+            console.log('📦 Élément nom trouvé:', selectedName);
+            
+            if (initialValues.title || initialValues.designation) {
+                console.log('✅ Affichage du composant sélectionné:', initialValues.title || initialValues.designation);
+                selectedDisplay.style.display = 'block';
+                selectedName.textContent = initialValues.title || initialValues.designation;
+            } else {
+                console.log('❌ Pas de composant à afficher');
+                selectedDisplay.style.display = 'none';
+            }
+            
+            // Ne PAS pré-remplir les champs en mode édition
+            // Les champs restent vides pour permettre la modification
+            document.getElementById('input-symbole').value = '';
+            document.getElementById('input-designation').value = '';
+            document.getElementById('input-repere').value = initialValues.repere || '';
+            document.getElementById('input-commentaire').value = initialValues.designationComposant || '';
+            
+            // Stocker l'index d'édition et le title sur le bouton de sauvegarde
+            if (editIndex !== null) {
+                saveBtn.dataset.editIndex = editIndex;
+                document.getElementById('modal-title').textContent = '✏️ Modifier le Favori';
+                document.getElementById('modal-subtitle').textContent = 'Modifier les informations du composant';
+                
+                // En mode édition, cocher le dossier actuel
+                const currentFolder = [initialValues.symbole, initialValues.designation].filter(Boolean).join(' - ');
+                if (currentFolder) {
+                    setTimeout(() => {
+                        const checkbox = document.querySelector(`#folder-${CSS.escape(currentFolder)}`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            checkbox.closest('.folder-checkbox-item').classList.add('checked');
+                        }
+                    }, 50);
+                }
+            } else {
+                delete saveBtn.dataset.editIndex;
+                document.getElementById('modal-title').textContent = '✨ Nouveau Favori';
+                document.getElementById('modal-subtitle').textContent = 'Ajouter un composant à vos favoris';
+            }
+            
+            // Stocker le title original (pour la recherche Power BI)
+            if (initialValues.title) {
+                saveBtn.dataset.title = initialValues.title;
+            } else {
+                delete saveBtn.dataset.title;
+            }
+            
+            document.getElementById('input-repere').focus();
+        };
+        
+        // Rendre openModal accessible globalement pour displayComponents
+        window.openModalFunction = openModal;
+        
+        const closeModalFn = () => {
+            overlay.style.display = 'none';
+            // Clear inputs
+            document.getElementById('input-symbole').value = '';
+            document.getElementById('input-designation').value = '';
+            document.getElementById('input-repere').value = '';
+            document.getElementById('input-commentaire').value = '';
+        };
+        
+        // Bouton Ajouter dossier dans la modal
+        const addFolderBtn = modal.querySelector('#btn-add-folder');
+        addFolderBtn.addEventListener('click', () => {
+            const symbole = document.getElementById('input-symbole').value.trim();
+            const designation = document.getElementById('input-designation').value.trim();
+            
+            if (!symbole && !designation) {
+                alert('Veuillez remplir au moins le symbole ou la désignation');
+                return;
+            }
+            
+            // Validation : le symbole doit avoir exactement 8 chiffres si renseigné
+            if (symbole && !/^\d{8}$/.test(symbole)) {
+                alert('❌ Le symbole doit contenir exactement 8 chiffres !');
+                return;
+            }
+            
+            const newFolder = [symbole, designation].filter(Boolean).join(' - ');
+            
+            // Vérifier si le dossier existe déjà
+            const existingFolders = GM_getValue('powerbi_folders', []);
+            if (existingFolders.includes(newFolder)) {
+                alert(`Le dossier "${newFolder}" existe déjà !`);
+                return;
+            }
+            
+            // Ajouter le dossier à la liste des dossiers
+            existingFolders.push(newFolder);
+            GM_setValue('powerbi_folders', existingFolders);
+            
+            // Recharger la liste des checkboxes
+            updateFoldersCheckboxes();
+            
+            // Cocher le nouveau dossier
+            setTimeout(() => {
+                const checkbox = document.querySelector(`input[value="${newFolder}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.closest('.folder-checkbox-item').classList.add('checked');
+                }
+            }, 100);
+            
+            // Clear les champs symbole et désignation
+            document.getElementById('input-symbole').value = '';
+            document.getElementById('input-designation').value = '';
+            
+            alert(`✓ Dossier "${newFolder}" créé !`);
+        });
+        
+        addBtn.addEventListener('click', () => {
+            // Récupérer l'élément sélectionné dans Power BI
+            const selectedItem = getSelectedItem();
+            
+            console.log('🎯 Bouton Ajouter cliqué');
+            console.log('   Élément sélectionné:', selectedItem);
+            
+            if (selectedItem) {
+                console.log('✅ Composant Power BI trouvé:', selectedItem.text);
+                // Pré-remplir UNIQUEMENT le title pour affichage, PAS la désignation
+                openModal({ title: selectedItem.title });
+            } else {
+                console.log('⚠️ Aucun composant Power BI sélectionné');
+                // Ouvrir vide si rien n'est sélectionné
+                openModal();
+            }
+        });
+        closeModal.addEventListener('click', closeModalFn);
+        cancelBtn.addEventListener('click', closeModalFn);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModalFn();
+        });
+        
+        saveBtn.addEventListener('click', () => {
+            const symbole = document.getElementById('input-symbole').value.trim();
+            const designation = document.getElementById('input-designation').value.trim();
+            const repere = document.getElementById('input-repere').value.trim();
+            const commentaire = document.getElementById('input-commentaire').value.trim();
+            
+            // Validation : le symbole doit avoir exactement 8 chiffres si renseigné
+            if (symbole && !/^\d{8}$/.test(symbole)) {
+                alert('❌ Le symbole doit contenir exactement 8 chiffres !');
+                return;
+            }
+            
+            // Récupérer les dossiers sélectionnés
+            const selectedFolders = [];
+            document.querySelectorAll('#folders-checkboxes input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedFolders.push(checkbox.value);
+            });
+            
+            // Ajouter le nouveau dossier si symbole ou désignation est rempli
+            if (symbole || designation) {
+                const newFolder = [symbole, designation].filter(Boolean).join(' - ');
+                if (!selectedFolders.includes(newFolder)) {
+                    selectedFolders.push(newFolder);
+                }
+            }
+            
+            // Si aucun dossier sélectionné, utiliser "Sans PRM associé"
+            if (selectedFolders.length === 0) {
+                selectedFolders.push('Sans PRM associé');
+            }
+            
+            // Mode édition ou ajout
+            if (saveBtn.dataset.editIndex !== undefined) {
+                // Mode édition - mettre à jour l'élément existant
+                const favoris = loadFavoris();
+                const index = parseInt(saveBtn.dataset.editIndex);
+                const folder = selectedFolders[0]; // En mode édition, on prend le premier dossier
+                const [folderSymbole, folderDesignation] = folder === 'Sans PRM associé' ? ['', ''] : 
+                    (folder.includes(' - ') ? folder.split(' - ') : [folder, '']);
+                
+                // Le text doit TOUJOURS être le nom du composant Power BI (title)
+                // Ne jamais utiliser le nom du dossier pour le text
+                const text = saveBtn.dataset.title || favoris[index].text || 'Sans nom';
+                
+                favoris[index] = {
+                    ...favoris[index],
+                    text: text,
+                    title: saveBtn.dataset.title || favoris[index].title || text,
+                    symbole: folderSymbole,
+                    designation: folderDesignation,
+                    designationComposant: commentaire,
+                    repere,
+                    timestamp: Date.now()
+                };
+                saveFavoris(favoris);
+                
+                // Ajouter le dossier à la liste s'il n'existe pas
+                const existingFolders = GM_getValue('powerbi_folders', []);
+                if (!existingFolders.includes(folder)) {
+                    existingFolders.push(folder);
+                    GM_setValue('powerbi_folders', existingFolders);
+                }
+            } else {
+                // Mode ajout - créer un favori pour chaque dossier sélectionné
+                const existingFolders = GM_getValue('powerbi_folders', []);
+                const favoris = loadFavoris();
+                
+                // Vérifier si le composant existe déjà dans un des dossiers sélectionnés
+                const componentTitle = saveBtn.dataset.title;
+                const duplicatesInFolders = [];
+                const foldersToAdd = [];
+                
+                selectedFolders.forEach(folder => {
+                    const [folderSymbole, folderDesignation] = folder === 'Sans PRM associé' ? ['', ''] : 
+                        (folder.includes(' - ') ? folder.split(' - ') : [folder, '']);
+                    
+                    // Chercher si ce composant existe déjà dans ce dossier
+                    const exists = favoris.some(f => 
+                        (f.title === componentTitle || f.text === componentTitle) &&
+                        f.symbole === folderSymbole &&
+                        f.designation === folderDesignation
+                    );
+                    
+                    if (exists) {
+                        duplicatesInFolders.push(folder);
+                    } else {
+                        foldersToAdd.push(folder);
+                    }
+                });
+                
+                // Si des doublons existent, afficher un pop-up d'information
+                if (duplicatesInFolders.length > 0) {
+                    const folderList = duplicatesInFolders.join('\n• ');
+                    const message = foldersToAdd.length > 0
+                        ? `ℹ️ Ce composant existe déjà dans le(s) dossier(s) suivant(s) :\n\n• ${folderList}\n\nIl sera ajouté uniquement dans les autres dossiers sélectionnés.`
+                        : `⚠️ Ce composant existe déjà dans tous les dossiers sélectionnés :\n\n• ${folderList}\n\nAucun ajout effectué.`;
+                    alert(message);
+                    
+                    // Si tous les dossiers contiennent déjà le composant, arrêter
+                    if (foldersToAdd.length === 0) {
+                        return;
+                    }
+                }
+                
+                // Ajouter uniquement dans les dossiers où le composant n'existe pas
+                foldersToAdd.forEach(folder => {
+                    const [folderSymbole, folderDesignation] = folder === 'Sans PRM associé' ? ['', ''] : 
+                        (folder.includes(' - ') ? folder.split(' - ') : [folder, '']);
+                    
+                    // Le text doit TOUJOURS être le nom du composant Power BI (title)
+                    // Ne jamais utiliser le nom du dossier pour le text
+                    const displayText = saveBtn.dataset.title || 'Sans nom';
+                    
+                    const favoriData = {
+                        text: displayText,
+                        title: saveBtn.dataset.title || displayText,
+                        symbole: folderSymbole,
+                        designation: folderDesignation,
+                        designationComposant: commentaire,
+                        repere
+                    };
+                    
+                    addFavori(favoriData);
+                    
+                    // Ajouter le dossier à la liste s'il n'existe pas
+                    if (!existingFolders.includes(folder)) {
+                        existingFolders.push(folder);
+                    }
+                });
+                
+                GM_setValue('powerbi_folders', existingFolders);
+            }
+            
+            closeModalFn();
+            updateFoldersList();
+            
+            // Si la fenêtre est ouverte, rafraîchir
+            const windowOverlay = mainWindow.querySelector('.window-overlay');
+            if (windowOverlay.style.display === 'flex') {
+                displayComponents('__ALL__', openModal);
+                document.getElementById('btn-all-folders').classList.add('active');
+                document.querySelectorAll('.folder-btn[data-folder]').forEach(b => b.classList.remove('active'));
+            }
+        });
+        
+        // Event listeners - Main Window
+        const windowOverlay = mainWindow.querySelector('.window-overlay');
+        const closeWindow = mainWindow.querySelector('.close-window');
+        
+        const openWindow = () => {
+            windowOverlay.style.display = 'flex';
+            updateFoldersList();
+            displayComponents('__ALL__', window.openModalFunction);
+            document.getElementById('btn-all-folders').classList.add('active');
+        };
+        
+        const closeWindowFn = () => {
+            windowOverlay.style.display = 'none';
+        };
+        
+        listBtn.addEventListener('click', openWindow);
+        closeWindow.addEventListener('click', closeWindowFn);
+        windowOverlay.addEventListener('click', (e) => {
+            if (e.target === windowOverlay) closeWindowFn();
+        });
+        
+        // Bouton "Tous les composants"
+        document.getElementById('btn-all-folders').addEventListener('click', () => {
+            document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-all-folders').classList.add('active');
+            displayComponents('__ALL__', window.openModalFunction);
+        });
+        
+        // Bouton "Sans PRM associé"
+        const btnSansPRM = document.getElementById('btn-sans-prm');
+        btnSansPRM.addEventListener('click', () => {
+            document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+            btnSansPRM.classList.add('active');
+            displayComponents('Sans PRM associé', window.openModalFunction);
+        });
+        
+        // Drag and drop pour "Sans PRM associé"
+        btnSansPRM.addEventListener('dragover', (e) => {
+            if (draggedCard) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'move';
+                btnSansPRM.style.background = 'rgba(244,67,54,0.4)';
+                btnSansPRM.style.borderColor = 'rgba(244,67,54,0.8)';
+            }
+        });
+        
+        btnSansPRM.addEventListener('dragleave', (e) => {
+            if (draggedCard) {
+                e.stopPropagation();
+                btnSansPRM.style.background = 'rgba(244,67,54,0.2)';
+                btnSansPRM.style.borderColor = 'rgba(244,67,54,0.4)';
+            }
+        });
+        
+        btnSansPRM.addEventListener('drop', (e) => {
+            if (draggedCard) {
+                e.preventDefault();
+                e.stopPropagation();
+                btnSansPRM.style.background = 'rgba(244,67,54,0.2)';
+                btnSansPRM.style.borderColor = 'rgba(244,67,54,0.4)';
+                
+                const draggedIndex = parseInt(draggedCard.dataset.index);
+                
+                // Déplacer le favori vers "Sans PRM associé"
+                const favoris = loadFavoris();
+                const item = favoris[draggedIndex];
+                
+                // Mettre à vide pour "Sans PRM associé"
+                item.symbole = '';
+                item.designation = '';
+                
+                saveFavoris(favoris);
+                
+                // Rafraîchir l'affichage
+                updateFoldersList();
+                displayComponents('Sans PRM associé', window.openModalFunction);
+                
+                // Activer le dossier cible
+                document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
+                btnSansPRM.classList.add('active');
+            }
+        });
+        
+        // Recherche
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.component-card');
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? 'block' : 'none';
+            });
+        });
+        
+        console.log('✅ Interface moderne initialisée avec succès');
+    }
+
+    // Attendre que le DOM soit prêt
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
