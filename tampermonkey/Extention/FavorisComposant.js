@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Système de favoris pour Power BI
-// @match        https://app.powerbi.com/groups/me/apps/ab9bbd67-d4d2-48c1-8869-22d78efe9963/reports/*
+// @match        https://app.powerbi.com/groups/me/apps/*
 // @match        https://app.powerbi.com/*/cvSandboxPack.cshtml*
 // @grant        GM_setValue
 // @grant        GM_getValue
