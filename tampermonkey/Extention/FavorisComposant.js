@@ -244,6 +244,12 @@
 
             .drag-over {
                 border-top: 3px solid #4a90e2 !important;
+                background: rgba(74,144,226,0.1) !important;
+            }
+
+            .drag-over-category-change {
+                border-top: 3px solid #ab47bc !important;
+                background: rgba(171,71,188,0.15) !important;
             }
 
             .drag-ghost {
@@ -450,6 +456,40 @@
                                 <input type="text" id="input-repere" class="modern-input" placeholder="Ex: R1, R2, R3" />
                             </div>
 
+                            <!-- Catégorie -->
+                            <div class="form-group" style="margin-bottom: 24px;">
+                                <label style="
+                                    display: block;
+                                    margin-bottom: 10px;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    color: rgba(255,255,255,0.8);
+                                    text-transform: uppercase;
+                                    letter-spacing: 1px;
+                                ">🏷️ Catégorie</label>
+
+                                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <input type="text" id="input-new-categorie" class="modern-input" placeholder="Nouvelle catégorie..." style="font-size: 14px; padding: 10px 12px; flex: 1;" />
+                                    <button id="btn-add-categorie" style="
+                                        padding: 10px 16px;
+                                        background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
+                                        border: none;
+                                        border-radius: 8px;
+                                        color: #ffffff;
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        cursor: pointer;
+                                        transition: all 0.2s;
+                                        box-shadow: 0 2px 8px rgba(171,71,188,0.3);
+                                        white-space: nowrap;
+                                    ">+ Créer</button>
+                                </div>
+
+                                <select id="input-categorie" class="modern-input" style="font-size: 14px; padding: 10px 12px;">
+                                    <option value="">Sélectionner une catégorie...</option>
+                                </select>
+                            </div>
+
                             <!-- Commentaire -->
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label style="
@@ -532,6 +572,27 @@
                 color: rgba(255,255,255,0.35);
             }
 
+            /* Style pour le select (liste déroulante) */
+            select.modern-input {
+                cursor: pointer;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                padding-right: 36px;
+            }
+
+            select.modern-input:focus {
+                background-color: rgba(255,255,255,0.09);
+                border-color: #ab47bc;
+                box-shadow: 0 0 0 4px rgba(171,71,188,0.15);
+            }
+
+            select.modern-input option {
+                background: #2a2a2a;
+                color: #ffffff;
+                padding: 10px;
+            }
+
             .close-modal:hover {
                 background: rgba(255,255,255,0.15) !important;
                 color: #ffffff !important;
@@ -556,8 +617,8 @@
 
             .folder-checkbox-item {
                 padding: 10px 12px;
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.04);
+                border: 1.5px solid rgba(255,255,255,0.12);
                 border-radius: 8px;
                 margin-bottom: 8px;
                 cursor: pointer;
@@ -569,27 +630,33 @@
 
             .folder-checkbox-item:hover {
                 background: rgba(255,255,255,0.08);
-                border-color: rgba(255,255,255,0.2);
+                border-color: rgba(255,255,255,0.25);
             }
 
             .folder-checkbox-item input[type="checkbox"] {
                 width: 18px;
                 height: 18px;
                 cursor: pointer;
-                accent-color: #4a90e2;
+                accent-color: #4caf50;
+                margin: 0;
             }
 
             .folder-checkbox-item label {
                 flex: 1;
                 cursor: pointer;
-                color: rgba(255,255,255,0.8);
+                color: rgba(255,255,255,0.9);
                 font-size: 13px;
                 font-weight: 500;
             }
 
             .folder-checkbox-item.checked {
-                background: rgba(74,144,226,0.2);
-                border-color: rgba(74,144,226,0.4);
+                background: rgba(76,175,80,0.15);
+                border-color: rgba(76,175,80,0.4);
+            }
+
+            .folder-checkbox-item.checked label {
+                color: #4caf50;
+                font-weight: 600;
             }
 
             #btn-add-folder:hover {
@@ -599,6 +666,16 @@
             }
 
             #btn-add-folder:active {
+                transform: translateY(0);
+            }
+
+            #btn-add-categorie:hover {
+                background: linear-gradient(135deg, #bb5fc9 0%, #9b2baa 100%) !important;
+                box-shadow: 0 4px 12px rgba(171,71,188,0.4) !important;
+                transform: translateY(-1px);
+            }
+
+            #btn-add-categorie:active {
                 transform: translateY(0);
             }
         `;
@@ -683,6 +760,39 @@
                     checkbox.dispatchEvent(new Event('change'));
                 });
             });
+        }
+    }
+
+    // ===== FONCTION POUR REMPLIR LA LISTE DES CATÉGORIES =====
+    function updateCategoriesSelect() {
+        const select = document.getElementById('input-categorie');
+        if (!select) return;
+
+        const categories = loadCategories();
+        const favoris = loadFavoris();
+
+        // Récupérer toutes les catégories utilisées dans les favoris
+        const usedCategories = new Set();
+        favoris.forEach(item => {
+            if (item.categorie) {
+                usedCategories.add(item.categorie);
+            }
+        });
+
+        // Fusionner avec les catégories sauvegardées
+        const allCategories = new Set([...categories, ...usedCategories]);
+        const sortedCategories = Array.from(allCategories).sort();
+
+        // Sauvegarder la valeur actuelle
+        const currentValue = select.value;
+
+        // Remplir le select
+        select.innerHTML = '<option value="">Sélectionner une catégorie...</option>' +
+            sortedCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+
+        // Restaurer la valeur si elle existe toujours
+        if (currentValue && sortedCategories.includes(currentValue)) {
+            select.value = currentValue;
         }
     }
 
@@ -1024,6 +1134,46 @@
         GM_setValue('powerbi_folders_order', order);
     }
 
+    function loadCategories() {
+        return GM_getValue('powerbi_categories', []);
+    }
+
+    function saveCategories(categories) {
+        GM_setValue('powerbi_categories', categories);
+    }
+
+    function addCategory(categoryName) {
+        const categories = loadCategories();
+        if (!categories.includes(categoryName)) {
+            categories.push(categoryName);
+            categories.sort();
+            saveCategories(categories);
+        }
+        return categories;
+    }
+
+    function cleanEmptyCategories() {
+        const favoris = loadFavoris();
+        const categories = loadCategories();
+
+        // Collecter les catégories utilisées
+        const usedCategories = new Set();
+        favoris.forEach(item => {
+            if (item.categorie) {
+                usedCategories.add(item.categorie);
+            }
+        });
+
+        // Filtrer pour ne garder que les catégories utilisées
+        const cleanedCategories = categories.filter(cat => usedCategories.has(cat));
+
+        // Sauvegarder si des catégories ont été supprimées
+        if (cleanedCategories.length !== categories.length) {
+            saveCategories(cleanedCategories);
+            console.log(`🧹 Nettoyage: ${categories.length - cleanedCategories.length} catégorie(s) vide(s) supprimée(s)`);
+        }
+    }
+
     function addFavori(data) {
         const favoris = loadFavoris();
         favoris.push({
@@ -1038,6 +1188,10 @@
         const favoris = loadFavoris();
         favoris.splice(index, 1);
         saveFavoris(favoris);
+
+        // Nettoyer les catégories vides après suppression
+        cleanEmptyCategories();
+
         return favoris;
     }
 
@@ -1055,6 +1209,9 @@
             return itemKey !== folderKey;
         });
         saveFavoris(filtered);
+
+        // Nettoyer les catégories vides après suppression du dossier
+        cleanEmptyCategories();
 
         // Supprimer le dossier de la liste des dossiers
         const existingFolders = GM_getValue('powerbi_folders', []);
@@ -1191,8 +1348,61 @@
             return;
         }
 
-        container.innerHTML = filtered.map((item, index) => `
-            <div class="component-card" draggable="false" data-index="${favoris.indexOf(item)}" data-folder="${folder}" style="position: relative; padding-right: 100px; word-wrap: break-word; overflow-wrap: break-word;">
+        // Regrouper les composants par catégorie
+        const groupedByCategory = {};
+        filtered.forEach(item => {
+            const category = item.categorie || 'Sans catégorie';
+            if (!groupedByCategory[category]) {
+                groupedByCategory[category] = [];
+            }
+            groupedByCategory[category].push(item);
+        });
+
+        // Obtenir les catégories triées (Sans catégorie en dernier)
+        const categories = Object.keys(groupedByCategory).sort((a, b) => {
+            if (a === 'Sans catégorie') return 1;
+            if (b === 'Sans catégorie') return -1;
+            return a.localeCompare(b);
+        });
+
+        // Générer le HTML avec séparateurs de catégories
+        let html = '';
+        categories.forEach((category, catIndex) => {
+            const items = groupedByCategory[category];
+
+            // Ajouter le séparateur de catégorie
+            html += `
+                <div class="category-separator" style="
+                    margin: ${catIndex === 0 ? '0' : '24px'} 0 16px 0;
+                    padding: 8px 16px;
+                    background: linear-gradient(135deg, rgba(103,58,183,0.12) 0%, rgba(142,36,170,0.12) 100%);
+                    border-left: 3px solid #ab47bc;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                ">
+                    <span style="
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: #ab47bc;
+                        text-transform: uppercase;
+                        letter-spacing: 0.8px;
+                    ">🏷️ ${category}</span>
+                    <span style="
+                        padding: 3px 10px;
+                        background: rgba(171,71,188,0.25);
+                        border-radius: 10px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.8);
+                    ">${items.length} composant${items.length > 1 ? 's' : ''}</span>
+                </div>
+            `;
+
+            // Ajouter les composants de cette catégorie
+            html += items.map((item, index) => `
+            <div class="component-card" draggable="false" data-index="${favoris.indexOf(item)}" data-folder="${folder}" data-categorie="${category}" style="position: relative; padding-right: 100px; word-wrap: break-word; overflow-wrap: break-word;">
                 <!-- Poignée de drag à gauche -->
                 <div class="drag-handle" draggable="true" style="
                     position: absolute;
@@ -1378,6 +1588,9 @@
                 ` : ''}
             </div>
         `).join('');
+        });
+
+        container.innerHTML = html;
 
         // Event listeners pour suppression
         document.querySelectorAll('.btn-delete').forEach(btn => {
@@ -1422,6 +1635,7 @@
                         designation: item.designation,
                         designationComposant: item.designationComposant,
                         repere: item.repere,
+                        categorie: item.categorie,
                         title: item.title
                     }, index);
                 } else {
@@ -1504,7 +1718,7 @@
                 e.stopPropagation();
                 card.classList.remove('dragging');
                 document.querySelectorAll('.component-card').forEach(c => {
-                    c.classList.remove('drag-over');
+                    c.classList.remove('drag-over', 'drag-over-category-change');
                 });
                 dragHandle.style.cursor = 'grab';
 
@@ -1521,39 +1735,67 @@
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
 
+                // Autoriser le drop si c'est dans le même dossier (peu importe la catégorie)
                 if (draggedCard && draggedCard !== card &&
                     draggedCard.dataset.folder === card.dataset.folder) {
-                    card.classList.add('drag-over');
+
+                    // Utiliser une classe différente selon si on change de catégorie ou non
+                    const isDifferentCategory = draggedCard.dataset.categorie !== card.dataset.categorie;
+                    card.classList.remove('drag-over', 'drag-over-category-change');
+                    card.classList.add(isDifferentCategory ? 'drag-over-category-change' : 'drag-over');
                 }
             });
 
             card.addEventListener('dragleave', () => {
-                card.classList.remove('drag-over');
+                card.classList.remove('drag-over', 'drag-over-category-change');
             });
 
             card.addEventListener('drop', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                card.classList.remove('drag-over');
+                card.classList.remove('drag-over', 'drag-over-category-change');
 
+                // Autoriser le drop dans le même dossier
                 if (draggedCard && draggedCard !== card &&
                     draggedCard.dataset.folder === card.dataset.folder) {
 
                     const draggedIndex = parseInt(draggedCard.dataset.index);
                     const targetIndex = parseInt(card.dataset.index);
+                    const targetCategorie = card.dataset.categorie;
+                    const draggedCategorie = draggedCard.dataset.categorie;
+
+                    console.log(`🎯 Drop détecté:`);
+                    console.log(`   draggedIndex: ${draggedIndex}, targetIndex: ${targetIndex}`);
+                    console.log(`   draggedCategorie: "${draggedCategorie}", targetCategorie: "${targetCategorie}"`);
 
                     // Réorganiser dans le tableau favoris
                     const favoris = loadFavoris();
                     const [movedItem] = favoris.splice(draggedIndex, 1);
 
-                    // Recalculer l'index cible après la suppression
-                    let newTargetIndex = targetIndex;
-                    if (draggedIndex < targetIndex) {
-                        newTargetIndex--;
+                    console.log(`   Élément retiré de l'index ${draggedIndex}`);
+
+                    // Si on change de catégorie, mettre à jour la catégorie de l'élément
+                    if (targetCategorie !== draggedCategorie) {
+                        movedItem.categorie = targetCategorie === 'Sans catégorie' ? '' : targetCategorie;
+                        console.log(`📦 Changement de catégorie: "${draggedCategorie}" → "${targetCategorie}"`);
                     }
 
-                    favoris.splice(newTargetIndex + 1, 0, movedItem);
+                    // Après avoir retiré l'élément, les indices changent
+                    // Si on tire vers le haut (draggedIndex > targetIndex), on insère à targetIndex
+                    // Si on tire vers le bas (draggedIndex < targetIndex), targetIndex a déjà décalé, donc on insère à targetIndex
+                    let insertIndex = targetIndex;
+                    if (draggedIndex < targetIndex) {
+                        // L'élément cible a reculé d'un index après le splice
+                        insertIndex = targetIndex;
+                    }
+
+                    console.log(`   Insertion à l'index ${insertIndex}`);
+
+                    favoris.splice(insertIndex, 0, movedItem);
                     saveFavoris(favoris);
+
+                    // Nettoyer les catégories vides
+                    cleanEmptyCategories();
 
                     // Rafraîchir l'affichage
                     displayComponents(folder, openModalFn);
@@ -2010,32 +2252,56 @@
     // Fonction pour cliquer sur le bouton Power Apps
     function clickPowerAppsButton(attempt = 1, maxAttempts = 15) {
         if (attempt === 1) {
-            console.log('🔍 Envoi message CLICK_POWER_APPS_BUTTON aux iframes...');
+            console.log('🔍 Recherche bouton Power Apps...');
         }
 
-        // Envoyer le message à toutes les iframes visual-sandbox
-        const allIframes = document.querySelectorAll('iframe.visual-sandbox');
-        let messageSent = false;
+        // D'abord chercher dans le document principal
+        let button = document.querySelector('.appmagic-button.middle.center');
+        if (!button) button = document.querySelector('.appmagic-button');
+        if (!button) button = document.querySelector('button[class*="appmagic"]');
+        if (!button) button = document.querySelector('div.appmagic-button');
+        if (!button) button = document.querySelector('div[class*="appmagic-button"]');
 
+        // Debug: afficher ce qu'on trouve (première tentative seulement)
+        if (attempt === 1) {
+            const allButtons = document.querySelectorAll('button, [role="button"], div[class*="button"], div[class*="Button"]');
+            console.log(`  Trouvé ${allButtons.length} éléments bouton dans document principal`);
+            if (allButtons.length > 0 && allButtons.length < 30) {
+                allButtons.forEach((btn, idx) => {
+                    const classes = btn.className || 'no-class';
+                    const text = btn.textContent ? btn.textContent.substring(0, 40).trim() : 'no-text';
+                    if (classes.toLowerCase().includes('app') || classes.toLowerCase().includes('power')) {
+                        console.log(`    [${idx}] class="${classes}" text="${text}"`);
+                    }
+                });
+            }
+        }
+
+        if (button) {
+            console.log('✅ Bouton Power Apps trouvé dans document principal, clic...');
+            button.click();
+            return;
+        }
+
+        // Si pas trouvé, envoyer message aux iframes
+        const allIframes = document.querySelectorAll('iframe.visual-sandbox');
         allIframes.forEach((iframe, idx) => {
             try {
                 iframe.contentWindow.postMessage({
                     type: 'CLICK_POWER_APPS_BUTTON'
                 }, '*');
-                messageSent = true;
-                if (attempt === 1) {
-                    console.log(`  Message envoyé à iframe ${idx}`);
-                }
             } catch (e) {
-                console.log(`  Erreur envoi à iframe ${idx}:`, e.message);
+                // Ignore
             }
         });
 
-        if (messageSent && attempt < maxAttempts) {
-            // Réessayer après 500ms au cas où le bouton n'est pas encore chargé
+        // Réessayer
+        if (attempt < maxAttempts) {
             setTimeout(() => {
                 clickPowerAppsButton(attempt + 1, maxAttempts);
             }, 500);
+        } else {
+            console.log('⚠️ Bouton Power Apps non trouvé après', maxAttempts, 'tentatives');
         }
     }
 
@@ -2199,6 +2465,9 @@
             // Charger la liste des dossiers existants
             updateFoldersCheckboxes();
 
+            // Charger la liste des catégories existantes
+            updateCategoriesSelect();
+
             // Afficher le nom du composant sélectionné si présent
             const selectedDisplay = document.getElementById('selected-component-display');
             const selectedName = document.getElementById('selected-component-name');
@@ -2220,6 +2489,7 @@
             document.getElementById('input-symbole').value = '';
             document.getElementById('input-designation').value = '';
             document.getElementById('input-repere').value = initialValues.repere || '';
+            document.getElementById('input-categorie').value = initialValues.categorie || '';
             document.getElementById('input-commentaire').value = initialValues.designationComposant || '';
 
             // Stocker l'index d'édition et le title sur le bouton de sauvegarde
@@ -2264,6 +2534,8 @@
             document.getElementById('input-symbole').value = '';
             document.getElementById('input-designation').value = '';
             document.getElementById('input-repere').value = '';
+            document.getElementById('input-new-categorie').value = '';
+            document.getElementById('input-categorie').value = '';
             document.getElementById('input-commentaire').value = '';
         };
 
@@ -2316,6 +2588,47 @@
             alert(`✓ Dossier "${newFolder}" créé !`);
         });
 
+        // Bouton Ajouter catégorie dans la modal
+        const addCategorieBtn = modal.querySelector('#btn-add-categorie');
+        addCategorieBtn.addEventListener('click', () => {
+            const newCategorie = document.getElementById('input-new-categorie').value.trim();
+
+            if (!newCategorie) {
+                alert('Veuillez entrer un nom de catégorie');
+                return;
+            }
+
+            // Vérifier si la catégorie existe déjà
+            const existingCategories = loadCategories();
+            if (existingCategories.includes(newCategorie)) {
+                alert(`La catégorie "${newCategorie}" existe déjà !`);
+                return;
+            }
+
+            // Ajouter la catégorie
+            addCategory(newCategorie);
+
+            // Recharger la liste des catégories
+            updateCategoriesSelect();
+
+            // Sélectionner la nouvelle catégorie
+            document.getElementById('input-categorie').value = newCategorie;
+
+            // Clear le champ de nouvelle catégorie
+            document.getElementById('input-new-categorie').value = '';
+
+            alert(`✓ Catégorie "${newCategorie}" créée !`);
+        });
+
+        // Permettre la création de catégorie avec la touche Entrée
+        const newCategorieInput = modal.querySelector('#input-new-categorie');
+        newCategorieInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCategorieBtn.click();
+            }
+        });
+
         addBtn.addEventListener('click', () => {
             // Récupérer l'élément sélectionné dans Power BI
             const selectedItem = getSelectedItem();
@@ -2343,6 +2656,7 @@
             const symbole = document.getElementById('input-symbole').value.trim();
             const designation = document.getElementById('input-designation').value.trim();
             const repere = document.getElementById('input-repere').value.trim();
+            const categorie = document.getElementById('input-categorie').value.trim();
             const commentaire = document.getElementById('input-commentaire').value.trim();
 
             // Validation : le symbole doit avoir exactement 8 chiffres si renseigné
@@ -2391,9 +2705,15 @@
                     designation: folderDesignation,
                     designationComposant: commentaire,
                     repere,
+                    categorie,
                     timestamp: Date.now()
                 };
                 saveFavoris(favoris);
+
+                // Ajouter la catégorie à la liste si elle n'existe pas
+                if (categorie) {
+                    addCategory(categorie);
+                }
 
                 // Ajouter le dossier à la liste s'il n'existe pas
                 const existingFolders = GM_getValue('powerbi_folders', []);
@@ -2458,7 +2778,8 @@
                         symbole: folderSymbole,
                         designation: folderDesignation,
                         designationComposant: commentaire,
-                        repere
+                        repere,
+                        categorie
                     };
 
                     addFavori(favoriData);
@@ -2468,6 +2789,11 @@
                         existingFolders.push(folder);
                     }
                 });
+
+                // Ajouter la catégorie à la liste si elle n'existe pas
+                if (categorie) {
+                    addCategory(categorie);
+                }
 
                 GM_setValue('powerbi_folders', existingFolders);
             }
