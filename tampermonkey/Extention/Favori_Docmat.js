@@ -1110,6 +1110,97 @@
             border-color: var(--text-secondary);
             transform: translateY(-2px);
         }
+
+        /* Styles pour la création de dossier rapide */
+        .custom-terms-modal .create-folder-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+        }
+
+        .custom-terms-modal .create-folder-section h4 {
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-terms-modal .create-folder-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .custom-terms-modal .create-folder-inputs input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .custom-terms-modal .create-folder-inputs input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .custom-terms-modal .create-folder-inputs input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .custom-terms-modal .create-folder-inputs input.error {
+            border-color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .custom-terms-modal .create-folder-inputs .input-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: -6px;
+            font-style: italic;
+        }
+
+        .custom-terms-modal .create-folder-inputs .input-hint.error {
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+
+        .custom-terms-modal .create-folder-btn-submit {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            margin-top: 8px;
+        }
+
+        .custom-terms-modal .create-folder-btn-submit:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .custom-terms-modal .create-folder-btn-submit:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+        }
     `);
 
     // Fonctions de dialogue personnalisées
@@ -2417,9 +2508,19 @@
                 <div class="custom-terms-body">
                     <div class="left-panel">
                         <div class="terms-section">
-                            <h4>� Ajouter dans un dossier :</h4>
+                            <h4>📁 Ajouter dans un dossier :</h4>
                             <input type="text" class="folder-search" id="folder-search-modal" placeholder="🔍 Rechercher...">
                             <div class="folder-selector" id="folder-selector-list"></div>
+                        </div>
+
+                        <div class="create-folder-section">
+                            <h4>➕ Créer un nouveau dossier :</h4>
+                            <div class="create-folder-inputs">
+                                <input type="text" id="new-folder-designation" placeholder="Désignation du dossier..." maxlength="100">
+                                <input type="text" id="new-folder-symbol" placeholder="Symbole (8 chiffres obligatoires)" maxlength="8">
+                                <div class="input-hint" id="symbol-hint">Format: 12345678</div>
+                                <button class="create-folder-btn-submit" id="create-folder-submit" disabled>📁 Créer le dossier</button>
+                            </div>
                         </div>
                     </div>
 
@@ -2545,6 +2646,87 @@
             }
         };
 
+        // Gérer la création de nouveau dossier
+        const newFolderDesignation = modal.querySelector('#new-folder-designation');
+        const newFolderSymbol = modal.querySelector('#new-folder-symbol');
+        const createFolderBtn = modal.querySelector('#create-folder-submit');
+        const symbolHint = modal.querySelector('#symbol-hint');
+
+        // Fonction de validation du symbole
+        const validateSymbol = () => {
+            const symbol = newFolderSymbol.value.trim();
+            const designation = newFolderDesignation.value.trim();
+
+            // Vérifier que le symbole contient exactement 8 chiffres
+            const isValid = /^\d{8}$/.test(symbol);
+
+            if (symbol.length > 0 && !isValid) {
+                newFolderSymbol.classList.add('error');
+                symbolHint.classList.add('error');
+                symbolHint.textContent = '⚠️ Le symbole doit contenir exactement 8 chiffres';
+            } else {
+                newFolderSymbol.classList.remove('error');
+                symbolHint.classList.remove('error');
+                symbolHint.textContent = 'Format: 12345678';
+            }
+
+            // Activer le bouton seulement si les deux champs sont valides
+            createFolderBtn.disabled = !(designation.length > 0 && isValid);
+        };
+
+        // Écouter les changements sur les champs
+        newFolderDesignation.addEventListener('input', validateSymbol);
+        newFolderSymbol.addEventListener('input', (e) => {
+            // Autoriser uniquement les chiffres
+            e.target.value = e.target.value.replace(/\D/g, '');
+            validateSymbol();
+        });
+
+        // Créer le dossier
+        createFolderBtn.addEventListener('click', async () => {
+            const designation = newFolderDesignation.value.trim();
+            const symbol = newFolderSymbol.value.trim();
+
+            if (designation && symbol && /^\d{8}$/.test(symbol)) {
+                const folderName = `${designation} - ${symbol}`;
+
+                if (createFolder(folderName)) {
+                    showNotification('✅ Dossier créé avec succès !');
+
+                    // Réinitialiser les champs
+                    newFolderDesignation.value = '';
+                    newFolderSymbol.value = '';
+                    validateSymbol();
+
+                    // Mettre à jour la liste des dossiers
+                    updateFolderSelector();
+
+                    // Sélectionner automatiquement le nouveau dossier
+                    const folders = getFolders();
+                    const newFolder = folders.find(f => f.name === folderName);
+                    if (newFolder) {
+                        selectedFolderId = newFolder.id;
+                        updateFolderSelector();
+                    }
+                } else {
+                    await customAlert('Un dossier avec ce nom existe déjà.', '⚠️');
+                }
+            }
+        });
+
+        // Permettre de créer avec Enter dans les champs
+        newFolderDesignation.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !createFolderBtn.disabled) {
+                createFolderBtn.click();
+            }
+        });
+
+        newFolderSymbol.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !createFolderBtn.disabled) {
+                createFolderBtn.click();
+            }
+        });
+
         modal.classList.add('show');
     }
 
@@ -2649,6 +2831,87 @@
                 addTermBtn.click();
             }
         };
+
+        // Gérer la création de nouveau dossier
+        const newFolderDesignation = modal.querySelector('#new-folder-designation');
+        const newFolderSymbol = modal.querySelector('#new-folder-symbol');
+        const createFolderBtn = modal.querySelector('#create-folder-submit');
+        const symbolHint = modal.querySelector('#symbol-hint');
+
+        // Fonction de validation du symbole
+        const validateSymbol = () => {
+            const symbol = newFolderSymbol.value.trim();
+            const designation = newFolderDesignation.value.trim();
+
+            // Vérifier que le symbole contient exactement 8 chiffres
+            const isValid = /^\d{8}$/.test(symbol);
+
+            if (symbol.length > 0 && !isValid) {
+                newFolderSymbol.classList.add('error');
+                symbolHint.classList.add('error');
+                symbolHint.textContent = '⚠️ Le symbole doit contenir exactement 8 chiffres';
+            } else {
+                newFolderSymbol.classList.remove('error');
+                symbolHint.classList.remove('error');
+                symbolHint.textContent = 'Format: 12345678';
+            }
+
+            // Activer le bouton seulement si les deux champs sont valides
+            createFolderBtn.disabled = !(designation.length > 0 && isValid);
+        };
+
+        // Écouter les changements sur les champs
+        newFolderDesignation.addEventListener('input', validateSymbol);
+        newFolderSymbol.addEventListener('input', (e) => {
+            // Autoriser uniquement les chiffres
+            e.target.value = e.target.value.replace(/\D/g, '');
+            validateSymbol();
+        });
+
+        // Créer le dossier
+        createFolderBtn.addEventListener('click', async () => {
+            const designation = newFolderDesignation.value.trim();
+            const symbol = newFolderSymbol.value.trim();
+
+            if (designation && symbol && /^\d{8}$/.test(symbol)) {
+                const folderName = `${designation} - ${symbol}`;
+
+                if (createFolder(folderName)) {
+                    showNotification('✅ Dossier créé avec succès !');
+
+                    // Réinitialiser les champs
+                    newFolderDesignation.value = '';
+                    newFolderSymbol.value = '';
+                    validateSymbol();
+
+                    // Mettre à jour la liste des dossiers
+                    updateFolderSelector();
+
+                    // Sélectionner automatiquement le nouveau dossier
+                    const folders = getFolders();
+                    const newFolder = folders.find(f => f.name === folderName);
+                    if (newFolder) {
+                        selectedFolderId = newFolder.id;
+                        updateFolderSelector();
+                    }
+                } else {
+                    await customAlert('Un dossier avec ce nom existe déjà.', '⚠️');
+                }
+            }
+        });
+
+        // Permettre de créer avec Enter dans les champs
+        newFolderDesignation.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !createFolderBtn.disabled) {
+                createFolderBtn.click();
+            }
+        });
+
+        newFolderSymbol.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !createFolderBtn.disabled) {
+                createFolderBtn.click();
+            }
+        });
 
         modal.classList.add('show');
     }
