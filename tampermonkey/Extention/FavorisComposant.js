@@ -272,6 +272,28 @@
                 box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
                 transition: none;
             }
+
+            /* Styles pour les catégories réductibles */
+            .category-separator {
+                transition: background 0.2s, transform 0.1s;
+            }
+
+            .category-separator:hover {
+                transform: translateX(2px);
+            }
+
+            .category-separator:active {
+                transform: translateX(0px);
+            }
+
+            .category-toggle {
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .category-items {
+                transition: opacity 0.3s ease-out;
+                overflow: hidden;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -1319,6 +1341,27 @@
         return categories;
     }
 
+    // Gestion de l'état de réduction/expansion des catégories
+    function loadCategoriesState() {
+        return GM_getValue('powerbi_categories_collapsed', {});
+    }
+
+    function saveCategoriesState(state) {
+        GM_setValue('powerbi_categories_collapsed', state);
+    }
+
+    function toggleCategoryCollapse(categoryName) {
+        const state = loadCategoriesState();
+        state[categoryName] = !state[categoryName];
+        saveCategoriesState(state);
+        return state[categoryName];
+    }
+
+    function isCategoryCollapsed(categoryName) {
+        const state = loadCategoriesState();
+        return state[categoryName] || false;
+    }
+
     function cleanEmptyCategories() {
         const favoris = loadFavoris();
         const categories = loadCategories();
@@ -1546,10 +1589,11 @@
         let html = '';
         categories.forEach((category, catIndex) => {
             const items = groupedByCategory[category];
+            const isCollapsed = isCategoryCollapsed(category);
 
-            // Ajouter le séparateur de catégorie
+            // Ajouter le séparateur de catégorie avec bouton de réduction
             html += `
-                <div class="category-separator" style="
+                <div class="category-separator" data-category="${category}" style="
                     margin: ${catIndex === 0 ? '0' : '24px'} 0 16px 0;
                     padding: 8px 16px;
                     background: linear-gradient(135deg, rgba(103,58,183,0.12) 0%, rgba(142,36,170,0.12) 100%);
@@ -1558,7 +1602,18 @@
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                ">
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    user-select: none;
+                " title="Cliquer pour ${isCollapsed ? 'afficher' : 'masquer'} les composants">
+                    <span class="category-toggle" style="
+                        font-size: 16px;
+                        transition: transform 0.3s;
+                        transform: rotate(${isCollapsed ? '-90deg' : '0deg'});
+                        display: inline-block;
+                        width: 20px;
+                        text-align: center;
+                    ">▼</span>
                     <span style="
                         font-size: 15px;
                         font-weight: 700;
@@ -1577,7 +1632,8 @@
                 </div>
             `;
 
-            // Ajouter les composants de cette catégorie
+            // Ajouter les composants de cette catégorie avec gestion de la visibilité
+            html += `<div class="category-items" data-category="${category}" style="display: ${isCollapsed ? 'none' : 'block'};">`;
             html += items.map((item, index) => `
             <div class="component-card" draggable="false" data-index="${favoris.indexOf(item)}" data-folder="${folder}" data-categorie="${category}" style="position: relative; padding-right: 100px; word-wrap: break-word; overflow-wrap: break-word;">
                 <!-- Poignée de drag à gauche -->
@@ -1765,9 +1821,48 @@
                 ` : ''}
             </div>
         `).join('');
+            html += `</div>`; // Fermeture de la div category-items
         });
 
         container.innerHTML = html;
+
+        // Event listeners pour les séparateurs de catégories (réduction/expansion)
+        document.querySelectorAll('.category-separator').forEach(separator => {
+            separator.addEventListener('click', () => {
+                const category = separator.dataset.category;
+                const isCollapsed = toggleCategoryCollapse(category);
+
+                // Trouver les éléments concernés
+                const toggle = separator.querySelector('.category-toggle');
+                const itemsContainer = document.querySelector(`.category-items[data-category="${category}"]`);
+
+                // Animer la flèche
+                if (toggle) {
+                    toggle.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+                }
+
+                // Afficher/masquer les composants avec animation
+                if (itemsContainer) {
+                    if (isCollapsed) {
+                        itemsContainer.style.display = 'none';
+                    } else {
+                        itemsContainer.style.display = 'block';
+                    }
+                }
+
+                // Mettre à jour le titre
+                separator.title = `Cliquer pour ${isCollapsed ? 'afficher' : 'masquer'} les composants`;
+            });
+
+            // Effet hover
+            separator.addEventListener('mouseenter', () => {
+                separator.style.background = 'linear-gradient(135deg, rgba(103,58,183,0.18) 0%, rgba(142,36,170,0.18) 100%)';
+            });
+
+            separator.addEventListener('mouseleave', () => {
+                separator.style.background = 'linear-gradient(135deg, rgba(103,58,183,0.12) 0%, rgba(142,36,170,0.12) 100%)';
+            });
+        });
 
         // Event listeners pour suppression
         document.querySelectorAll('.btn-delete').forEach(btn => {
