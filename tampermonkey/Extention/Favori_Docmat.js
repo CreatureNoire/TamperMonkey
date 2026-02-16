@@ -753,9 +753,12 @@
             color: var(--text-secondary);
         }
 
-        .custom-terms-modal .folder-option {
+        .custom-terms-modal .folder-tree-item {
+            margin-bottom: 6px;
+        }
+
+        .custom-terms-modal .folder-item-header {
             padding: 10px 12px;
-            margin-bottom: 8px;
             background: var(--bg-card);
             border: 2px solid var(--border-color);
             border-radius: 8px;
@@ -766,25 +769,52 @@
             gap: 10px;
         }
 
-        .custom-terms-modal .folder-option:hover {
+        .custom-terms-modal .folder-item-header:hover {
             background: var(--bg-hover);
             border-color: var(--primary-color);
         }
 
-        .custom-terms-modal .folder-option.selected {
+        .custom-terms-modal .folder-item-header.selected {
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
         }
 
-        .custom-terms-modal .folder-option input[type="checkbox"] {
+        .custom-terms-modal .folder-expand-icon {
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            min-width: 14px;
+            display: inline-block;
+            user-select: none;
+        }
+
+        .custom-terms-modal .folder-expand-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .custom-terms-modal .folder-expand-icon.hidden {
+            visibility: hidden;
+        }
+
+        .custom-terms-modal .folder-children {
+            margin-left: 24px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .custom-terms-modal .folder-children.expanded {
+            display: block;
+        }
+
+        .custom-terms-modal .folder-item-header input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
             accent-color: var(--primary-color);
         }
 
-        .custom-terms-modal .folder-option label {
+        .custom-terms-modal .folder-item-header label {
             flex: 1;
             cursor: pointer;
             font-size: 14px;
@@ -1163,6 +1193,32 @@
             background: rgba(239, 68, 68, 0.1);
         }
 
+        .custom-terms-modal .parent-folder-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .custom-terms-modal .parent-folder-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .custom-terms-modal .parent-folder-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 8px;
+        }
+
         .custom-terms-modal .create-folder-inputs .input-hint {
             font-size: 11px;
             color: var(--text-secondary);
@@ -1208,6 +1264,7 @@
         return new Promise((resolve) => {
             const modal = document.createElement('div');
             modal.className = 'custom-dialog-modal';
+            modal.style.zIndex = '10004'; // Plus élevé que la fenêtre de gestion des catégories (10003)
             modal.innerHTML = `
                 <div class="dialog-content">
                     <div class="dialog-icon">${icon}</div>
@@ -1241,6 +1298,7 @@
         return new Promise((resolve) => {
             const modal = document.createElement('div');
             modal.className = 'custom-dialog-modal';
+            modal.style.zIndex = '10004'; // Plus élevé que la fenêtre de gestion des catégories (10003)
             modal.innerHTML = `
                 <div class="dialog-content">
                     <div class="dialog-icon">${icon}</div>
@@ -2519,6 +2577,9 @@
                                 <input type="text" id="new-folder-designation" placeholder="Désignation du dossier..." maxlength="100">
                                 <input type="text" id="new-folder-symbol" placeholder="Symbole (8 chiffres obligatoires)" maxlength="8">
                                 <div class="input-hint" id="symbol-hint">Format: 12345678</div>
+                                <select id="parent-folder-select" class="parent-folder-select">
+                                    <option value="">📂 Dossier racine (aucun parent)</option>
+                                </select>
                                 <button class="create-folder-btn-submit" id="create-folder-submit" disabled>📁 Créer le dossier</button>
                             </div>
                         </div>
@@ -2651,6 +2712,33 @@
         const newFolderSymbol = modal.querySelector('#new-folder-symbol');
         const createFolderBtn = modal.querySelector('#create-folder-submit');
         const symbolHint = modal.querySelector('#symbol-hint');
+        const parentFolderSelect = modal.querySelector('#parent-folder-select');
+
+        // Fonction pour peupler le sélecteur de dossiers parents
+        const populateParentFolderSelect = () => {
+            const folders = getFolders();
+            parentFolderSelect.innerHTML = '<option value="">📂 Dossier racine (aucun parent)</option>';
+
+            // Fonction récursive pour construire la liste avec indentation
+            const buildFolderOptions = (parentId = null, level = 0) => {
+                const childFolders = folders.filter(f => f.parentId === parentId);
+                childFolders.forEach(folder => {
+                    const indent = '&nbsp;&nbsp;'.repeat(level * 2);
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.innerHTML = `${indent}📁 ${folder.name}`;
+                    parentFolderSelect.appendChild(option);
+
+                    // Ajouter récursivement les sous-dossiers
+                    buildFolderOptions(folder.id, level + 1);
+                });
+            };
+
+            buildFolderOptions(null, 0);
+        };
+
+        // Peupler le sélecteur au démarrage
+        populateParentFolderSelect();
 
         // Fonction de validation du symbole
         const validateSymbol = () => {
@@ -2686,20 +2774,23 @@
         createFolderBtn.addEventListener('click', async () => {
             const designation = newFolderDesignation.value.trim();
             const symbol = newFolderSymbol.value.trim();
+            const parentId = parentFolderSelect.value || null; // Récupérer le dossier parent sélectionné
 
             if (designation && symbol && /^\d{8}$/.test(symbol)) {
                 const folderName = `${designation} - ${symbol}`;
 
-                if (createFolder(folderName)) {
+                if (createFolder(folderName, parentId)) { // Passer le parentId à createFolder
                     showNotification('✅ Dossier créé avec succès !');
 
                     // Réinitialiser les champs
                     newFolderDesignation.value = '';
                     newFolderSymbol.value = '';
+                    parentFolderSelect.value = '';
                     validateSymbol();
 
                     // Mettre à jour la liste des dossiers
                     updateFolderSelector();
+                    populateParentFolderSelect(); // Mettre à jour aussi le sélecteur de parents
 
                     // Sélectionner automatiquement le nouveau dossier
                     const folders = getFolders();
@@ -2837,6 +2928,33 @@
         const newFolderSymbol = modal.querySelector('#new-folder-symbol');
         const createFolderBtn = modal.querySelector('#create-folder-submit');
         const symbolHint = modal.querySelector('#symbol-hint');
+        const parentFolderSelect = modal.querySelector('#parent-folder-select');
+
+        // Fonction pour peupler le sélecteur de dossiers parents
+        const populateParentFolderSelect = () => {
+            const folders = getFolders();
+            parentFolderSelect.innerHTML = '<option value="">📂 Dossier racine (aucun parent)</option>';
+
+            // Fonction récursive pour construire la liste avec indentation
+            const buildFolderOptions = (parentId = null, level = 0) => {
+                const childFolders = folders.filter(f => f.parentId === parentId);
+                childFolders.forEach(folder => {
+                    const indent = '&nbsp;&nbsp;'.repeat(level * 2);
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.innerHTML = `${indent}📁 ${folder.name}`;
+                    parentFolderSelect.appendChild(option);
+
+                    // Ajouter récursivement les sous-dossiers
+                    buildFolderOptions(folder.id, level + 1);
+                });
+            };
+
+            buildFolderOptions(null, 0);
+        };
+
+        // Peupler le sélecteur au démarrage
+        populateParentFolderSelect();
 
         // Fonction de validation du symbole
         const validateSymbol = () => {
@@ -2872,20 +2990,23 @@
         createFolderBtn.addEventListener('click', async () => {
             const designation = newFolderDesignation.value.trim();
             const symbol = newFolderSymbol.value.trim();
+            const parentId = parentFolderSelect.value || null; // Récupérer le dossier parent sélectionné
 
             if (designation && symbol && /^\d{8}$/.test(symbol)) {
                 const folderName = `${designation} - ${symbol}`;
 
-                if (createFolder(folderName)) {
+                if (createFolder(folderName, parentId)) { // Passer le parentId à createFolder
                     showNotification('✅ Dossier créé avec succès !');
 
                     // Réinitialiser les champs
                     newFolderDesignation.value = '';
                     newFolderSymbol.value = '';
+                    parentFolderSelect.value = '';
                     validateSymbol();
 
                     // Mettre à jour la liste des dossiers
                     updateFolderSelector();
+                    populateParentFolderSelect(); // Mettre à jour aussi le sélecteur de parents
 
                     // Sélectionner automatiquement le nouveau dossier
                     const folders = getFolders();
@@ -2977,62 +3098,91 @@
 
         const folders = getFolders();
 
-        // Fonction récursive pour construire le chemin d'un dossier
-        const getFolderPath = (folderId) => {
-            const folder = folders.find(f => f.id === folderId);
-            if (!folder) return '';
-            if (!folder.parentId) return folder.name;
-            return getFolderPath(folder.parentId) + ' > ' + folder.name;
-        };
+        // État des dossiers dépliés (on garde en mémoire les dossiers qui étaient ouverts)
+        const expandedFolders = new Set();
+        folderSelectorList.querySelectorAll('.folder-children.expanded').forEach(el => {
+            const parentId = el.getAttribute('data-parent-id');
+            if (parentId) expandedFolders.add(parentId);
+        });
 
-        // Fonction récursive pour construire la liste des dossiers
-        const buildFolderList = (parentId = null, level = 0) => {
-            let list = [];
+        // Fonction récursive pour construire l'arborescence HTML
+        const buildFolderTree = (parentId = null) => {
             const childFolders = folders.filter(f => f.parentId === parentId);
 
             // Filtrer selon la recherche
-            const filteredChildFolders = folderSearchQueryModal
+            let filteredFolders = folderSearchQueryModal
                 ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
                 : childFolders;
 
-            filteredChildFolders.forEach(folder => {
-                const indent = '&nbsp;&nbsp;'.repeat(level * 2);
-                list.push({
-                    folder: folder,
-                    indent: indent,
-                    level: level
-                });
+            if (filteredFolders.length === 0) return '';
 
-                // Ajouter récursivement les sous-dossiers
-                list = list.concat(buildFolderList(folder.id, level + 1));
+            let html = '';
+            filteredFolders.forEach(folder => {
+                const hasChildren = folders.some(f => f.parentId === folder.id);
+                const isSelected = selectedFolderId === folder.id;
+                const isExpanded = expandedFolders.has(folder.id);
+
+                html += `
+                    <div class="folder-tree-item" data-folder-id="${folder.id}">
+                        <div class="folder-item-header ${isSelected ? 'selected' : ''}" data-folder-id="${folder.id}">
+                            <span class="folder-expand-icon ${hasChildren ? (isExpanded ? '' : 'collapsed') : 'hidden'}" data-folder-id="${folder.id}">
+                                ▼
+                            </span>
+                            <input type="checkbox" id="folder-${folder.id}" ${isSelected ? 'checked' : ''}>
+                            <span class="folder-icon-small">📁</span>
+                            <label for="folder-${folder.id}">${folder.name}</label>
+                        </div>
+                `;
+
+                // Sous-dossiers
+                if (hasChildren) {
+                    html += `
+                        <div class="folder-children ${isExpanded ? 'expanded' : ''}" data-parent-id="${folder.id}">
+                            ${buildFolderTree(folder.id)}
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
             });
 
-            return list;
+            return html;
         };
 
-        const folderList = buildFolderList(null, 0);
+        const treeHTML = buildFolderTree(null);
 
-        if (folderList.length === 0) {
+        if (!treeHTML) {
             folderSelectorList.innerHTML = '<p style="color: #999; font-style: italic; font-size: 13px;">Aucun dossier disponible.</p>';
             return;
         }
 
-        folderSelectorList.innerHTML = folderList.map(item => {
-            const isSelected = selectedFolderId === item.folder.id;
-            return `
-                <div class="folder-option ${isSelected ? 'selected' : ''}" data-folder-id="${item.folder.id}">
-                    <input type="checkbox" id="folder-${item.folder.id}" ${isSelected ? 'checked' : ''}>
-                    <span class="folder-icon-small">${item.indent}📁</span>
-                    <label for="folder-${item.folder.id}">${item.folder.name}</label>
-                </div>
-            `;
-        }).join('');
+        folderSelectorList.innerHTML = treeHTML;
+
+        // Événements pour déplier/replier les dossiers
+        folderSelectorList.querySelectorAll('.folder-expand-icon:not(.hidden)').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const folderId = icon.getAttribute('data-folder-id');
+                const treeItem = icon.closest('.folder-tree-item');
+                const childrenDiv = treeItem.querySelector('.folder-children');
+
+                if (childrenDiv) {
+                    childrenDiv.classList.toggle('expanded');
+                    icon.classList.toggle('collapsed');
+                }
+            });
+        });
 
         // Événements pour sélectionner/désélectionner un dossier
-        folderSelectorList.querySelectorAll('.folder-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                const folderId = option.getAttribute('data-folder-id');
-                const checkbox = option.querySelector('input[type="checkbox"]');
+        folderSelectorList.querySelectorAll('.folder-item-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                // Ne pas traiter si on clique sur l'icône d'expansion
+                if (e.target.classList.contains('folder-expand-icon')) {
+                    return;
+                }
+
+                const folderId = header.getAttribute('data-folder-id');
+                const checkbox = header.querySelector('input[type="checkbox"]');
 
                 // Toggle la sélection
                 if (selectedFolderId === folderId) {
@@ -3047,10 +3197,10 @@
             });
 
             // Empêcher le double toggle quand on clique sur la checkbox
-            const checkbox = option.querySelector('input[type="checkbox"]');
+            const checkbox = header.querySelector('input[type="checkbox"]');
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const folderId = option.getAttribute('data-folder-id');
+                const folderId = header.getAttribute('data-folder-id');
 
                 if (e.target.checked) {
                     selectedFolderId = folderId;
@@ -3192,28 +3342,31 @@
         const categories = getDocumentCategories();
 
         const modal = document.createElement('div');
-        modal.className = 'custom-dialog-modal';
+        modal.className = 'custom-dialog-modal categories-management-modal';
         modal.style.zIndex = '10003';
 
-        let categoriesHTML = categories.map(cat => `
-            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 10px;">
-                <input type="color" value="${cat.color}" data-cat-id="${cat.id}" class="cat-color-input"
-                       style="width: 50px; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${cat.name}</div>
-                    <select data-cat-id="${cat.id}" class="cat-indent-select"
-                            style="padding: 4px 8px; background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
-                        <option value="0" ${cat.indentLevel === 0 ? 'selected' : ''}>Normal</option>
-                        <option value="1" ${cat.indentLevel === 1 ? 'selected' : ''}>Décalé -15px</option>
-                        <option value="2" ${cat.indentLevel === 2 ? 'selected' : ''}>Décalé -30px</option>
-                    </select>
+        const renderCategoriesList = () => {
+            const categories = getDocumentCategories();
+            return categories.map(cat => `
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 10px;">
+                    <input type="color" value="${cat.color}" data-cat-id="${cat.id}" class="cat-color-input"
+                           style="width: 50px; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${cat.name}</div>
+                        <select data-cat-id="${cat.id}" class="cat-indent-select"
+                                style="padding: 4px 8px; background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
+                            <option value="0" ${cat.indentLevel === 0 ? 'selected' : ''}>Normal</option>
+                            <option value="1" ${cat.indentLevel === 1 ? 'selected' : ''}>Décalé -15px</option>
+                            <option value="2" ${cat.indentLevel === 2 ? 'selected' : ''}>Décalé -30px</option>
+                        </select>
+                    </div>
+                    <button class="delete-cat-btn" data-cat-id="${cat.id}"
+                            style="background: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        🗑️
+                    </button>
                 </div>
-                <button class="delete-cat-btn" data-cat-id="${cat.id}"
-                        style="background: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                    🗑️
-                </button>
-            </div>
-        `).join('');
+            `).join('');
+        };
 
         modal.innerHTML = `
             <div class="dialog-content" style="max-width: 600px;">
@@ -3222,8 +3375,8 @@
                     Gérer les Catégories de Documents
                 </div>
 
-                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
-                    ${categoriesHTML}
+                <div id="categories-list-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                    ${renderCategoriesList()}
                 </div>
 
                 <div style="border-top: 2px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
@@ -3246,7 +3399,7 @@
                 </div>
 
                 <div class="dialog-actions">
-                    <button class="dialog-btn dialog-btn-primary">✅ Enregistrer et Fermer</button>
+                    <button class="dialog-btn dialog-btn-primary close-categories-modal">✅ Enregistrer et Fermer</button>
                 </div>
             </div>
         `;
@@ -3254,44 +3407,53 @@
         document.body.appendChild(modal);
         modal.classList.add('show');
 
-        // Gérer les changements de couleur
-        modal.querySelectorAll('.cat-color-input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const catId = e.target.dataset.catId;
-                const categories = getDocumentCategories();
-                const cat = categories.find(c => c.id === catId);
-                if (cat) {
-                    cat.color = e.target.value;
-                    saveDocumentCategories(categories);
-                }
+        // Fonction pour réattacher les événements après mise à jour de la liste
+        const attachEventListeners = () => {
+            // Gérer les changements de couleur
+            modal.querySelectorAll('.cat-color-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const catId = e.target.dataset.catId;
+                    const categories = getDocumentCategories();
+                    const cat = categories.find(c => c.id === catId);
+                    if (cat) {
+                        cat.color = e.target.value;
+                        saveDocumentCategories(categories);
+                    }
+                });
             });
-        });
 
-        // Gérer les changements d'indentation
-        modal.querySelectorAll('.cat-indent-select').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const catId = e.target.dataset.catId;
-                const categories = getDocumentCategories();
-                const cat = categories.find(c => c.id === catId);
-                if (cat) {
-                    cat.indentLevel = parseInt(e.target.value);
-                    saveDocumentCategories(categories);
-                }
+            // Gérer les changements d'indentation
+            modal.querySelectorAll('.cat-indent-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const catId = e.target.dataset.catId;
+                    const categories = getDocumentCategories();
+                    const cat = categories.find(c => c.id === catId);
+                    if (cat) {
+                        cat.indentLevel = parseInt(e.target.value);
+                        saveDocumentCategories(categories);
+                    }
+                });
             });
-        });
 
-        // Gérer la suppression
-        modal.querySelectorAll('.delete-cat-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const catId = e.target.dataset.catId;
-                const confirmed = await customConfirm('Supprimer cette catégorie ?', '🗑️');
-                if (confirmed) {
-                    removeDocumentCategory(catId);
-                    modal.remove();
-                    openCategoriesModal(); // Réouvrir pour actualiser
-                }
+            // Gérer la suppression
+            modal.querySelectorAll('.delete-cat-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const catId = e.target.dataset.catId;
+                    const confirmed = await customConfirm('Supprimer cette catégorie ?', '🗑️');
+                    if (confirmed) {
+                        removeDocumentCategory(catId);
+                        // Mettre à jour uniquement la liste sans réouvrir
+                        const listContainer = modal.querySelector('#categories-list-container');
+                        listContainer.innerHTML = renderCategoriesList();
+                        attachEventListeners(); // Réattacher les événements
+                        showNotification('✅ Catégorie supprimée !');
+                    }
+                });
             });
-        });
+        };
+
+        // Attacher les événements initiaux
+        attachEventListeners();
 
         // Ajouter une nouvelle catégorie
         modal.querySelector('#add-cat-btn').addEventListener('click', () => {
@@ -3301,8 +3463,16 @@
 
             if (name) {
                 if (addDocumentCategory(name, color, indent)) {
-                    modal.remove();
-                    openCategoriesModal(); // Réouvrir pour actualiser
+                    // Mettre à jour uniquement la liste sans réouvrir
+                    const listContainer = modal.querySelector('#categories-list-container');
+                    listContainer.innerHTML = renderCategoriesList();
+                    attachEventListeners(); // Réattacher les événements
+
+                    // Réinitialiser les champs
+                    modal.querySelector('#new-cat-name').value = '';
+                    modal.querySelector('#new-cat-color').value = '#8b5cf6';
+                    modal.querySelector('#new-cat-indent').value = '0';
+
                     showNotification('✅ Catégorie ajoutée !');
                 } else {
                     customAlert('Cette catégorie existe déjà !', '⚠️');
@@ -3310,11 +3480,18 @@
             }
         });
 
+        // Permettre d'ajouter avec Enter
+        modal.querySelector('#new-cat-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                modal.querySelector('#add-cat-btn').click();
+            }
+        });
+
         // Fermer et rafraîchir
-        modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
+        modal.querySelector('.close-categories-modal').addEventListener('click', () => {
             modal.classList.remove('show');
             setTimeout(() => modal.remove(), 300);
-            updateFavoritesList(); // Rafraîchir l'affichage
+            updateFavoritesList(); // Rafraîchir l'affichage des favoris
         });
 
         modal.addEventListener('click', (e) => {
