@@ -1208,27 +1208,6 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
-        const updateBtn = document.createElement('button');
-        updateBtn.id = 'btn-check-update';
-        updateBtn.innerHTML = '🔄 MàJ';
-        updateBtn.style.cssText = `
-            position: fixed;
-            top: 120px;
-            right: 20px;
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            border: none;
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(255,152,0,0.4);
-            transition: all 0.2s;
-            z-index: 99997;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        `;
-        
         const hoverStyle = document.createElement('style');
         hoverStyle.textContent = `
             #btn-add-favori:hover {
@@ -1241,18 +1220,13 @@
                 box-shadow: 0 8px 25px rgba(74,144,226,0.5) !important;
                 transform: translateY(-2px);
             }
-            #btn-check-update:hover {
-                background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%) !important;
-                box-shadow: 0 8px 25px rgba(255,152,0,0.5) !important;
-                transform: translateY(-2px);
-            }
-            #btn-add-favori:active, #btn-show-list:active, #btn-check-update:active {
+            #btn-add-favori:active, #btn-show-list:active {
                 transform: translateY(0);
             }
         `;
         document.head.appendChild(hoverStyle);
         
-        return { addBtn, listBtn, updateBtn };
+        return { addBtn, listBtn };
     }
 
     // ===== VARIABLES GLOBALES POUR DRAG AND DROP =====
@@ -3087,21 +3061,15 @@
         // Créer les éléments
         const modal = createModal();
         const mainWindow = createMainWindow();
-        const { addBtn, listBtn, updateBtn } = createActionButtons();
+        const { addBtn, listBtn } = createActionButtons();
         
         // Ajouter au DOM
         document.body.appendChild(modal);
         document.body.appendChild(mainWindow);
         document.body.appendChild(addBtn);
         document.body.appendChild(listBtn);
-        document.body.appendChild(updateBtn);
         
-        // Event listener pour le bouton de mise à jour
-        updateBtn.addEventListener('click', () => {
-            checkForUpdates(true); // true = afficher un message même si pas de mise à jour
-        });
-        
-        // Vérification automatique au démarrage (silencieuse)
+        // Vérification automatique des mises à jour au démarrage (silencieuse)
         checkForUpdates(false);
         
         // Event listeners - Modal
