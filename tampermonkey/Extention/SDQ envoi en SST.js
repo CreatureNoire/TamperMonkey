@@ -251,6 +251,22 @@ function initializeDate() {
             // Optionnel : mettre le focus sur le champ
             infoAgentField.focus();
 
+            // Étape 3 : Cliquer sur le bouton Valider après un court délai
+            setTimeout(function() {
+                console.log('🔍 Recherche du bouton Valider...');
+                
+                // Chercher le bouton Valider avec la classe btn-success et le data-bb-handler="ok"
+                const validateButton = document.querySelector('button[data-bb-handler="ok"].btn-success');
+                
+                if (validateButton) {
+                    console.log('✅ Bouton Valider trouvé, clic...');
+                    validateButton.click();
+                    console.log('✅ Validation effectuée !');
+                } else {
+                    console.log('❌ Bouton Valider non trouvé');
+                }
+            }, 500); // Attendre 500ms après le remplissage du champ
+
         } else {
             console.log('❌ Champ S_info_agent non trouvé');
             // Fallback : afficher dans la console
