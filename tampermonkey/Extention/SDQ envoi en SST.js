@@ -232,7 +232,7 @@ function initializeDate() {
         // Définir le texte avec la date du jour
         const today = new Date();
         const formattedDate = today.toLocaleDateString('fr-FR'); // Format DD/MM/YYYY
-        const infoAgentText = `JH -- ${formattedDate} --\nProblème initialisation --> Envoi en SST`;
+        const infoAgentText = `JH -- ${formattedDate} -- \nProblème initialisation --> Envoi en SST`;
 
         // Chercher le champ Info Agent (S_info_agent)
         const infoAgentField = document.getElementById('S_info_agent');
