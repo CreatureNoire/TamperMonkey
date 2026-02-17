@@ -1228,18 +1228,21 @@
         const oldFolders = GM_getValue('powerbi_folders', []);
         const hierarchy = getFoldersHierarchy();
 
-        // Si la hiérarchie est vide et qu'il y a des anciens dossiers, les migrer
-        if (Object.keys(hierarchy).length === 0 && oldFolders.length > 0) {
-            oldFolders.forEach(folderKey => {
-                if (!hierarchy[folderKey]) {
-                    hierarchy[folderKey] = {
-                        id: folderKey,
-                        name: folderKey,
-                        parentId: null,
-                        collapsed: false
-                    };
-                }
-            });
+        // Migrer tous les dossiers existants vers la hiérarchie
+        let needsUpdate = false;
+        oldFolders.forEach(folderKey => {
+            if (!hierarchy[folderKey]) {
+                hierarchy[folderKey] = {
+                    id: folderKey,
+                    name: folderKey,
+                    parentId: null,
+                    collapsed: false
+                };
+                needsUpdate = true;
+            }
+        });
+
+        if (needsUpdate) {
             saveFoldersHierarchy(hierarchy);
         }
 
@@ -1594,8 +1597,8 @@
             // Ajouter le séparateur de catégorie avec bouton de réduction
             html += `
                 <div class="category-separator" data-category="${category}" style="
-                    margin: ${catIndex === 0 ? '0' : '24px'} 0 16px 0;
-                    padding: 8px 16px;
+                    margin: ${catIndex === 0 ? '0' : '12px'} 0 8px 0;
+                    padding: 4px 12px;
                     background: linear-gradient(135deg, rgba(103,58,183,0.12) 0%, rgba(142,36,170,0.12) 100%);
                     border-left: 3px solid #ab47bc;
                     border-radius: 6px;
@@ -2997,6 +3000,9 @@
             existingFolders.push(newFolder);
             GM_setValue('powerbi_folders', existingFolders);
 
+            // Créer le dossier dans la hiérarchie (important pour l'affichage dans la liste des favoris)
+            createFolderInHierarchy(newFolder, null);
+
             // Recharger la liste des checkboxes
             updateFoldersCheckboxes();
 
@@ -3148,6 +3154,8 @@
                 if (!existingFolders.includes(folder)) {
                     existingFolders.push(folder);
                     GM_setValue('powerbi_folders', existingFolders);
+                    // Créer le dossier dans la hiérarchie
+                    createFolderInHierarchy(folder, null);
                 }
             } else {
                 // Mode ajout - créer un favori pour chaque dossier sélectionné
@@ -3215,6 +3223,8 @@
                     // Ajouter le dossier à la liste s'il n'existe pas
                     if (!existingFolders.includes(folder)) {
                         existingFolders.push(folder);
+                        // Créer le dossier dans la hiérarchie
+                        createFolderInHierarchy(folder, null);
                     }
                 });
 
@@ -3244,6 +3254,8 @@
 
         const openWindow = () => {
             windowOverlay.style.display = 'flex';
+            // Synchroniser tous les dossiers avec la hiérarchie avant d'afficher
+            migrateFoldersToHierarchy();
             updateFoldersList();
             displayComponents('__ALL__', window.openModalFunction);
             document.getElementById('btn-all-folders').classList.add('active');
