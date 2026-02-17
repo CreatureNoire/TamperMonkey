@@ -221,12 +221,6 @@ function initializeDate() {
             // Optionnel : mettre le focus sur le champ
             infoAgentField.focus();
 
-            // VALIDATION AUTOMATIQUE après remplissage
-            console.log('🔄 Démarrage de la validation automatique...');
-            setTimeout(function() {
-                validateForm();
-            }, 500); // Délai de 500ms pour laisser le temps au champ d'être traité
-
         } else {
             console.log('❌ Champ S_info_agent non trouvé');
             // Fallback : afficher dans la console
@@ -236,38 +230,6 @@ function initializeDate() {
     }, 1500); // Attendre 1.5 secondes que la modal se charge
 
     console.log('🟦 === FIN INITIALISATION DATE ===');
-}
-
-// Fonction de validation automatique
-function validateForm() {
-    console.log('🔍 === DÉBUT VALIDATION AUTOMATIQUE ===');
-
-    // Chercher le bouton OK/Valider dans la modal
-    const modal = document.getElementById('d_date_fab').closest('.modal');
-    if (!modal) {
-        console.log('❌ Modal non trouvée pour validation');
-        return;
-    }
-
-    const okButton = modal.querySelector('[data-bb-handler="ok"]') ||
-                    modal.querySelector('.btn-success') ||
-                    modal.querySelector('button[type="submit"]');
-
-    if (okButton) {
-        console.log('✅ Bouton de validation trouvé:', okButton.textContent.trim());
-        console.log('🚀 Clic automatique sur le bouton de validation...');
-
-        // Cliquer sur le bouton de validation
-        okButton.click();
-
-        console.log('✅ Validation automatique déclenchée !');
-    } else {
-        console.log('❌ Bouton de validation non trouvé');
-        console.log('Boutons disponibles dans la modal:',
-                   Array.from(modal.querySelectorAll('button')).map(b => b.textContent.trim()));
-    }
-
-    console.log('🔍 === FIN VALIDATION AUTOMATIQUE ===');
 }
 
 // Attendre que la page soit chargée et vérifier périodiquement si on doit ajouter le bouton
