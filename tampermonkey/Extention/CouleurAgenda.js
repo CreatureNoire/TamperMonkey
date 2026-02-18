@@ -180,6 +180,7 @@
                 couleursActuelles[couleurKey] = nouvelleCouleur;
                 sauvegarderCouleurs(couleursActuelles);
                 colorerElements(typeElement, weekendOnly, nouvelleCouleur);
+                colorierBoutonsRPRU(); // Mettre à jour les boutons RP/RU
                 afficherFeedback(`✅ ${label} mis à jour !`);
             });
 
@@ -210,50 +211,6 @@
         const separateur = document.createElement('li');
         separateur.className = 'phx-agenda-menuseparator ui-widget-content ui-menu-divider';
         menu.appendChild(separateur);
-
-        // Bouton pour tout colorier
-        const liBtnTout = document.createElement('li');
-        liBtnTout.className = 'ui-menu-item';
-        liBtnTout.style.cssText = `
-            padding: 5px 10px;
-        `;
-
-        const btnTout = document.createElement('button');
-        btnTout.textContent = '🎨 Tout Colorier';
-        btnTout.style.cssText = `
-            display: block;
-            width: 100%;
-            padding: 8px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        `;
-
-        btnTout.addEventListener('mouseenter', () => {
-            btnTout.style.transform = 'scale(1.02)';
-        });
-
-        btnTout.addEventListener('mouseleave', () => {
-            btnTout.style.transform = 'scale(1)';
-        });
-
-        btnTout.addEventListener('click', (e) => {
-            e.stopPropagation();
-            colorerElements('RP', false, couleursActuelles.rpSemaine);
-            colorerElements('RP', true, couleursActuelles.rpWeekend);
-            colorerElements('RU', null, couleursActuelles.ru);
-            colorerElements('JF', null, couleursActuelles.jf);
-            colorerElements('UC', null, couleursActuelles.uc);
-            afficherFeedback('✅ Tout coloré !');
-        });
-
-        liBtnTout.appendChild(btnTout);
-        menu.appendChild(liBtnTout);
 
         // Zone de feedback
         const liFeedback = document.createElement('li');
@@ -398,6 +355,86 @@
         });
     }
 
+    // Fonction pour cacher le chiffre 30 dans les cellules
+    function cacherChiffre30() {
+        const tableau = document.querySelector('.tableCalendrierJourEx');
+        if (!tableau) {
+            return;
+        }
+        
+        const cellules = tableau.querySelectorAll('.ui-phx-info-cell-style[data-date]');
+        
+        cellules.forEach((cellule) => {
+            const texteDivs = cellule.querySelectorAll('.phx-cell-render-text');
+            
+            texteDivs.forEach(texteDiv => {
+                const contenu = texteDiv.textContent.trim();
+                
+                // Si le contenu est exactement "30", on cache l'élément
+                if (contenu === '30') {
+                    texteDiv.style.setProperty('display', 'none', 'important');
+                }
+            });
+        });
+    }
+
+    // Fonction pour ajouter des bordures fines entre les lignes
+    function ajouterBorduresLignes() {
+        const tableau = document.querySelector('.tableCalendrierJourEx');
+        if (!tableau) {
+            return;
+        }
+        
+        // Ajouter une bordure fine en bas de chaque cellule
+        const cellules = tableau.querySelectorAll('.ui-phx-info-cell-style');
+        cellules.forEach((cellule) => {
+            cellule.style.setProperty('border-bottom', '1px solid #e0e0e0', 'important');
+        });
+    }
+
+    // Fonction pour appliquer les couleurs aux boutons RP et RU du script BoutonsupplémentaireOptimum.js
+    function colorierBoutonsRPRU() {
+        // Chercher le bouton RP
+        const boutonRP = document.querySelector('button.btn-rp-custom');
+        if (boutonRP) {
+            // Utiliser la couleur RP Semaine pour le bouton (on pourrait aussi faire une moyenne ou un dégradé)
+            boutonRP.style.setProperty('background-color', couleursActuelles.rpSemaine, 'important');
+            boutonRP.style.setProperty('border-color', couleursActuelles.rpSemaine, 'important');
+            boutonRP.style.setProperty('color', 'white', 'important');
+            // Forcer le style au survol également
+            boutonRP.addEventListener('mouseenter', function() {
+                this.style.setProperty('background-color', couleursActuelles.rpSemaine, 'important');
+                this.style.setProperty('border-color', couleursActuelles.rpSemaine, 'important');
+            });
+        }
+        
+        // Chercher le bouton RU
+        const boutonRU = document.querySelector('button.btn-ru-custom');
+        if (boutonRU) {
+            boutonRU.style.setProperty('background-color', couleursActuelles.ru, 'important');
+            boutonRU.style.setProperty('border-color', couleursActuelles.ru, 'important');
+            boutonRU.style.setProperty('color', 'white', 'important');
+            // Forcer le style au survol également
+            boutonRU.addEventListener('mouseenter', function() {
+                this.style.setProperty('background-color', couleursActuelles.ru, 'important');
+                this.style.setProperty('border-color', couleursActuelles.ru, 'important');
+            });
+        }
+        
+        // Chercher le bouton CP (cible: <button type="button" class="btn btn-primary btn-withIcon btn-noHeight btn-cp-custom">)
+        const boutonCP = document.querySelector('button.btn-cp-custom');
+        if (boutonCP) {
+            boutonCP.style.setProperty('background-color', couleursActuelles.uc, 'important');
+            boutonCP.style.setProperty('border-color', couleursActuelles.uc, 'important');
+            boutonCP.style.setProperty('color', 'white', 'important');
+            // Forcer le style au survol également
+            boutonCP.addEventListener('mouseenter', function() {
+                this.style.setProperty('background-color', couleursActuelles.uc, 'important');
+                this.style.setProperty('border-color', couleursActuelles.uc, 'important');
+            });
+        }
+    }
+
     // Fonction pour colorier automatiquement tout
     function colorierAutomatiquement() {
         colorerElements('RP', false, couleursActuelles.rpSemaine);  // RP semaine
@@ -405,6 +442,9 @@
         colorerElements('RU', null, couleursActuelles.ru);          // RU
         colorerElements('JF', null, couleursActuelles.jf);          // JF
         colorerElements('UC', null, couleursActuelles.uc);          // UC
+        cacherChiffre30();                                          // Cacher le chiffre 30
+        ajouterBorduresLignes();                                    // Ajouter les bordures entre les lignes
+        colorierBoutonsRPRU();                                      // Colorier les boutons RP et RU
     }
 
     // Observer les changements dans le DOM pour les tableaux dynamiques
