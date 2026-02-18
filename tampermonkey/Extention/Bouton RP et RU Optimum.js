@@ -27,26 +27,24 @@
             }, 200);
         }
 
-        // Fonction pour créer un bouton
-        function createButton(text, className) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `btn btn-primary btn-withIcon btn-noHeight ${className}`;
-            button.style.cssText = 'width: auto; margin-left: 8px;';
-            button.innerHTML = `<span class="c-menuButton__text">${text}</span>`;
+    // Fonction pour créer un bouton
+    function createButton(text, className) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `btn btn-primary btn-withIcon btn-noHeight ${className}`;
+        button.style.cssText = 'width: auto; margin-left: 8px;';
+        button.innerHTML = `<span class="c-menuButton__text">${text}</span>`;
 
-            // Ajouter l'événement de clic
-            button.addEventListener('click', function() {
-                console.log(`Bouton ${text} cliqué`);
-                createRegularisation();
-            });
+        // Ajouter l'événement de clic
+        button.addEventListener('click', function() {
+            console.log(`Bouton ${text} cliqué`);
+            createRegularisation(text);
+        });
 
-            return button;
-        }
-
-    // Fonction pour simuler la création d'une régularisation
-    function createRegularisation() {
-        console.log('Tentative de création de régularisation...');
+        return button;
+    }    // Fonction pour simuler la création d'une régularisation
+    function createRegularisation(motifCode) {
+        console.log(`Tentative de création de régularisation avec motif: ${motifCode}...`);
 
         // Chercher différents sélecteurs possibles pour le bouton "Nouveau"
         let nouveauButton = document.querySelector('.agenda_acmcreercmb button.dropReg');
@@ -86,6 +84,11 @@
                     clearInterval(checkMenu);
                     console.log('Clic sur "Créer régularisation"');
                     creerRegButton.click();
+
+                    // Attendre que le formulaire apparaisse et remplir le champ motif
+                    setTimeout(function() {
+                        fillMotifCode(motifCode);
+                    }, 300);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkMenu);
                     console.log('Bouton "Créer régularisation" non trouvé après plusieurs tentatives');
@@ -94,6 +97,63 @@
             }, 100);
         } else {
             console.log('Bouton "Nouveau" non trouvé - Tous les sélecteurs ont échoué');
+        }
+    }
+
+    // Fonction pour remplir le champ motif et sélectionner le premier choix
+    function fillMotifCode(code) {
+        console.log(`Remplissage du champ motif avec: ${code}`);
+
+        // Chercher l'input du motif
+        let motifInput = document.querySelector('input[class*="motif.code"]');
+
+        // Essayer d'autres sélecteurs si nécessaire
+        if (!motifInput) {
+            motifInput = document.querySelector('input.c-cwComboBoxView2__input[id^="motif.code"]');
+        }
+
+        if (motifInput) {
+            console.log('Input motif trouvé:', motifInput);
+
+            // Mettre le focus sur l'input
+            motifInput.focus();
+
+            // Vider le champ et entrer la valeur
+            motifInput.value = code;
+
+            // Déclencher les événements pour activer l'autocomplete
+            const inputEvent = new Event('input', { bubbles: true });
+            motifInput.dispatchEvent(inputEvent);
+
+            const keyupEvent = new KeyboardEvent('keyup', { bubbles: true, key: code });
+            motifInput.dispatchEvent(keyupEvent);
+
+            console.log(`Valeur "${code}" entrée dans le champ motif`);
+
+            // Attendre que les suggestions apparaissent et cliquer sur la première
+            let attempts = 0;
+            const maxAttempts = 15;
+
+            const checkSuggestions = setInterval(function() {
+                // Chercher les suggestions de l'autocomplete
+                const suggestions = document.querySelectorAll('.ui-autocomplete li.ui-menu-item, .ui-autocomplete .ui-menu-item');
+
+                if (suggestions.length > 0) {
+                    clearInterval(checkSuggestions);
+                    console.log(`${suggestions.length} suggestion(s) trouvée(s), sélection de la première...`);
+
+                    // Cliquer sur la première suggestion
+                    const firstSuggestion = suggestions[0];
+                    firstSuggestion.click();
+                    console.log('Première suggestion sélectionnée');
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkSuggestions);
+                    console.log('Aucune suggestion trouvée après plusieurs tentatives');
+                }
+                attempts++;
+            }, 100);
+        } else {
+            console.log('Input motif non trouvé');
         }
     }
 
