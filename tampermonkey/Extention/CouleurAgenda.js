@@ -23,6 +23,19 @@
         plus30: '#FF6347' // Couleur pour les cases avec 30 et cercle plein
     };
 
+    // Ajouter le style pour l'animation clignotante
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes clignoter-30 {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .cellule-30-clignotante {
+            animation: clignoter-30 1.5s ease-in-out infinite;
+        }
+    `;
+    document.head.appendChild(style);
+
     // Fonction pour charger les couleurs depuis localStorage
     function chargerCouleurs() {
         const couleursStockees = localStorage.getItem('calendrier-couleurs');
@@ -414,8 +427,8 @@
         
         cellules.forEach((cellule) => {
             // Vérifier d'abord si la cellule a l'icône cercle plein
-            const divRegaval = cellule.querySelector('.phx-cell-render-ind.phx-cell-ind-regaval');
-            const aIconeCerclePlein = divRegaval && divRegaval.querySelector('.cw-cercle-plein-icon');
+            const divAvecIcone = cellule.querySelector('.phx-cell-render-ind');
+            const aIconeCerclePlein = divAvecIcone && divAvecIcone.querySelector('.cw-cercle-plein-icon');
             
             const texteDivs = cellule.querySelectorAll('.phx-cell-render-text');
             
@@ -425,6 +438,10 @@
                 // Si le contenu est exactement "30" ET qu'il n'y a PAS d'icône cercle plein, on cache l'élément
                 if (contenu === '30' && !aIconeCerclePlein) {
                     texteDiv.style.setProperty('display', 'none', 'important');
+                }
+                // Si le contenu est "30" ET qu'il y a l'icône cercle plein, on s'assure qu'il est visible
+                else if (contenu === '30' && aIconeCerclePlein) {
+                    texteDiv.style.setProperty('display', 'block', 'important');
                 }
             });
         });
@@ -451,12 +468,12 @@
                 }
             });
             
-            // Chercher la div avec les classes spécifiques et l'icône cercle plein
-            const divRegaval = cellule.querySelector('.phx-cell-render-ind.phx-cell-ind-regaval');
+            // Chercher la div avec l'icône cercle plein (avec ou sans la classe phx-cell-ind-regaval)
+            const divAvecIcone = cellule.querySelector('.phx-cell-render-ind');
             let contientIconeCerclePlein = false;
             
-            if (divRegaval) {
-                const iconeCerclePlein = divRegaval.querySelector('.cw-cercle-plein-icon');
+            if (divAvecIcone) {
+                const iconeCerclePlein = divAvecIcone.querySelector('.cw-cercle-plein-icon');
                 if (iconeCerclePlein) {
                     contientIconeCerclePlein = true;
                 }
@@ -464,6 +481,12 @@
             
             // Si on trouve à la fois "30" et la div avec l'icône cercle plein
             if (contient30 && contientIconeCerclePlein) {
+                // Marquer la cellule comme déjà traitée pour éviter les doublons
+                cellule.setAttribute('data-30-colore', 'true');
+                
+                // Ajouter la classe pour l'animation clignotante
+                cellule.classList.add('cellule-30-clignotante');
+                
                 // Trouver tous les éléments phx-cell-render dans la cellule
                 const phxCellRenders = cellule.querySelectorAll('.phx-cell-render');
                 
@@ -487,6 +510,13 @@
                 tousLesTextes.forEach(elem => {
                     elem.style.setProperty('color', 'white', 'important');
                 });
+            } else {
+                // Si la cellule ne correspond plus aux critères, retirer le marqueur, la coloration et l'animation
+                if (cellule.getAttribute('data-30-colore') === 'true') {
+                    cellule.removeAttribute('data-30-colore');
+                    cellule.classList.remove('cellule-30-clignotante');
+                    cellule.style.removeProperty('background-color');
+                }
             }
         });
     }
@@ -566,7 +596,11 @@
         // Vérifier s'il y a de nouvelles cellules de calendrier
         const tableauPresent = document.querySelector('.tableCalendrier');
         if (tableauPresent) {
+            // Temporairement suspendre l'observateur pendant la coloration pour éviter les boucles
+            observer.disconnect();
             colorierAutomatiquement();
+            // Redémarrer l'observateur
+            observer.observe(document.body, config);
         }
         
         // Gérer l'affichage du menu selon la vue active
