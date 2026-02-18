@@ -19,7 +19,8 @@
         rpWeekend: '#FF8C00',
         ru: '#4169E1',
         jf: '#FF1493',
-        uc: '#32CD32'
+        uc: '#32CD32',
+        plus30: '#FF6347' // Couleur pour les cases avec 30 et cercle plein
     };
 
     // Fonction pour charger les couleurs depuis localStorage
@@ -207,6 +208,53 @@
         // Ligne pour UC
         menu.appendChild(creerLigneCouleur('UC', 'uc', 'UC', null));
 
+        // Ligne pour 30+
+        const li30Plus = document.createElement('li');
+        li30Plus.className = 'ui-menu-item';
+        li30Plus.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            gap: 10px;
+        `;
+
+        const label30Plus = document.createElement('span');
+        label30Plus.textContent = '30 (cercle plein)';
+        label30Plus.style.cssText = `
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+            font-weight: 500;
+        `;
+        li30Plus.appendChild(label30Plus);
+
+        const colorInput30Plus = document.createElement('input');
+        colorInput30Plus.type = 'color';
+        colorInput30Plus.value = couleursActuelles.plus30;
+        colorInput30Plus.style.cssText = `
+            width: 35px;
+            height: 25px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        `;
+
+        colorInput30Plus.addEventListener('input', (e) => {
+            e.stopPropagation();
+            const nouvelleCouleur = colorInput30Plus.value;
+            couleursActuelles.plus30 = nouvelleCouleur;
+            sauvegarderCouleurs(couleursActuelles);
+            colorerCellules30Plus(nouvelleCouleur);
+            afficherFeedback(`✅ 30 (cercle plein) mis à jour !`);
+        });
+
+        colorInput30Plus.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        li30Plus.appendChild(colorInput30Plus);
+        menu.appendChild(li30Plus);
+
         // Séparateur
         const separateur = document.createElement('li');
         separateur.className = 'phx-agenda-menuseparator ui-widget-content ui-menu-divider';
@@ -355,7 +403,7 @@
         });
     }
 
-    // Fonction pour cacher le chiffre 30 dans les cellules
+    // Fonction pour cacher le chiffre 30 dans les cellules (sauf si cercle plein présent)
     function cacherChiffre30() {
         const tableau = document.querySelector('.tableCalendrierJourEx');
         if (!tableau) {
@@ -365,16 +413,81 @@
         const cellules = tableau.querySelectorAll('.ui-phx-info-cell-style[data-date]');
         
         cellules.forEach((cellule) => {
+            // Vérifier d'abord si la cellule a l'icône cercle plein
+            const divRegaval = cellule.querySelector('.phx-cell-render-ind.phx-cell-ind-regaval');
+            const aIconeCerclePlein = divRegaval && divRegaval.querySelector('.cw-cercle-plein-icon');
+            
             const texteDivs = cellule.querySelectorAll('.phx-cell-render-text');
             
             texteDivs.forEach(texteDiv => {
                 const contenu = texteDiv.textContent.trim();
                 
-                // Si le contenu est exactement "30", on cache l'élément
-                if (contenu === '30') {
+                // Si le contenu est exactement "30" ET qu'il n'y a PAS d'icône cercle plein, on cache l'élément
+                if (contenu === '30' && !aIconeCerclePlein) {
                     texteDiv.style.setProperty('display', 'none', 'important');
                 }
             });
+        });
+    }
+
+    // Fonction pour colorier les cellules contenant 30 avec l'icône cercle plein
+    function colorerCellules30Plus(couleur) {
+        const tableau = document.querySelector('.tableCalendrierJourEx');
+        if (!tableau) {
+            return;
+        }
+        
+        const cellules = tableau.querySelectorAll('.ui-phx-info-cell-style[data-date]');
+        
+        cellules.forEach((cellule) => {
+            // Chercher le texte "30" dans la cellule
+            const texteDivs = cellule.querySelectorAll('.phx-cell-render-text');
+            let contient30 = false;
+            
+            texteDivs.forEach(texteDiv => {
+                const contenu = texteDiv.textContent.trim();
+                if (contenu === '30') {
+                    contient30 = true;
+                }
+            });
+            
+            // Chercher la div avec les classes spécifiques et l'icône cercle plein
+            const divRegaval = cellule.querySelector('.phx-cell-render-ind.phx-cell-ind-regaval');
+            let contientIconeCerclePlein = false;
+            
+            if (divRegaval) {
+                const iconeCerclePlein = divRegaval.querySelector('.cw-cercle-plein-icon');
+                if (iconeCerclePlein) {
+                    contientIconeCerclePlein = true;
+                }
+            }
+            
+            // Si on trouve à la fois "30" et la div avec l'icône cercle plein
+            if (contient30 && contientIconeCerclePlein) {
+                // Trouver tous les éléments phx-cell-render dans la cellule
+                const phxCellRenders = cellule.querySelectorAll('.phx-cell-render');
+                
+                phxCellRenders.forEach(render => {
+                    // Colorier le fond de chaque phx-cell-render
+                    render.style.setProperty('background-color', couleur, 'important');
+                    
+                    // Colorier aussi les éléments enfants qui ont des couleurs
+                    const elementsColores = render.querySelectorAll('[class*="ui-phx-color-"], .phx-cell-render-center');
+                    elementsColores.forEach(elem => {
+                        elem.style.setProperty('background-color', couleur, 'important');
+                        elem.style.setProperty('color', 'white', 'important');
+                    });
+                });
+                
+                // Colorier aussi toute la cellule en arrière-plan
+                cellule.style.setProperty('background-color', couleur, 'important');
+                
+                // Ajuster la couleur du texte pour la lisibilité
+                const tousLesTextes = cellule.querySelectorAll('.phx-cell-render-text');
+                tousLesTextes.forEach(elem => {
+                    elem.style.setProperty('color', 'white', 'important');
+                });
+            }
         });
     }
 
@@ -442,7 +555,8 @@
         colorerElements('RU', null, couleursActuelles.ru);          // RU
         colorerElements('JF', null, couleursActuelles.jf);          // JF
         colorerElements('UC', null, couleursActuelles.uc);          // UC
-        cacherChiffre30();                                          // Cacher le chiffre 30
+        colorerCellules30Plus(couleursActuelles.plus30);            // Colorier les cellules 30 avec cercle plein (AVANT de cacher)
+        cacherChiffre30();                                          // Cacher le chiffre 30 (après avoir colorié)
         ajouterBorduresLignes();                                    // Ajouter les bordures entre les lignes
         colorierBoutonsRPRU();                                      // Colorier les boutons RP et RU
     }
