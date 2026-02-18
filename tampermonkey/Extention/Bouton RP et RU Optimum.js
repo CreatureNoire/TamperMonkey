@@ -1,10 +1,12 @@
     // ==UserScript==
-    // @name         Boutons RP et RU - Chronotime
+    // @name         Boutons Supplémentaires Optimum
     // @namespace    http://tampermonkey.net/
-    // @version      1.1
-    // @description  Ajoute deux boutons RP et RU pour créer des régularisations rapidement (uniquement si bouton "Nouveau" présent)
+    // @version      1.2
+    // @description  Ajoute trois boutons RP, RU et CP pour créer des régularisations/absences rapidement (uniquement si bouton "Nouveau" présent)
     // @author       Vous
     // @match        https://optimum.sncf.fr/chronotime/*
+    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
+    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
     // @grant        none
     // ==/UserScript==
 
@@ -28,23 +30,29 @@
         }
 
     // Fonction pour créer un bouton
-    function createButton(text, className) {
+    function createButton(text, className, isAbsence = false) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `btn btn-primary btn-withIcon btn-noHeight ${className}`;
-        button.style.cssText = 'width: auto; margin-left: 8px;';
+        button.style.cssText = 'width: auto;';
         button.innerHTML = `<span class="c-menuButton__text">${text}</span>`;
 
         // Ajouter l'événement de clic
         button.addEventListener('click', function() {
             console.log(`Bouton ${text} cliqué`);
-            createRegularisation(text);
+            if (isAbsence) {
+                createAbsence(text);
+            } else {
+                createRegularisation(text);
+            }
         });
 
         return button;
-    }    // Fonction pour simuler la création d'une régularisation
-    function createRegularisation(motifCode) {
-        console.log(`Tentative de création de régularisation avec motif: ${motifCode}...`);
+    }
+
+    // Fonction pour simuler la création d'une absence
+    function createAbsence(motifCode) {
+        console.log(`Tentative de création d'absence avec motif: ${motifCode}...`);
 
         // Chercher différents sélecteurs possibles pour le bouton "Nouveau"
         let nouveauButton = document.querySelector('.agenda_acmcreercmb button.dropReg');
@@ -66,32 +74,32 @@
             const maxAttempts = 10;
 
             const checkMenu = setInterval(function() {
-                // Chercher le bouton "Créer régularisation"
-                let creerRegButton = document.querySelector('li.dropReg.c-panneauMenu__item.cwMenuButton-option');
+                // Chercher le bouton "Créer absence"
+                let creerAbsButton = document.querySelector('li.creerAb.c-panneauMenu__item.cwMenuButton-option');
 
                 // Essayer d'autres sélecteurs si nécessaire
-                if (!creerRegButton) {
+                if (!creerAbsButton) {
                     const allMenuItems = document.querySelectorAll('li.c-panneauMenu__item.cwMenuButton-option');
                     for (let item of allMenuItems) {
-                        if (item.textContent.includes('régularisation')) {
-                            creerRegButton = item;
+                        if (item.textContent.includes('absence')) {
+                            creerAbsButton = item;
                             break;
                         }
                     }
                 }
 
-                if (creerRegButton) {
+                if (creerAbsButton) {
                     clearInterval(checkMenu);
-                    console.log('Clic sur "Créer régularisation"');
-                    creerRegButton.click();
+                    console.log('Clic sur "Créer absence"');
+                    creerAbsButton.click();
 
-                    // Attendre que le formulaire apparaisse et remplir le champ motif
+                    // Attendre que le formulaire apparaisse et remplir le champ motif avec UC0
                     setTimeout(function() {
-                        fillMotifCode(motifCode);
+                        fillMotifCode('UC0');
                     }, 300);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkMenu);
-                    console.log('Bouton "Créer régularisation" non trouvé après plusieurs tentatives');
+                    console.log('Bouton "Créer absence" non trouvé après plusieurs tentatives');
                 }
                 attempts++;
             }, 100);
@@ -169,44 +177,40 @@
 
         console.log('Bouton "Nouveau" détecté, vérification du conteneur...');
 
-        // Attendre que le conteneur de la zone droite soit présent
-        waitForElement('.l-panelContainer__panelbg', function(container) {
-            console.log('Conteneur trouvé, ajout des boutons RP/RU...');
+        // Attendre que la zone d'accès rapides soit présente
+        waitForElement('.phx-agenda-accesrapides', function(container) {
+            console.log('Zone phx-agenda-accesrapides trouvée, ajout des boutons RP/RU...');
 
             // Vérifier si les boutons n'existent pas déjà
-            if (document.querySelector('.btn-rp-custom') || document.querySelector('.btn-ru-custom')) {
+            if (document.querySelector('.btn-rp-custom') || document.querySelector('.btn-ru-custom') || document.querySelector('.btn-cp-custom')) {
                 console.log('Les boutons existent déjà');
                 return;
             }
 
-            // Trouver le conteneur pour insérer les boutons
-            const zoneRightWrap = document.querySelector('.agenda_zone_right_wrap');
-            if (!zoneRightWrap) {
-                console.log('Zone right wrap non trouvée');
-                return;
-            }
-
-            // Créer un conteneur pour les boutons
+            // Créer un conteneur pour les boutons avec la classe btn-group
             const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = 'position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px;';
+            buttonContainer.className = 'btn-group phx-custom-buttons-group order-4';
+            buttonContainer.setAttribute('role', 'group');
+            buttonContainer.setAttribute('aria-label', 'Boutons personnalisés');
+            buttonContainer.style.cssText = 'display: flex; flex-direction: row; gap: 8px; margin-left: 8px;';
 
-            // Créer les deux boutons
-            const rpButton = createButton('RP', 'btn-rp-custom');
-            const ruButton = createButton('RU', 'btn-ru-custom');
+            // Créer les trois boutons
+            const rpButton = createButton('RP', 'btn-rp-custom', false);
+            const ruButton = createButton('RU', 'btn-ru-custom', false);
+            const cpButton = createButton('CP', 'btn-cp-custom', true);
 
             // Ajouter les boutons au conteneur
             buttonContainer.appendChild(rpButton);
             buttonContainer.appendChild(ruButton);
+            buttonContainer.appendChild(cpButton);
 
-            // Insérer le conteneur dans la page
-            // On l'insère au début de l-panelContainer__panelbg avec position relative
-            const panelBg = document.querySelector('.l-panelContainer__panelbg');
-            if (panelBg) {
-                panelBg.style.position = 'relative';
-                panelBg.insertBefore(buttonContainer, panelBg.firstChild);
-                console.log('Boutons RP et RU ajoutés avec succès');
+            // Insérer le conteneur dans la zone phx-agenda-accesrapides
+            const accesRapides = document.querySelector('.phx-agenda-accesrapides');
+            if (accesRapides) {
+                accesRapides.appendChild(buttonContainer);
+                console.log('Boutons RP, RU et CP ajoutés avec succès dans phx-agenda-accesrapides');
             } else {
-                console.log('Panel background non trouvé');
+                console.log('Zone phx-agenda-accesrapides non trouvée');
             }
         });
     }
@@ -215,7 +219,7 @@
     const observer = new MutationObserver(function(mutations) {
         // N'ajouter les boutons que si le bouton "Nouveau" est présent
         const nouveauPresent = document.querySelector('.agenda_acmcreercmb button, button.dropReg, button.creerAb');
-        const containeurPresent = document.querySelector('.l-panelContainer__panelbg');
+        const containeurPresent = document.querySelector('.phx-agenda-accesrapides');
         const boutonsAbsents = !document.querySelector('.btn-rp-custom');
 
         if (nouveauPresent && containeurPresent && boutonsAbsents) {
