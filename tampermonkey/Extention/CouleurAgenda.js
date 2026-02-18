@@ -5,6 +5,8 @@
 // @description  Couleur Agenda Optimum
 // @author       Vous
 // @match        https://optimum.sncf.fr/chronotime/*
+// @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/edit/master/tampermonkey/Extention/CouleurAgenda.js
+// @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/edit/master/tampermonkey/Extention/CouleurAgenda.js
 // @grant        none
 // ==/UserScript==
 
