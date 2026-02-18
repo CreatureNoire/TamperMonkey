@@ -2,7 +2,7 @@
 // @name         Calendrier Couleur - RP en Violet
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Colore en violet les cellules RP qui ne tombent pas un samedi ou dimanche dans Chronotime
+// @description  Couleur Agenda Optimum
 // @author       Vous
 // @match        https://optimum.sncf.fr/chronotime/*
 // @grant        none
@@ -39,88 +39,25 @@
 
     // Fonction pour ajuster la hauteur du tableau calendrier et cacher la zone des totaux
     function ajusterHauteurTableau() {
-        console.log('🔧 Ajustement de la hauteur du tableau...');
-        
         // Cacher la zone des totaux en bas
         const zoneTotaux = document.querySelector('.agenda_zone_bottom');
         if (zoneTotaux) {
             zoneTotaux.style.setProperty('display', 'none', 'important');
-            console.log('✅ Zone des totaux cachée');
         }
         
-        // Trouver le conteneur principal .agendaGrid
-        const agendaGrid = document.querySelector('.agendaGrid');
-        if (agendaGrid) {
-            agendaGrid.style.setProperty('height', '100vh', 'important');
-            agendaGrid.style.setProperty('overflow', 'hidden', 'important');
-            agendaGrid.style.setProperty('display', 'flex', 'important');
-            agendaGrid.style.setProperty('flex-direction', 'column', 'important');
-            console.log('✅ AgendaGrid ajusté');
-        }
+        // NE PAS toucher à .agenda_wrap - laisser la mise en page par défaut
         
-        // Agrandir le panel principal pour qu'il prenne toute la hauteur disponible
-        const panelContainer = document.querySelector('.l-panelContainer__panel');
-        if (panelContainer) {
-            panelContainer.style.setProperty('height', '100%', 'important');
-            panelContainer.style.setProperty('max-height', '100%', 'important');
-            panelContainer.style.setProperty('display', 'flex', 'important');
-            panelContainer.style.setProperty('flex-direction', 'column', 'important');
-            panelContainer.style.setProperty('flex', '1', 'important');
-            panelContainer.style.setProperty('min-height', '0', 'important');
-            console.log('✅ Panel container agrandi');
-        }
-        
-        // Agrandir le header de la zone centrale - ne doit pas défiler
-        const centerHeader = document.querySelector('.agenda_zone_center_header');
-        if (centerHeader) {
-            centerHeader.style.setProperty('flex-shrink', '0', 'important');
-            centerHeader.style.setProperty('overflow', 'visible', 'important');
-            console.log('✅ Header ajusté');
-        }
-        
-        // CRUCIAL : Rétablir le défilement sur le panel content
-        const panelContent = document.querySelector('.l-panelContainer__content');
-        if (panelContent) {
-            panelContent.style.setProperty('display', 'flex', 'important');
-            panelContent.style.setProperty('flex-direction', 'column', 'important');
-            panelContent.style.setProperty('flex', '1', 'important');
-            panelContent.style.setProperty('min-height', '0', 'important');
-            panelContent.style.setProperty('overflow', 'hidden', 'important');
-            console.log('✅ Conteneur panelContent configuré en flex');
-        }
-        
-        // Le vrai conteneur scrollable : agenda_zone_center
-        const agendaZoneCenter = document.querySelector('.agenda_zone_center');
-        if (agendaZoneCenter) {
-            agendaZoneCenter.style.setProperty('flex', '1', 'important');
-            agendaZoneCenter.style.setProperty('min-height', '0', 'important');
-            agendaZoneCenter.style.setProperty('overflow-y', 'auto', 'important');
-            agendaZoneCenter.style.setProperty('overflow-x', 'hidden', 'important');
-            agendaZoneCenter.style.setProperty('height', 'auto', 'important');
-            console.log('✅ Scroll activé sur agenda_zone_center');
-        }
-        
-        // Trouver le conteneur parent
-        const agendaZone = document.querySelector('.agenda_zone_center_C');
-        if (agendaZone) {
-            agendaZone.style.setProperty('max-height', 'none', 'important');
-            agendaZone.style.setProperty('overflow', 'visible', 'important');
-            agendaZone.style.setProperty('height', 'auto', 'important');
-            console.log('✅ Conteneur agendaZone ajusté');
-        }
-        
-        // Trouver le conteneur du tableau
+        // Activer le scroll UNIQUEMENT sur le conteneur du calendrier
         const tableauContainer = document.querySelector('.agenda_zone_center_C_yearly');
         if (tableauContainer) {
-            tableauContainer.style.setProperty('max-height', 'none', 'important');
-            tableauContainer.style.setProperty('overflow', 'visible', 'important');
-            tableauContainer.style.setProperty('height', 'auto', 'important');
-            tableauContainer.style.setProperty('width', 'auto', 'important');
-            tableauContainer.style.setProperty('margin-left', '0', 'important');
-            console.log('✅ Conteneur yearly ajusté');
+            // Calculer la hauteur disponible (hauteur viewport - header - marges)
+            const hauteurDisponible = window.innerHeight - 200; // Réserver 200px pour le header et autres éléments
+            
+            tableauContainer.style.setProperty('max-height', hauteurDisponible + 'px', 'important');
+            tableauContainer.style.setProperty('overflow-y', 'auto', 'important');
+            tableauContainer.style.setProperty('overflow-x', 'hidden', 'important');
+            tableauContainer.style.setProperty('display', 'block', 'important');
         }
-        
-        console.log('✅ Hauteur du tableau entièrement ajustée');
     }
 
     // Fonction pour créer le bouton dans la barre d'outils
@@ -133,7 +70,6 @@
         // Trouver la barre d'outils
         const barreOutils = document.querySelector('.phx-agenda-view.d-flex.align-items-center.justify-content-end.pr-4.col-3');
         if (!barreOutils) {
-            console.log('❌ Barre d\'outils non trouvée');
             return;
         }
 
@@ -383,19 +319,14 @@
 
     // Fonction générique pour colorier les éléments (RP ou RU)
     function colorerElements(typeElement, weekendOnly, couleur) {
-        console.log(`=== Début coloration ${typeElement} ${weekendOnly === true ? 'Weekend' : weekendOnly === false ? 'Semaine' : 'Tous'} ===`);
-        
         // Sélectionner uniquement les cellules dans le tableau avec la classe tableCalendrierJourEx
         const tableau = document.querySelector('.tableCalendrierJourEx');
         if (!tableau) {
-            console.log('❌ Tableau tableCalendrierJourEx non trouvé');
             return;
         }
-        console.log('✅ Tableau trouvé');
         
         // Sélectionner toutes les cellules avec la classe ui-phx-info-cell-style dans ce tableau
         const cellules = tableau.querySelectorAll('.ui-phx-info-cell-style[data-date]');
-        console.log(`📊 Nombre de cellules trouvées: ${cellules.length}`);
 
         let elementsTrouves = 0;
         let elementsColores = 0;
@@ -463,14 +394,10 @@
                 });
             }
         });
-        
-        console.log(`✅ Résumé: ${elementsTrouves} ${typeElement} trouvés, ${elementsColores} colorés`);
-        console.log('=== Fin coloration ===');
     }
 
     // Fonction pour colorier automatiquement tout
     function colorierAutomatiquement() {
-        console.log('🎨 Coloration automatique déclenchée');
         colorerElements('RP', false, couleursActuelles.rpSemaine);  // RP semaine
         colorerElements('RP', true, couleursActuelles.rpWeekend);   // RP weekend
         colorerElements('RU', null, couleursActuelles.ru);          // RU
@@ -483,7 +410,6 @@
         // Vérifier s'il y a de nouvelles cellules de calendrier
         const tableauPresent = document.querySelector('.tableCalendrier');
         if (tableauPresent) {
-            console.log('🔍 Tableau calendrier détecté - coloration automatique');
             colorierAutomatiquement();
         }
         
