@@ -5,6 +5,27 @@
 function addCustomButton() {
     console.log('Tentative d\'ajout du bouton JH -- Date  --...');
 
+    // Vérifier si le symbole est 08663935 (exclusion)
+    let symboleValue = null;
+    
+    // Chercher dans le panel-title qui contient le symbole
+    const panelTitle = document.querySelector('.panel-title');
+    if (panelTitle) {
+        const titleText = panelTitle.textContent.trim();
+        // Extraire le numéro de symbole (8 chiffres au début)
+        const symboleMatch = titleText.match(/^(\d{8})/);
+        if (symboleMatch) {
+            symboleValue = symboleMatch[1];
+        }
+    }
+    
+    console.log('🔍 Symbole détecté:', symboleValue);
+    
+    if (symboleValue && symboleValue === '08663935') {
+        console.log('❌ Symbole 08663935 détecté - Bouton non affiché');
+        return;
+    }
+
     // Chercher la zone "Actions disponibles"
     const panelHeadings = document.querySelectorAll('.panel-heading');
     let actionsPanel = null;
@@ -81,10 +102,10 @@ function addCustomButton() {
                 background: linear-gradient(-65deg, #0000 40%, #fff7 50%, #0000 70%);
                 background-size: 200% 100%;
                 background-repeat: no-repeat;
-                animation: thing 3s ease infinite;
+                animation: thing-jh 3s ease infinite;
             }
 
-            @keyframes thing {
+            @keyframes thing-jh {
                 0% {
                     background-position: 130%;
                     opacity: 1;
@@ -164,19 +185,25 @@ function addCustomButton() {
         actionsPanel.style.position = 'relative';
     }
 
-    // Créer un conteneur pour le bouton
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.position = 'absolute';
-    buttonContainer.style.left = '50%';
-    buttonContainer.style.top = '50%';
-    buttonContainer.style.transform = 'translate(-50%, -50%)';
-    buttonContainer.style.display = 'flex';
+    // Créer un conteneur pour le bouton ou utiliser celui existant
+    let buttonContainer = actionsPanel.querySelector('.custom-buttons-container');
+    
+    if (!buttonContainer) {
+        buttonContainer = document.createElement('div');
+        buttonContainer.className = 'custom-buttons-container';
+        buttonContainer.style.position = 'absolute';
+        buttonContainer.style.left = '50%';
+        buttonContainer.style.top = '50%';
+        buttonContainer.style.transform = 'translate(-50%, -50%)';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.flexWrap = 'wrap';
+        buttonContainer.style.justifyContent = 'center';
+        actionsPanel.appendChild(buttonContainer);
+    }
 
     // Ajouter le bouton au conteneur
     buttonContainer.appendChild(customButton);
-
-    // Ajouter le conteneur au panel
-    actionsPanel.appendChild(buttonContainer);
     console.log('✅ Bouton JH -- Date  -- ajouté avec succès au centre de Actions disponibles !');
 }
 
