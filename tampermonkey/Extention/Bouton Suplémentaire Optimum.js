@@ -13,6 +13,25 @@
     (function() {
         'use strict';
 
+        // Ajouter le CSS pour le spinner de chargement
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading-spinner {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border: 2px solid rgba(0, 0, 0, 0.1);
+                border-radius: 50%;
+                border-top-color: #007bff;
+                animation: spinner-rotation 0.6s linear infinite;
+            }
+
+            @keyframes spinner-rotation {
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
         // Fonction pour attendre que l'élément soit présent dans le DOM
         function waitForElement(selector, callback, maxAttempts = 50) {
             let attempts = 0;
@@ -45,7 +64,12 @@
         const soldeDisplay = document.createElement('div');
         soldeDisplay.className = `solde-display-${text.toLowerCase()}`;
         soldeDisplay.style.cssText = 'font-size: 11px; font-weight: bold; color: #333; min-height: 15px;';
-        soldeDisplay.textContent = '...';
+
+        // Ajouter un spinner de chargement
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
+        soldeDisplay.appendChild(spinner);
+
         wrapper.appendChild(soldeDisplay);
 
         // Ajouter l'événement de clic
@@ -76,7 +100,11 @@
         const soldeDisplay = document.createElement('div');
         soldeDisplay.className = 'solde-display-rn';
         soldeDisplay.style.cssText = 'font-size: 11px; font-weight: bold; color: #333;';
-        soldeDisplay.textContent = '...';
+
+        // Ajouter un spinner de chargement
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
+        soldeDisplay.appendChild(spinner);
 
         wrapper.appendChild(label);
         wrapper.appendChild(soldeDisplay);
