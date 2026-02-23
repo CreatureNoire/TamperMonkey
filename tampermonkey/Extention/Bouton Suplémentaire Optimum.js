@@ -1,8 +1,8 @@
     // ==UserScript==
     // @name         Boutons Supplémentaires Optimum
     // @namespace    http://tampermonkey.net/
-    // @version      1.4
-    // @description  Ajoute trois boutons RP, RU, CP et affichage du solde RN avec calcul automatique des week-ends
+    // @version      1.6
+    // @description  Ajoute trois boutons RP, RU, CP (soldes fin d'année) et affichage du solde RN (aujourd'hui)
     // @author       Vous
     // @match        https://optimum.sncf.fr/chronotime/*
     // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
@@ -350,7 +350,7 @@
             const dateToday = getFormattedDate(); // Date d'aujourd'hui au format YYYYMMDD
 
             // Troisième requête - Détails des compteurs (fin d'année pour RP, RU, CP)
-            console.log(`📡 [3/3] Exécution de la troisième requête (détails fin d'année)...`);
+            console.log(`📡 [3/4] Exécution de la troisième requête (détails fin d'année pour RP, RU, CP)...`);
             console.log(`   Paramètres: matricule=${matricule}, groupe=${groupe}, date=${dateEndOfYear} (31/12)`);
 
             const response3 = await fetch(`https://optimum.sncf.fr/chronotime/rest/resultatsgroupecpt?matricule=${matricule}&groupe=${groupe}&date=${dateEndOfYear}`, {
@@ -401,7 +401,7 @@
             console.log('');
             console.log('⚙️  Requête 2 (Config):', data2);
             console.log('');
-            console.log('🎯 Requête 3 (Détails fin d\'année):');
+            console.log('🎯 Requête 3 (Détails fin d\'année - RP, RU, CP):');
             console.log('───────────────────────────────────────────────────────────');
 
             // Affichage formaté des compteurs fin d'année
@@ -623,27 +623,55 @@
 
     // Fonction pour récupérer le matricule de l'utilisateur
     function getMatricule() {
-        // Méthode 1: Chercher dans le localStorage/sessionStorage
+        // Méthode 1: Chercher dans l'URL (le plus fiable pour Optimum)
+        const urlMatch = window.location.href.match(/matricule[=\/](\d{7})/);
+        if (urlMatch) {
+            console.log('✅ Matricule trouvé dans l\'URL:', urlMatch[1]);
+            return urlMatch[1];
+        }
+
+        // Méthode 2: Chercher dans le localStorage/sessionStorage
         const storedMatricule = localStorage.getItem('matricule') || sessionStorage.getItem('matricule');
-        if (storedMatricule) return storedMatricule;
+        if (storedMatricule) {
+            console.log('✅ Matricule trouvé dans le storage:', storedMatricule);
+            return storedMatricule;
+        }
 
-        // Méthode 2: Chercher dans les variables globales
-        if (window.matricule) return window.matricule;
-        if (window.userInfo && window.userInfo.matricule) return window.userInfo.matricule;
+        // Méthode 3: Chercher dans les variables globales
+        if (window.matricule) {
+            console.log('✅ Matricule trouvé dans window.matricule:', window.matricule);
+            return window.matricule;
+        }
+        if (window.userInfo && window.userInfo.matricule) {
+            console.log('✅ Matricule trouvé dans window.userInfo:', window.userInfo.matricule);
+            return window.userInfo.matricule;
+        }
 
-        // Méthode 3: Chercher dans le DOM (éléments qui affichent le matricule)
+        // Méthode 4: Chercher dans le DOM (éléments qui affichent le matricule)
         const matriculeElements = document.querySelectorAll('[data-matricule], .matricule, #matricule');
         for (let elem of matriculeElements) {
             const mat = elem.getAttribute('data-matricule') || elem.textContent.trim();
-            if (mat && /^\d{7}$/.test(mat)) return mat;
+            if (mat && /^\d{7}$/.test(mat)) {
+                console.log('✅ Matricule trouvé dans le DOM:', mat);
+                return mat;
+            }
         }
 
-        // Méthode 4: Extraire des scripts
+        // Méthode 5: Chercher dans les réponses API précédentes (data1)
+        if (window.lastApiMatricule) {
+            console.log('✅ Matricule trouvé depuis l\'API:', window.lastApiMatricule);
+            return window.lastApiMatricule;
+        }
+
+        // Méthode 6: Extraire des scripts
         const scriptElements = document.querySelectorAll('script');
         for (let script of scriptElements) {
             const content = script.textContent;
             const match = content.match(/matricule['":\s]+(\d{7})/);
-            if (match) return match[1];
+            if (match) {
+                console.log('✅ Matricule trouvé dans un script:', match[1]);
+                return match[1];
+            }
         }
 
         // Par défaut, utiliser celui de l'exemple
