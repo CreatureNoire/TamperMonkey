@@ -1,12 +1,12 @@
     // ==UserScript==
     // @name         Boutons Supplémentaires Optimum
     // @namespace    http://tampermonkey.net/
-    // @version      1.6
-    // @description  Ajoute trois boutons RP, RU, CP (soldes fin d'année) et affichage du solde RN (aujourd'hui)
+    // @version      1.7
+    // @description  Ajoute trois boutons RP, RU, CP (soldes fin d'année) et affichage du solde RN (aujourd'hui) - Détection matricule améliorée
     // @author       Vous
     // @match        https://optimum.sncf.fr/chronotime/*
-    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
-    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
+    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
+    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
     // @grant        none
     // ==/UserScript==
 
@@ -227,11 +227,11 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `modern-button ${className}`;
-
+        
         // Définir une couleur de fond par défaut (sera remplacée par le script Calendrier couleur.js)
         button.style.backgroundColor = '#6c757d'; // Gris par défaut
         button.style.color = 'white';
-
+        
         // Créer la structure HTML sans icône sparkle
         button.innerHTML = `
             <div class="dots_border"></div>
@@ -482,7 +482,7 @@
             try {
                 const soldes = JSON.parse(cachedSoldes);
                 console.log('📦 Chargement des soldes depuis le cache:', soldes);
-
+                
                 // Afficher les soldes en cache
                 const rpDisplay = document.querySelector('.solde-display-rp');
                 const ruDisplay = document.querySelector('.solde-display-ru');
@@ -623,59 +623,94 @@
 
     // Fonction pour récupérer le matricule de l'utilisateur
     function getMatricule() {
+        // Méthode 0: Utiliser le matricule intercepté depuis les requêtes API (LE PLUS FIABLE)
+        if (cachedMatricule) {
+            console.log('✅ Matricule trouvé dans les requêtes interceptées:', cachedMatricule);
+            return cachedMatricule;
+        }
+
         // Méthode 1: Chercher dans l'URL (le plus fiable pour Optimum)
         const urlMatch = window.location.href.match(/matricule[=\/](\d{7})/);
         if (urlMatch) {
             console.log('✅ Matricule trouvé dans l\'URL:', urlMatch[1]);
+            cachedMatricule = urlMatch[1]; // Sauvegarder pour la prochaine fois
             return urlMatch[1];
         }
 
         // Méthode 2: Chercher dans le localStorage/sessionStorage
         const storedMatricule = localStorage.getItem('matricule') || sessionStorage.getItem('matricule');
-        if (storedMatricule) {
+        if (storedMatricule && /^\d{7}$/.test(storedMatricule)) {
             console.log('✅ Matricule trouvé dans le storage:', storedMatricule);
+            cachedMatricule = storedMatricule;
             return storedMatricule;
         }
 
         // Méthode 3: Chercher dans les variables globales
-        if (window.matricule) {
+        if (window.matricule && /^\d{7}$/.test(window.matricule)) {
             console.log('✅ Matricule trouvé dans window.matricule:', window.matricule);
+            cachedMatricule = window.matricule;
             return window.matricule;
         }
-        if (window.userInfo && window.userInfo.matricule) {
+        if (window.userInfo && window.userInfo.matricule && /^\d{7}$/.test(window.userInfo.matricule)) {
             console.log('✅ Matricule trouvé dans window.userInfo:', window.userInfo.matricule);
+            cachedMatricule = window.userInfo.matricule;
             return window.userInfo.matricule;
         }
 
         // Méthode 4: Chercher dans le DOM (éléments qui affichent le matricule)
-        const matriculeElements = document.querySelectorAll('[data-matricule], .matricule, #matricule');
+        const matriculeElements = document.querySelectorAll('[data-matricule], .matricule, #matricule, [id*="matricule"], [class*="matricule"]');
         for (let elem of matriculeElements) {
             const mat = elem.getAttribute('data-matricule') || elem.textContent.trim();
             if (mat && /^\d{7}$/.test(mat)) {
                 console.log('✅ Matricule trouvé dans le DOM:', mat);
+                cachedMatricule = mat;
                 return mat;
             }
         }
 
-        // Méthode 5: Chercher dans les réponses API précédentes (data1)
-        if (window.lastApiMatricule) {
-            console.log('✅ Matricule trouvé depuis l\'API:', window.lastApiMatricule);
-            return window.lastApiMatricule;
+        // Méthode 5: Chercher dans toutes les requêtes fetch précédentes
+        if (window.performance && window.performance.getEntriesByType) {
+            const resources = window.performance.getEntriesByType('resource');
+            for (let resource of resources) {
+                if (resource.name.includes('optimum.sncf.fr')) {
+                    const match = resource.name.match(/[?&]matricule=(\d{7})/);
+                    if (match) {
+                        console.log('✅ Matricule trouvé dans l\'historique des requêtes:', match[1]);
+                        cachedMatricule = match[1];
+                        return match[1];
+                    }
+                }
+            }
         }
 
         // Méthode 6: Extraire des scripts
         const scriptElements = document.querySelectorAll('script');
         for (let script of scriptElements) {
             const content = script.textContent;
-            const match = content.match(/matricule['":\s]+(\d{7})/);
+            const match = content.match(/matricule['":\s=]+(\d{7})/);
             if (match) {
                 console.log('✅ Matricule trouvé dans un script:', match[1]);
+                cachedMatricule = match[1];
                 return match[1];
             }
         }
 
-        // Par défaut, utiliser celui de l'exemple
-        console.warn('⚠️ Matricule non trouvé automatiquement, utilisation de 9303122');
+        // Méthode 7: Attendre un peu et chercher dans les cookies
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const match = cookie.match(/matricule[=:](\d{7})/);
+            if (match) {
+                console.log('✅ Matricule trouvé dans les cookies:', match[1]);
+                cachedMatricule = match[1];
+                return match[1];
+            }
+        }
+
+        // Par défaut, utiliser celui de l'exemple et afficher un avertissement
+        console.warn('⚠️ Matricule non trouvé automatiquement.');
+        console.warn('💡 Astuce: Naviguez dans Optimum (par exemple, allez dans "Ma situation") avant d\'utiliser les boutons.');
+        console.warn('Le script interceptera automatiquement votre matricule depuis les requêtes API.');
+        console.warn('Utilisation temporaire du matricule par défaut: 9303122');
         return '9303122';
     }
 
@@ -697,8 +732,9 @@
 
     // Variable globale pour stocker le token intercepté
     let cachedToken = null;
+    let cachedMatricule = null;
 
-    // Intercepter les requêtes fetch pour capturer le token
+    // Intercepter les requêtes fetch pour capturer le token ET le matricule
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         const [url, options] = args;
@@ -712,12 +748,38 @@
             }
         }
 
+        // Extraire le matricule depuis l'URL de la requête
+        if (typeof url === 'string') {
+            const matriculeMatch = url.match(/[?&]matricule=(\d{7})/);
+            if (matriculeMatch) {
+                cachedMatricule = matriculeMatch[1];
+                console.log('✅ Matricule intercepté depuis une requête API:', cachedMatricule);
+            }
+        }
+
         return originalFetch.apply(this, args);
     };
 
-    // Intercepter XMLHttpRequest pour capturer le token
+    // Intercepter XMLHttpRequest pour capturer le token et le matricule
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+    const originalSend = XMLHttpRequest.prototype.send;
+
+    // Stocker l'URL de la requête XHR
+    let currentXhrUrl = null;
+
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+        currentXhrUrl = url;
+        // Extraire le matricule depuis l'URL
+        if (typeof url === 'string') {
+            const matriculeMatch = url.match(/[?&]matricule=(\d{7})/);
+            if (matriculeMatch) {
+                cachedMatricule = matriculeMatch[1];
+                console.log('✅ Matricule intercepté depuis XHR:', cachedMatricule);
+            }
+        }
+        return originalOpen.apply(this, [method, url, ...rest]);
+    };
 
     XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
         if (header.toLowerCase() === 'x_token_key') {
@@ -994,7 +1056,7 @@
 
                 // Charger immédiatement les soldes depuis le cache
                 const hasCachedData = loadSoldesFromCache();
-
+                
                 if (hasCachedData) {
                     console.log('✅ Soldes du cache affichés, requête API en cours...');
                 }
@@ -1008,13 +1070,13 @@
                 // Actualiser automatiquement toutes les 15 minutes (900000 ms)
                 setInterval(function() {
                     console.log('🔄 Actualisation automatique des soldes (toutes les 15 min)...');
-
+                    
                     // Afficher les spinners pendant l'actualisation
                     const rpDisplay = document.querySelector('.solde-display-rp');
                     const ruDisplay = document.querySelector('.solde-display-ru');
                     const cpDisplay = document.querySelector('.solde-display-cp');
                     const rnDisplay = document.querySelector('.solde-display-rn');
-
+                    
                     [rpDisplay, ruDisplay, cpDisplay, rnDisplay].forEach(display => {
                         if (display && display.textContent.trim()) {
                             // Ajouter le spinner à droite si pas déjà présent
@@ -1027,7 +1089,7 @@
                             }
                         }
                     });
-
+                    
                     executeApiRequests();
                 }, 900000); // 15 minutes = 900000 millisecondes
             } else {
