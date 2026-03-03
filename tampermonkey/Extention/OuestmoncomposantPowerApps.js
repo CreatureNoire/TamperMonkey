@@ -7,6 +7,8 @@
 // @match        https://apps.powerapps.com/play/e/8ce66143-5dbc-4269-9f4f-16af25fd3458/a/cb3ad194-69f8-47e8-8d8b-3ab7cb9816a4*
 // @match        https://apps.powerapps.com/*
 // @match        https://runtime-app.powerplatform.com/*
+// @upload       
+// @download     
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-idle
@@ -26,28 +28,15 @@
     // CODE POUR L'IFRAME (runtime-app.powerplatform.com)
     // ========================================
     if (isRuntimeApp) {
-        console.log('✅ Script actif dans l\'iframe PowerApps Runtime');
-
         // Injection des boutons dans l'iframe
         function injectButtonsInIframe() {
-            console.log('🔍 [IFRAME] Recherche des labels pour injection des boutons...');
             const labels = document.querySelectorAll('.appmagic-label-text');
-            console.log(`📊 [IFRAME] ${labels.length} labels trouvés`);
-
-            // Afficher tous les textes trouvés
-            labels.forEach((label, idx) => {
-                const text = label.textContent.trim();
-                if (idx < 20) { // Limiter à 20 pour ne pas surcharger
-                    console.log(`   Label ${idx}: "${text}"`);
-                }
-            });
 
             labels.forEach(label => {
                 const text = label.textContent.trim();
 
                 // Bouton "Mes Favoris" à côté de "Où est mon composant ?"
                 if (text === "Où est mon composant ?" && !document.getElementById('btn-favoris-gallery-iframe')) {
-                    console.log('✅ [IFRAME] Trouvé "Où est mon composant ?" - Injection du bouton Favoris');
                     const btnFavoris = document.createElement('button');
                     btnFavoris.id = 'btn-favoris-gallery-iframe';
                     btnFavoris.textContent = '📋 Mes Favoris';
@@ -62,7 +51,6 @@
                     });
                     btnFavoris.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('🖱️ [IFRAME] Clic sur bouton Favoris - Envoi du message');
                         window.parent.postMessage({
                             type: 'OPEN_FAVORIS_MODAL'
                         }, 'https://apps.powerapps.com');
@@ -71,12 +59,10 @@
                     // Ajouter le bouton directement dans le div du label
                     label.style.display = 'inline-block';
                     label.appendChild(btnFavoris);
-                    console.log('✅ [IFRAME] Bouton Favoris ajouté au DOM');
                 }
 
                 // Bouton "Ajouter aux Favoris" à côté de "Retirer un composant :"
                 if (text === "Retirer un composant :" && !document.getElementById('btn-add-favoris-gallery-iframe')) {
-                    console.log('✅ [IFRAME] Trouvé "Retirer un composant :" - Injection du bouton Ajouter');
                     const btnAddFavoris = document.createElement('button');
                     btnAddFavoris.id = 'btn-add-favoris-gallery-iframe';
                     btnAddFavoris.textContent = '⭐ Ajouter aux Favoris';
@@ -91,7 +77,6 @@
                     });
                     btnAddFavoris.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('🖱️ [IFRAME] Clic sur bouton Ajouter - Envoi du message');
                         window.parent.postMessage({
                             type: 'ADD_TO_FAVORIS'
                         }, 'https://apps.powerapps.com');
@@ -100,11 +85,8 @@
                     // Ajouter le bouton directement dans le div du label
                     label.style.display = 'inline-block';
                     label.appendChild(btnAddFavoris);
-                    console.log('✅ [IFRAME] Bouton Ajouter ajouté au DOM');
                 }
             });
-
-            console.log('🏁 [IFRAME] Fin de l\'injection des boutons');
         }
 
         // Observer pour réinjecter les boutons si le DOM change dans l'iframe
@@ -117,16 +99,12 @@
             subtree: true
         });
 
-        console.log('👀 [IFRAME] Observer démarré');
-
         // Injection initiale dans l'iframe
         setTimeout(() => {
-            console.log('⏰ [IFRAME] Injection initiale après 1 seconde');
             injectButtonsInIframe();
         }, 1000);
 
         setTimeout(() => {
-            console.log('⏰ [IFRAME] Injection de secours après 3 secondes');
             injectButtonsInIframe();
         }, 3000);
 
@@ -351,8 +329,6 @@
     // ========================================
     // CODE POUR LA PAGE PRINCIPALE (apps.powerapps.com)
     // ========================================
-
-    console.log('✅ Script actif dans la page principale PowerApps');
 
     // Stockage des favoris et dossiers
     let favoris = GM_getValue('favoris_gallery', []);
@@ -1139,18 +1115,13 @@
 
     // Écouter les réponses de l'iframe
     window.addEventListener('message', (event) => {
-        // Log de tous les messages reçus pour debug
-        console.log('📨 [PARENT] Message reçu:', event.data.type, 'de', event.origin);
-
         // Sécurité : vérifier l'origine
         if (event.origin !== 'https://runtime-app.powerplatform.com') {
-            console.warn('⚠️ [PARENT] Origine non autorisée:', event.origin);
             return;
         }
 
         // Handler pour ouvrir le modal depuis l'iframe
         if (event.data.type === 'OPEN_FAVORIS_MODAL') {
-            console.log('✅ [PARENT] Ouverture du modal favoris');
             displayFavoris();
             modal.classList.add('active');
             return;
@@ -1158,29 +1129,23 @@
 
         // Handler pour ajouter aux favoris depuis l'iframe
         if (event.data.type === 'ADD_TO_FAVORIS') {
-            console.log('✅ [PARENT] Ajout aux favoris déclenché');
             addToFavoris();
             return;
         }
 
         if (event.data.type === 'SET_FIELD2_ERROR') {
-            console.error('❌ Erreur d\'injection reçue de l\'iframe:', event.data.message);
             const message = event.data.message || 'Erreur lors de l\'injection';
             showNotification('❌ ' + message, true);
             return;
         }
 
         if (event.data.type === 'SET_FIELD2_SUCCESS') {
-            console.log('✅ Injection confirmée par l\'iframe');
             return;
         }
 
         if (event.data.type === 'FIELD_VALUES_RESPONSE') {
-            console.log('📥 Réponse reçue de l\'iframe:', event.data);
-
             // Vérifier si c'est un échec
             if (event.data.success === false) {
-                console.error('❌ Échec de récupération:', event.data.error);
                 const errorMsg = event.data.error || 'Aucun élément trouvé à ajouter';
                 showNotification('❌ ' + errorMsg, true);
                 return;
