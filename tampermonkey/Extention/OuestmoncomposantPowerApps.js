@@ -7,8 +7,8 @@
 // @match        https://apps.powerapps.com/play/e/8ce66143-5dbc-4269-9f4f-16af25fd3458/a/cb3ad194-69f8-47e8-8d8b-3ab7cb9816a4*
 // @match        https://apps.powerapps.com/*
 // @match        https://runtime-app.powerplatform.com/*
-// @upload       https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
-// @download     https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @upload       https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @download     https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-idle
@@ -337,29 +337,42 @@
     let folderMode = 'normal'; // 'normal', 'delete', 'edit'
     let selectedFolderForEdit = null;
 
-    // Styles CSS pour le modal et les boutons
+    // Styles CSS pour le modal et les boutons - Interface moderne from Uiverse.io
     const styles = `
         <style id="favoris-gallery-styles">
+            /* Variables CSS pour l'interface */
+            :root {
+                --form-width: 315px;
+                --aspect-ratio: 1.33;
+                --login-box-color: #272727;
+                --input-color: #3a3a3a;
+                --button-color: #373737;
+                --footer-color: rgba(255, 255, 255, 0.5);
+            }
+
             #btn-favoris-gallery {
                 position: fixed;
                 top: 20px;
                 right: 20px;
                 z-index: 10000;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: var(--button-color);
                 color: white;
                 border: none;
                 padding: 12px 24px;
-                border-radius: 25px;
-                font-size: 16px;
-                font-weight: bold;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 600;
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                transition: all 0.3s ease;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
+                transition: 0.3s;
             }
 
             #btn-favoris-gallery:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+                background: rgba(255, 255, 255, 0.25);
+                box-shadow: inset 0px 3px 6px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px rgba(0, 0, 0, 0.8),
+                            0px 0px 8px rgba(255, 255, 255, 0.05);
             }
 
             #btn-add-favoris-gallery {
@@ -367,21 +380,24 @@
                 top: 20px;
                 right: 180px;
                 z-index: 10000;
-                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                background: var(--button-color);
                 color: white;
                 border: none;
                 padding: 12px 24px;
-                border-radius: 25px;
-                font-size: 16px;
-                font-weight: bold;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 600;
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                transition: all 0.3s ease;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
+                transition: 0.3s;
             }
 
             #btn-add-favoris-gallery:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+                background: rgba(255, 255, 255, 0.25);
+                box-shadow: inset 0px 3px 6px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px rgba(0, 0, 0, 0.8),
+                            0px 0px 8px rgba(255, 255, 255, 0.05);
             }
 
             #modal-favoris-gallery {
@@ -402,22 +418,96 @@
                 align-items: center;
             }
 
+            /* Container extérieur avec effet de rotation animé */
             .modal-content-favoris {
-                background: white;
-                border-radius: 15px;
-                padding: 30px;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: visible;
+                background: transparent;
+                border-radius: 24px;
                 max-width: 1000px;
                 width: 90%;
+                min-height: 400px;
+                z-index: 8;
+                animation: slideIn 0.3s ease;
+                padding: 2px;
+            }
+
+            .modal-content-favoris::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: 24px;
+                padding: 2px;
+                background: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0.2),
+                    rgba(255, 255, 255, 0.8),
+                    rgba(255, 255, 255, 0.2)
+                );
+                -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+                background-size: 200% 100%;
+                animation: borderSlide 2s linear infinite;
+                pointer-events: none;
+            }
+
+            @keyframes borderSlide {
+                0% {
+                    background-position: 200% 0;
+                }
+                100% {
+                    background-position: -200% 0;
+                }
+            }
+
+            @keyframes borderBlink {
+                0%, 100% {
+                    border-color: rgba(255, 255, 255, 0.8);
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                                0 0 20px rgba(255, 255, 255, 0.4);
+                }
+                50% {
+                    border-color: rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                }
+            }
+
+            /* Boîte intérieure avec contenu */
+            .modal-inner-box {
+                background: var(--login-box-color);
+                border-radius: 22px;
+                padding: 28px;
+                width: 100%;
                 max-height: 80vh;
+                position: relative;
+                z-index: 1;
                 display: flex;
                 gap: 20px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-                animation: slideIn 0.3s ease;
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                overflow: visible;
+            }
+
+            /* Sidebar et contenu principal */
+            .sidebar-folders, .main-content-favoris {
+                background: transparent;
+                border-radius: 0;
+                padding: 0;
+                position: relative;
+                z-index: 1;
             }
 
             .sidebar-folders {
                 width: 250px;
-                border-right: 2px solid #e0e0e0;
+                border-right: 2px solid rgba(255, 255, 255, 0.1);
                 padding-right: 20px;
                 overflow-y: auto;
                 max-height: calc(80vh - 60px);
@@ -447,19 +537,48 @@
                 align-items: center;
             }
 
+            /* Modal ajout avec effet moderne */
             .modal-add-content {
-                background: white;
-                border-radius: 15px;
-                padding: 30px;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: visible;
+                background: var(--login-box-color);
+                border-radius: 24px;
                 max-width: 1200px;
                 width: 95%;
+                min-height: 500px;
+                z-index: 8;
+                animation: slideIn 0.3s ease, borderBlink 2s ease-in-out infinite;
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+            }
+
+            /* Boîte intérieure du modal ajout */
+            .modal-add-inner-box {
+                background: transparent;
+                border-radius: 22px;
+                padding: 28px;
+                width: 100%;
                 max-height: 85vh;
+                position: relative;
+                z-index: 1;
                 display: flex !important;
                 flex-direction: row;
                 gap: 20px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-                animation: slideIn 0.3s ease;
                 overflow: visible;
+            }
+
+            .add-sidebar, .add-main-form {
+                background: transparent;
+                border-radius: 0;
+                padding: 0;
+                position: relative;
+                z-index: 1;
             }
 
             .add-sidebar {
@@ -468,12 +587,10 @@
                 max-width: 280px;
                 flex-shrink: 0;
                 flex-grow: 0;
-                border-right: 2px solid #e0e0e0;
+                border-right: 2px solid rgba(255, 255, 255, 0.1);
                 padding-right: 20px;
-                padding-left: 0;
                 overflow-y: auto;
                 max-height: calc(85vh - 60px);
-                background: #f8f9fa;
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
@@ -493,17 +610,17 @@
 
             .search-bar input {
                 width: 100%;
-                padding: 10px 40px 10px 15px;
-                border: 2px solid #667eea;
-                border-radius: 25px;
-                font-size: 14px;
+                padding: 10px;
+                border: none;
+                border-radius: 12px;
+                background: var(--input-color);
+                color: white;
                 outline: none;
-                transition: all 0.3s ease;
+                font-size: 14px;
             }
 
             .search-bar input:focus {
-                border-color: #5568d3;
-                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                border: 1px solid #fff;
             }
 
             .search-icon {
@@ -511,7 +628,7 @@
                 right: 15px;
                 top: 50%;
                 transform: translateY(-50%);
-                color: #667eea;
+                color: rgba(255, 255, 255, 0.7);
                 font-size: 18px;
             }
 
@@ -523,12 +640,14 @@
                 display: flex;
                 align-items: center;
                 padding: 4px 10px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2));
                 color: white;
                 border-radius: 8px 8px 0 0;
                 font-weight: bold;
                 font-size: 13px;
                 margin-bottom: 0;
+                box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.2),
+                            -8px -8px 16px rgba(255, 255, 255, 0.06);
             }
 
             .category-icon {
@@ -537,11 +656,11 @@
             }
 
             .category-content {
-                border: 2px solid #667eea;
+                border: 2px solid rgba(255, 255, 255, 0.1);
                 border-top: none;
                 border-radius: 0 0 10px 10px;
                 padding: 10px;
-                background: #f8f9fa;
+                background: rgba(58, 58, 58, 0.5);
             }
 
             .form-group {
@@ -552,7 +671,7 @@
                 display: block;
                 margin-bottom: 5px;
                 font-weight: bold;
-                color: #333;
+                color: white;
                 font-size: 14px;
             }
 
@@ -561,10 +680,19 @@
             .form-group select {
                 width: 100%;
                 padding: 10px;
-                border: 1px solid #ddd;
-                border-radius: 5px;
+                border: none;
+                border-radius: 12px;
+                background: var(--input-color);
+                color: white;
+                outline: none;
                 font-size: 14px;
                 font-family: inherit;
+            }
+
+            .form-group input:focus,
+            .form-group textarea:focus,
+            .form-group select:focus {
+                border: 1px solid #fff;
             }
 
             .form-group textarea {
@@ -575,10 +703,10 @@
             .folder-selector {
                 max-height: 200px;
                 overflow-y: auto;
-                border: 1px solid #ddd;
-                border-radius: 5px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
                 padding: 10px;
-                background: white;
+                background: var(--input-color);
                 display: block !important;
                 visibility: visible !important;
             }
@@ -589,46 +717,58 @@
                 border-radius: 5px;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                background: white;
+                background: rgba(255, 255, 255, 0.05);
+                color: white;
             }
 
             .folder-option:hover {
-                background: #e0e8ff;
+                background: rgba(255, 255, 255, 0.15);
             }
 
             .folder-option.selected {
-                background: #667eea;
+                background: rgba(255, 255, 255, 0.25);
                 color: white;
                 font-weight: bold;
             }
 
             .btn-primary, .btn-secondary {
-                padding: 10px 20px;
+                width: 100%;
+                height: 40px;
                 border: none;
-                border-radius: 5px;
-                cursor: pointer;
+                border-radius: 20px;
                 font-size: 14px;
-                font-weight: bold;
-                transition: all 0.3s ease;
+                font-weight: 600;
+                cursor: pointer;
+                display: grid;
+                place-content: center;
+                gap: 10px;
+                transition: 0.3s;
                 margin-right: 10px;
             }
 
             .btn-primary {
-                background: #667eea;
+                background: var(--button-color);
                 color: white;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
             }
 
             .btn-primary:hover {
-                background: #5568d3;
+                background: rgba(255, 255, 255, 0.25);
+                box-shadow: inset 0px 3px 6px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px rgba(0, 0, 0, 0.8),
+                            0px 0px 8px rgba(255, 255, 255, 0.05);
             }
 
             .btn-secondary {
-                background: #ccc;
-                color: #333;
+                background: var(--input-color);
+                color: rgba(255, 255, 255, 0.7);
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
             }
 
             .btn-secondary:hover {
-                background: #bbb;
+                background: rgba(255, 255, 255, 0.15);
             }
 
             .quick-folder-create {
@@ -637,29 +777,43 @@
                 gap: 8px;
                 margin-top: 10px;
                 padding: 10px;
-                background: #f0f4ff;
-                border-radius: 5px;
+                background: rgba(58, 58, 58, 0.5);
+                border-radius: 12px;
             }
 
             .quick-folder-create input {
                 width: 100%;
                 padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 3px;
+                border: none;
+                border-radius: 8px;
+                background: var(--input-color);
+                color: white;
                 font-size: 13px;
                 box-sizing: border-box;
+            }
+
+            .quick-folder-create input:focus {
+                border: 1px solid #fff;
+                outline: none;
             }
 
             .quick-folder-create button {
                 width: 100%;
                 padding: 8px 15px;
-                background: #38ef7d;
+                background: var(--button-color);
                 color: white;
                 border: none;
-                border-radius: 5px;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 12px;
                 font-weight: bold;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
+                transition: 0.3s;
+            }
+
+            .quick-folder-create button:hover {
+                background: rgba(255, 255, 255, 0.25);
             }
 
             @keyframes slideIn {
@@ -678,14 +832,15 @@
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 20px;
-                border-bottom: 2px solid #667eea;
+                border-bottom: 2px solid rgba(255, 255, 255, 0.1);
                 padding-bottom: 15px;
             }
 
             .modal-header-favoris h2 {
                 margin: 0;
-                color: #667eea;
+                color: white;
                 font-size: 24px;
+                font-weight: bold;
             }
 
             .modal-close-btn {
@@ -693,12 +848,12 @@
                 border: none;
                 font-size: 28px;
                 cursor: pointer;
-                color: #999;
+                color: rgba(255, 255, 255, 0.5);
                 transition: color 0.3s ease;
             }
 
             .modal-close-btn:hover {
-                color: #333;
+                color: #fff;
             }
 
             .favoris-list {
@@ -708,26 +863,28 @@
             }
 
             .favoris-item {
-                background: #f8f9fa;
-                border-left: 4px solid #667eea;
+                background: rgba(58, 58, 58, 0.8);
+                border-left: 4px solid rgba(255, 255, 255, 0.3);
                 padding: 15px;
                 margin-bottom: 10px;
-                border-radius: 5px;
+                border-radius: 12px;
                 display: flex;
                 flex-direction: column;
                 position: relative;
                 transition: all 0.3s ease;
+                box-shadow: inset 0 40px 60px -8px rgba(255, 255, 255, 0.05),
+                            inset 4px 0 12px -6px rgba(255, 255, 255, 0.05);
             }
 
             .favoris-item:hover {
-                background: #e9ecef;
+                background: rgba(255, 255, 255, 0.15);
                 transform: translateX(5px);
             }
 
             .favoris-item-text {
                 flex: 1;
                 font-size: 14px;
-                color: #333;
+                color: white;
                 word-break: break-word;
                 padding-right: 80px;
                 cursor: pointer;
@@ -735,7 +892,7 @@
             }
 
             .favoris-item-text:hover {
-                color: #667eea;
+                color: rgba(255, 255, 255, 0.8);
             }
 
             .favoris-item-actions {
@@ -760,66 +917,70 @@
             .btn-copy-favoris, .btn-delete-favoris, .btn-edit-favoris {
                 padding: 2px 5px;
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
                 cursor: pointer;
                 font-size: 11px;
                 font-weight: bold;
                 transition: all 0.3s ease;
+                box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);
             }
 
             .btn-inject-favoris {
-                background: #38ef7d;
+                background: var(--button-color);
                 color: white;
                 padding: 8px 15px;
                 border: none;
-                border-radius: 5px;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 12px;
                 font-weight: bold;
                 transition: all 0.3s ease;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
             }
 
             .btn-inject-favoris:hover {
-                background: #2dd46f;
+                background: rgba(255, 255, 255, 0.25);
             }
 
             .btn-edit-favoris {
-                background: #f39c12;
+                background: rgba(243, 156, 18, 0.9);
                 color: white;
             }
 
             .btn-edit-favoris:hover {
-                background: #e67e22;
+                background: rgba(230, 126, 34, 0.9);
             }
 
             .btn-copy-favoris {
-                background: #667eea;
+                background: rgba(102, 126, 234, 0.9);
                 color: white;
             }
 
             .btn-copy-favoris:hover {
-                background: #5568d3;
+                background: rgba(85, 104, 211, 0.9);
             }
 
             .btn-delete-favoris {
-                background: #ff6b6b;
+                background: rgba(255, 107, 107, 0.9);
                 color: white;
             }
 
             .btn-delete-favoris:hover {
-                background: #ee5a52;
+                background: rgba(238, 90, 82, 0.9);
             }
 
             .empty-favoris {
                 text-align: center;
                 padding: 40px;
-                color: #999;
+                color: rgba(255, 255, 255, 0.5);
                 font-size: 16px;
             }
 
             .folder-tree {
                 margin-bottom: 20px;
-                border-bottom: 1px solid #e0e0e0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 padding-bottom: 15px;
             }
 
@@ -828,19 +989,20 @@
                 align-items: center;
                 padding: 8px 12px;
                 margin: 5px 0;
-                border-radius: 5px;
+                border-radius: 12px;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                background: #f0f4ff;
+                background: rgba(58, 58, 58, 0.5);
+                color: white;
             }
 
             .folder-item:hover {
-                background: #e0e8ff;
+                background: rgba(255, 255, 255, 0.15);
                 transform: translateX(5px);
             }
 
             .folder-item.active {
-                background: #667eea;
+                background: rgba(255, 255, 255, 0.25);
                 color: white;
                 font-weight: bold;
             }
@@ -860,39 +1022,43 @@
             }
 
             .btn-delete-folder {
-                background: #ff6b6b;
+                background: rgba(255, 107, 107, 0.9);
                 color: white;
                 border: none;
                 padding: 4px 8px;
-                border-radius: 3px;
+                border-radius: 6px;
                 cursor: pointer;
                 font-size: 11px;
+                box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);
             }
 
             .btn-delete-folder:hover {
-                background: #ee5a52;
+                background: rgba(238, 90, 82, 0.9);
             }
 
             .btn-create-folder {
-                background: #667eea;
+                background: var(--button-color);
                 color: white;
                 border: none;
                 padding: 0;
-                border-radius: 5px;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 14px;
                 font-weight: bold;
                 transition: all 0.3s ease;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
             }
 
             .btn-create-folder:hover {
-                background: #5568d3;
+                background: rgba(255, 255, 255, 0.25);
             }
 
             .folder-form {
-                background: #f8f9fa;
+                background: rgba(58, 58, 58, 0.5);
                 padding: 15px;
-                border-radius: 5px;
+                border-radius: 12px;
                 margin-bottom: 15px;
                 display: none;
             }
@@ -905,10 +1071,17 @@
                 width: calc(100% - 10px);
                 padding: 10px;
                 margin: 5px;
-                border: 1px solid #ddd;
-                border-radius: 5px;
+                border: none;
+                border-radius: 8px;
+                background: var(--input-color);
+                color: white;
                 font-size: 14px;
                 box-sizing: border-box;
+            }
+
+            .folder-form input:focus {
+                border: 1px solid #fff;
+                outline: none;
             }
 
             .folder-form-actions {
@@ -920,20 +1093,30 @@
             .btn-save-folder, .btn-cancel-folder {
                 padding: 8px 15px;
                 border: none;
-                border-radius: 5px;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 12px;
                 font-weight: bold;
+                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
             }
 
             .btn-save-folder {
-                background: #38ef7d;
+                background: var(--button-color);
                 color: white;
             }
 
+            .btn-save-folder:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
             .btn-cancel-folder {
-                background: #ccc;
-                color: #333;
+                background: var(--input-color);
+                color: rgba(255, 255, 255, 0.7);
+            }
+
+            .btn-cancel-folder:hover {
+                background: rgba(255, 255, 255, 0.15);
             }
 
             .breadcrumb {
@@ -941,38 +1124,60 @@
                 align-items: center;
                 padding: 10px 0;
                 font-size: 14px;
-                color: #666;
+                color: rgba(255, 255, 255, 0.7);
             }
 
             .breadcrumb-item {
                 cursor: pointer;
-                color: #667eea;
+                color: white;
+                text-decoration: none;
+                position: relative;
+                transition: color 0.3s ease;
+            }
+
+            .breadcrumb-item::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                bottom: -2px;
+                width: 0;
+                border-radius: 6px;
+                height: 1px;
+                background: currentColor;
+                transition: width 0.3s ease;
             }
 
             .breadcrumb-item:hover {
-                text-decoration: underline;
+                color: #fff;
+            }
+
+            .breadcrumb-item:hover::after {
+                width: 100%;
             }
 
             .breadcrumb-separator {
                 margin: 0 8px;
+                color: rgba(255, 255, 255, 0.5);
             }
 
             .notification-favoris {
                 position: fixed;
                 top: 80px;
                 right: 20px;
-                background: #38ef7d;
+                background: var(--button-color);
                 color: white;
                 padding: 15px 25px;
-                border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2),
+                            0 8px 16px rgba(0, 0, 0, 0.2),
+                            inset 0 40px 60px -8px rgba(255, 255, 255, 0.12);
                 z-index: 10001;
                 animation: slideInNotif 0.3s ease;
                 display: none;
             }
 
             .notification-favoris.error {
-                background: #ff6b6b;
+                background: rgba(255, 107, 107, 0.9);
             }
 
             .notification-favoris.active {
@@ -989,6 +1194,78 @@
                     transform: translateX(0);
                 }
             }
+
+            /* Barres de défilement personnalisées */
+            .sidebar-folders::-webkit-scrollbar,
+            .main-content-favoris::-webkit-scrollbar,
+            .add-sidebar::-webkit-scrollbar,
+            .add-main-form::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            .sidebar-folders::-webkit-scrollbar-track,
+            .main-content-favoris::-webkit-scrollbar-track,
+            .add-sidebar::-webkit-scrollbar-track,
+            .add-main-form::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 10px;
+                margin: 4px 0;
+            }
+
+            .sidebar-folders::-webkit-scrollbar-thumb,
+            .main-content-favoris::-webkit-scrollbar-thumb,
+            .add-sidebar::-webkit-scrollbar-thumb,
+            .add-main-form::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 10px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+            }
+
+            .sidebar-folders::-webkit-scrollbar-thumb:hover,
+            .main-content-favoris::-webkit-scrollbar-thumb:hover,
+            .add-sidebar::-webkit-scrollbar-thumb:hover,
+            .add-main-form::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+                background-clip: padding-box;
+            }
+
+            /* Cases à cocher personnalisées */
+            input[type="checkbox"] {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 20px;
+                height: 20px;
+                background: var(--input-color);
+                border-radius: 6px;
+                cursor: pointer;
+                position: relative;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                transition: all 0.3s ease;
+                box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.3),
+                            inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);
+            }
+
+            input[type="checkbox"]:hover {
+                border-color: rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            input[type="checkbox"]:checked {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+            input[type="checkbox"]:checked::after {
+                content: "✓";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+            }
         </style>
     `;
 
@@ -1000,36 +1277,37 @@
     modal.id = 'modal-favoris-gallery';
     modal.innerHTML = `
         <div class="modal-content-favoris">
-            <div class="sidebar-folders">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="margin: 0; color: #667eea; line-height: 1;">📁 Dossiers</h3>
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <button class="btn-create-folder" id="btn-create-folder" style="background: #38ef7d; color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">➕</button>
-                        <button class="btn-mode-edit-folder" id="btn-mode-edit-folder" style="background: #f39c12; color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✏️</button>
-                        <button class="btn-mode-delete-folder" id="btn-mode-delete-folder" style="background: #e74c3c; color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">🗑️</button>
+            <div class="modal-inner-box">
+                <div class="sidebar-folders">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: white; line-height: 1;">📁 Dossiers</h3>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <button class="btn-create-folder" id="btn-create-folder" style="background: var(--button-color); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">➕</button>
+                            <button class="btn-mode-edit-folder" id="btn-mode-edit-folder" style="background: rgba(243, 156, 18, 0.9); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">✏️</button>
+                            <button class="btn-mode-delete-folder" id="btn-mode-delete-folder" style="background: rgba(231, 76, 60, 0.9); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">🗑️</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="folder-form" id="folder-form">
-                    <input type="text" id="input-symbole" placeholder="Symbole" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
-                    <input type="text" id="input-designation" placeholder="Désignation" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
-                    <label style="display: block; font-weight: bold; color: #667eea; margin: 8px 5px 2px 5px; font-size: 13px;">Rajouter dans :</label>
-                    <select id="input-parent-folder" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
-                        <option value="null">Sans Dossier</option>
-                    </select>
-                    <div class="folder-form-actions">
-                        <button class="btn-save-folder" id="btn-save-folder">✅ Créer</button>
-                        <button class="btn-cancel-folder" id="btn-cancel-folder">❌ Annuler</button>
+                    <div class="folder-form" id="folder-form">
+                        <input type="text" id="input-symbole" placeholder="Symbole" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: none; border-radius: 8px; background: var(--input-color); color: white; font-size: 14px; box-sizing: border-box;" />
+                        <input type="text" id="input-designation" placeholder="Désignation" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: none; border-radius: 8px; background: var(--input-color); color: white; font-size: 14px; box-sizing: border-box;" />
+                        <label style="display: block; font-weight: bold; color: white; margin: 8px 5px 2px 5px; font-size: 13px;">Rajouter dans :</label>
+                        <select id="input-parent-folder" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: none; border-radius: 8px; background: var(--input-color); color: white; font-size: 14px; box-sizing: border-box;">
+                            <option value="null">Sans Dossier</option>
+                        </select>
+                        <div class="folder-form-actions">
+                            <button class="btn-save-folder" id="btn-save-folder">✅ Créer</button>
+                            <button class="btn-cancel-folder" id="btn-cancel-folder">❌ Annuler</button>
+                        </div>
                     </div>
-                </div>
 
-                <div id="folder-edit-form" style="display: none; background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 2px solid #ffc107;">
-                    <h4 style="margin: 0 0 10px 0; color: #856404;">✏️ Modifier le dossier</h4>
+                    <div id="folder-edit-form" style="display: none; background: rgba(58, 58, 58, 0.8); padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 2px solid rgba(255, 193, 7, 0.5);">
+                        <h4 style="margin: 0 0 10px 0; color: rgba(255, 255, 255, 0.9);">✏️ Modifier le dossier</h4>
                     <input type="text" id="edit-symbole" placeholder="Symbole" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
                     <input type="text" id="edit-designation" placeholder="Désignation" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
                     <div style="display: flex; gap: 5px; margin-top: 10px;">
-                        <button class="btn-save-edit-folder" id="btn-save-edit-folder" style="flex: 1; background: #38ef7d; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-weight: bold;">✅ Enregistrer</button>
-                        <button class="btn-cancel-edit-folder" id="btn-cancel-edit-folder" style="flex: 1; background: #95a5a6; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-weight: bold;">❌ Annuler</button>
+                        <button class="btn-save-edit-folder" id="btn-save-edit-folder" style="flex: 1; background: var(--button-color); color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">✅ Enregistrer</button>
+                        <button class="btn-cancel-edit-folder" id="btn-cancel-edit-folder" style="flex: 1; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">❌ Annuler</button>
                     </div>
                 </div>
 
@@ -1057,8 +1335,10 @@
     const modalAdd = document.createElement('div');
     modalAdd.id = 'modal-add-favoris';
     modalAdd.innerHTML = `
-        <div class="modal-add-content" id="modal-add-content-main">
-            <!-- Le contenu sera ajouté dynamiquement -->
+        <div class="modal-add-content">
+            <div class="modal-add-inner-box" id="modal-add-content-main">
+                <!-- Le contenu sera ajouté dynamiquement -->
+            </div>
         </div>
     `;
     document.body.appendChild(modalAdd);
@@ -1191,37 +1471,37 @@
 
         const modalContent = document.getElementById('modal-add-content-main');
         modalContent.innerHTML = '';
-        modalContent.style.cssText = 'display: flex; flex-direction: column; gap: 20px; padding: 30px; background: white; border-radius: 15px; max-width: 500px; width: 90%;';
+        modalContent.style.cssText = 'display: flex; flex-direction: column; gap: 20px; padding: 30px; background: transparent; border-radius: 15px; max-width: 500px; width: 90%;';
 
         // Titre
         const title = document.createElement('h2');
         title.textContent = '✏️ Gérer la catégorie';
-        title.style.cssText = 'margin: 0; color: #667eea; text-align: center;';
+        title.style.cssText = 'margin: 0; color: white; text-align: center;';
         modalContent.appendChild(title);
 
         // Nom de la catégorie actuelle
         const categoryInfo = document.createElement('div');
-        categoryInfo.style.cssText = 'background: #f0f0f0; padding: 15px; border-radius: 8px; text-align: center;';
-        categoryInfo.innerHTML = `<strong>🏷️ ${categoryName}</strong>`;
+        categoryInfo.style.cssText = 'background: rgba(58, 58, 58, 0.8); padding: 15px; border-radius: 12px; text-align: center;';
+        categoryInfo.innerHTML = `<strong style="color: white;">🏷️ ${categoryName}</strong>`;
         modalContent.appendChild(categoryInfo);
 
         // Input pour renommer
         const renameLabel = document.createElement('label');
         renameLabel.textContent = 'Nouveau nom :';
-        renameLabel.style.cssText = 'font-weight: bold; color: #333;';
+        renameLabel.style.cssText = 'font-weight: bold; color: white;';
         modalContent.appendChild(renameLabel);
 
         const inputNewName = document.createElement('input');
         inputNewName.type = 'text';
         inputNewName.value = categoryName;
         inputNewName.placeholder = 'Nouveau nom de la catégorie';
-        inputNewName.style.cssText = 'width: 100%; padding: 12px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px; box-sizing: border-box;';
+        inputNewName.style.cssText = 'width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px; box-sizing: border-box;';
         modalContent.appendChild(inputNewName);
 
         // Compter les favoris dans cette catégorie
         const favCount = favoris.filter(f => f.categorie === categoryName).length;
         const countInfo = document.createElement('div');
-        countInfo.style.cssText = 'font-size: 12px; color: #666; text-align: center;';
+        countInfo.style.cssText = 'font-size: 12px; color: rgba(255, 255, 255, 0.7); text-align: center;';
         countInfo.textContent = `📊 ${favCount} favori(s) dans cette catégorie`;
         modalContent.appendChild(countInfo);
 
@@ -1232,7 +1512,7 @@
         // Bouton Renommer
         const btnRename = document.createElement('button');
         btnRename.textContent = '✅ Renommer';
-        btnRename.style.cssText = 'flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnRename.style.cssText = 'flex: 1; padding: 12px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnRename.addEventListener('click', () => {
             const newName = inputNewName.value.trim();
             if (!newName) {
@@ -1262,7 +1542,7 @@
         // Bouton Supprimer
         const btnDelete = document.createElement('button');
         btnDelete.textContent = '🗑️ Supprimer';
-        btnDelete.style.cssText = 'flex: 1; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnDelete.style.cssText = 'flex: 1; padding: 12px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnDelete.addEventListener('click', () => {
             const confirmMsg = favCount > 0
                 ? `⚠️ Supprimer la catégorie "${categoryName}" ?\n\n${favCount} favori(s) seront déplacés vers "Sans catégorie".`
@@ -1287,7 +1567,7 @@
         // Bouton Annuler
         const btnCancel = document.createElement('button');
         btnCancel.textContent = '❌ Annuler';
-        btnCancel.style.cssText = 'flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnCancel.style.cssText = 'flex: 1; padding: 12px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancel.addEventListener('click', () => {
             modal.classList.remove('active');
         });
@@ -1313,11 +1593,11 @@
 
         // Construire le modal (similaire à openAddModal)
         modalContent.innerHTML = '';
-        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: white; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
+        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: transparent; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
 
         // === SIDEBAR (GAUCHE) ===
         const sidebar = document.createElement('div');
-        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: #f0f4ff; padding: 20px; border-right: 3px solid #667eea; border-radius: 10px 0 0 10px;';
+        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: rgba(58, 58, 58, 0.5); padding: 20px; border-right: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px 0 0 10px;';
 
         // Titre avec compteur
         const titleContainer = document.createElement('div');
@@ -1325,7 +1605,7 @@
 
         const title = document.createElement('h3');
         title.textContent = '📁 Changer de dossier';
-        title.style.cssText = 'margin: 0; color: #667eea; font-size: 18px;';
+        title.style.cssText = 'margin: 0; color: white; font-size: 18px;';
         titleContainer.appendChild(title);
 
         sidebar.appendChild(titleContainer);
@@ -1333,18 +1613,18 @@
         // Zone de sélection des dossiers (hiérarchique)
         const folderZone = document.createElement('div');
         folderZone.id = 'folder-selector-dynamic';
-        folderZone.style.cssText = 'background: white; border: 2px solid #667eea; border-radius: 8px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
+        folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
 
         // Option "Sans Dossier"
         const optionRoot = document.createElement('label');
         optionRoot.className = 'folder-option-dyn';
-        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 5px; cursor: pointer; transition: all 0.2s; user-select: none;';
+        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
         optionRoot.innerHTML = `
             <input type="checkbox" class="folder-checkbox" data-folder="null" ${favori.folder === null ? 'checked' : ''} style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
             <span>Sans Dossier</span>
         `;
-        optionRoot.addEventListener('mouseenter', () => { optionRoot.style.background = '#e0e8ff'; });
-        optionRoot.addEventListener('mouseleave', () => { optionRoot.style.background = '#f8f9fa'; });
+        optionRoot.addEventListener('mouseenter', () => { optionRoot.style.background = 'rgba(255, 255, 255, 0.15)'; });
+        optionRoot.addEventListener('mouseleave', () => { optionRoot.style.background = 'rgba(255, 255, 255, 0.05)'; });
         folderZone.appendChild(optionRoot);
 
         // Fonction récursive pour ajouter les dossiers avec indentation
@@ -1354,13 +1634,13 @@
             childDossiers.forEach(dossier => {
                 const opt = document.createElement('label');
                 opt.className = 'folder-option-dyn';
-                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: #f8f9fa; border-radius: 5px; cursor: pointer; transition: all 0.2s; user-select: none;';
+                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
                 opt.innerHTML = `
                     <input type="checkbox" class="folder-checkbox" data-folder="${dossier.id}" ${favori.folder === dossier.id ? 'checked' : ''} style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
                     <span>📁 ${dossier.name}</span>
                 `;
-                opt.addEventListener('mouseenter', () => { opt.style.background = '#e0e8ff'; });
-                opt.addEventListener('mouseleave', () => { opt.style.background = '#f8f9fa'; });
+                opt.addEventListener('mouseenter', () => { opt.style.background = 'rgba(255, 255, 255, 0.15)'; });
+                opt.addEventListener('mouseleave', () => { opt.style.background = 'rgba(255, 255, 255, 0.05)'; });
                 folderZone.appendChild(opt);
 
                 // Ajouter les sous-dossiers
@@ -1373,23 +1653,23 @@
 
         // Séparateur
         const sep = document.createElement('hr');
-        sep.style.cssText = 'border: none; border-top: 2px solid #667eea; margin: 20px 0;';
+        sep.style.cssText = 'border: none; border-top: 2px solid rgba(255, 255, 255, 0.2); margin: 20px 0;';
         sidebar.appendChild(sep);
 
         // Zone de création rapide
         const createTitle = document.createElement('h4');
         createTitle.textContent = '➕ Créer un nouveau dossier';
-        createTitle.style.cssText = 'margin: 0 0 10px 0; color: #667eea; font-size: 16px;';
+        createTitle.style.cssText = 'margin: 0 0 10px 0; color: white; font-size: 16px;';
         sidebar.appendChild(createTitle);
 
         const quickZone = document.createElement('div');
-        quickZone.style.cssText = 'background: white; padding: 15px; border-radius: 8px; border: 2px solid #38ef7d;';
+        quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
 
         const inputSymbole = document.createElement('input');
         inputSymbole.type = 'text';
         inputSymbole.id = 'quick-symbole-dyn';
         inputSymbole.placeholder = 'Symbole';
-        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
+        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
         quickZone.appendChild(inputSymbole);
 
         const inputDesignation = document.createElement('input');
@@ -1671,11 +1951,11 @@
 
         // CONSTRUIRE TOUT LE HTML DYNAMIQUEMENT
         modalContent.innerHTML = '';
-        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: white; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
+        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: transparent; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
 
         // === SIDEBAR (GAUCHE) ===
         const sidebar = document.createElement('div');
-        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: #f0f4ff; padding: 20px; border-right: 3px solid #667eea; border-radius: 10px 0 0 10px;';
+        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: rgba(58, 58, 58, 0.5); padding: 20px; border-right: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px 0 0 10px;';
 
         // Titre avec compteur
         const titleContainer = document.createElement('div');
@@ -1683,7 +1963,7 @@
 
         const title = document.createElement('h3');
         title.textContent = '📁 Sélectionner un dossier';
-        title.style.cssText = 'margin: 0; color: #667eea; font-size: 18px;';
+        title.style.cssText = 'margin: 0; color: white; font-size: 18px;';
         titleContainer.appendChild(title);
 
         sidebar.appendChild(titleContainer);
@@ -1691,21 +1971,21 @@
         // Zone de sélection des dossiers
         const folderZone = document.createElement('div');
         folderZone.id = 'folder-selector-dynamic';
-        folderZone.style.cssText = 'background: white; border: 2px solid #667eea; border-radius: 8px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
+        folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
 
         // Option "Sans Dossier"
         const optionRoot = document.createElement('label');
         optionRoot.className = 'folder-option-dyn';
-        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 5px; cursor: pointer; transition: all 0.2s; user-select: none;';
+        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
         optionRoot.innerHTML = `
             <input type="checkbox" class="folder-checkbox" data-folder="null" checked style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
             <span>Sans Dossier</span>
         `;
         optionRoot.addEventListener('mouseenter', () => {
-            optionRoot.style.background = '#e0e8ff';
+            optionRoot.style.background = 'rgba(255, 255, 255, 0.15)';
         });
         optionRoot.addEventListener('mouseleave', () => {
-            optionRoot.style.background = '#f8f9fa';
+            optionRoot.style.background = 'rgba(255, 255, 255, 0.05)';
         });
         folderZone.appendChild(optionRoot);
 
@@ -1716,16 +1996,16 @@
             childDossiers.forEach(dossier => {
                 const opt = document.createElement('label');
                 opt.className = 'folder-option-dyn';
-                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: #f8f9fa; border-radius: 5px; cursor: pointer; transition: all 0.2s; user-select: none;';
+                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
                 opt.innerHTML = `
                     <input type="checkbox" class="folder-checkbox" data-folder="${dossier.id}" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
                     <span>📁 ${dossier.name}</span>
                 `;
                 opt.addEventListener('mouseenter', () => {
-                    opt.style.background = '#e0e8ff';
+                    opt.style.background = 'rgba(255, 255, 255, 0.15)';
                 });
                 opt.addEventListener('mouseleave', () => {
-                    opt.style.background = '#f8f9fa';
+                    opt.style.background = 'rgba(255, 255, 255, 0.05)';
                 });
                 folderZone.appendChild(opt);
 
@@ -1741,40 +2021,40 @@
 
         // Séparateur
         const sep = document.createElement('hr');
-        sep.style.cssText = 'border: none; border-top: 2px solid #667eea; margin: 20px 0;';
+        sep.style.cssText = 'border: none; border-top: 2px solid rgba(255, 255, 255, 0.2); margin: 20px 0;';
         sidebar.appendChild(sep);
 
         // Zone de création rapide
         const createTitle = document.createElement('h4');
         createTitle.textContent = '➕ Créer un nouveau dossier';
-        createTitle.style.cssText = 'margin: 0 0 10px 0; color: #667eea; font-size: 16px;';
+        createTitle.style.cssText = 'margin: 0 0 10px 0; color: white; font-size: 16px;';
         sidebar.appendChild(createTitle);
 
         const quickZone = document.createElement('div');
-        quickZone.style.cssText = 'background: white; padding: 15px; border-radius: 8px; border: 2px solid #38ef7d;';
+        quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
 
         const inputSymbole = document.createElement('input');
         inputSymbole.type = 'text';
         inputSymbole.id = 'quick-symbole-dyn';
         inputSymbole.placeholder = 'Symbole';
-        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
+        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
         quickZone.appendChild(inputSymbole);
 
         const inputDesignation = document.createElement('input');
         inputDesignation.type = 'text';
         inputDesignation.id = 'quick-designation-dyn';
         inputDesignation.placeholder = 'Désignation';
-        inputDesignation.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
+        inputDesignation.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
         quickZone.appendChild(inputDesignation);
 
         const labelParent = document.createElement('label');
         labelParent.textContent = 'Rajouter dans :';
-        labelParent.style.cssText = 'display: block; font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 13px;';
+        labelParent.style.cssText = 'display: block; font-weight: bold; color: white; margin-bottom: 5px; font-size: 13px;';
         quickZone.appendChild(labelParent);
 
         const selectParent = document.createElement('select');
         selectParent.id = 'quick-parent-dyn';
-        selectParent.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
+        selectParent.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
         selectParent.innerHTML = '<option value="null">📁 Sans Dossier</option>';
 
         function addParentOptions(parentId, level = 0) {
@@ -1792,7 +2072,7 @@
 
         const btnCreate = document.createElement('button');
         btnCreate.textContent = '✅ Créer le dossier';
-        btnCreate.style.cssText = 'width: 100%; padding: 10px; background: #38ef7d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnCreate.style.cssText = 'width: 100%; padding: 10px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCreate.addEventListener('click', () => {
             const symbole = inputSymbole.value.trim();
             const designation = inputDesignation.value.trim();
@@ -1817,15 +2097,15 @@
 
         const mainTitle = document.createElement('h2');
         mainTitle.textContent = '⭐ Ajouter aux Favoris';
-        mainTitle.style.cssText = 'margin: 0 0 20px 0; color: #667eea;';
+        mainTitle.style.cssText = 'margin: 0 0 20px 0; color: white;';
         mainForm.appendChild(mainTitle);
 
         // Champ valeur détectée
         const grp1 = document.createElement('div');
         grp1.className = 'form-group';
         grp1.innerHTML = `
-            <label>📝 Valeur détectée</label>
-            <input type="text" id="add-value-dyn" readonly value="${value}" style="width: 100%; padding: 10px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;" />
+            <label style="color: white;">📝 Valeur détectée</label>
+            <input type="text" id="add-value-dyn" readonly value="${value}" style="width: 100%; padding: 10px; background: var(--input-color); border: none; border-radius: 12px; color: white; font-size: 14px;" />
         `;
         mainForm.appendChild(grp1);
 
@@ -1834,6 +2114,7 @@
         grp2.className = 'form-group';
         const label2 = document.createElement('label');
         label2.textContent = '🏷️ Catégorie';
+        label2.style.cssText = 'color: white; font-weight: bold;';
         grp2.appendChild(label2);
 
         // Container pour select + bouton sur la même ligne
@@ -1842,7 +2123,7 @@
 
         const selectCat = document.createElement('select');
         selectCat.id = 'add-categorie-dyn';
-        selectCat.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;';
+        selectCat.style.cssText = 'flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;';
 
         // Ajouter option vide
         const emptyOption = document.createElement('option');
@@ -1865,7 +2146,7 @@
         const btnNewCat = document.createElement('button');
         btnNewCat.textContent = '➕ Nouveau';
         btnNewCat.type = 'button';
-        btnNewCat.style.cssText = 'padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;';
+        btnNewCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         catContainer.appendChild(btnNewCat);
 
         grp2.appendChild(catContainer);
@@ -1882,13 +2163,13 @@
         inputCustomCat.type = 'text';
         inputCustomCat.id = 'add-categorie-custom-dyn';
         inputCustomCat.placeholder = 'Nom de la nouvelle catégorie...';
-        inputCustomCat.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;';
+        inputCustomCat.style.cssText = 'flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;';
         customContainer.appendChild(inputCustomCat);
 
         const btnAddCat = document.createElement('button');
         btnAddCat.textContent = '✅ Créer';
         btnAddCat.type = 'button';
-        btnAddCat.style.cssText = 'padding: 10px 15px; background: #38ef7d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;';
+        btnAddCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnAddCat.addEventListener('click', () => {
             const newCat = inputCustomCat.value.trim();
             if (newCat) {
@@ -1911,7 +2192,7 @@
         const btnCancelCat = document.createElement('button');
         btnCancelCat.textContent = '❌';
         btnCancelCat.type = 'button';
-        btnCancelCat.style.cssText = 'padding: 10px 12px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnCancelCat.style.cssText = 'padding: 10px 12px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancelCat.addEventListener('click', () => {
             customZone.style.display = 'none';
             inputCustomCat.value = '';
@@ -1933,9 +2214,9 @@
         const grp3 = document.createElement('div');
         grp3.className = 'form-group';
         grp3.innerHTML = `
-            <label>📍 Repère</label>
-            <input type="text" id="add-repere-dyn" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;" />
-            <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
+            <label style="color: white; font-weight: bold;">📍 Repère</label>
+            <input type="text" id="add-repere-dyn" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
+            <small style="color: rgba(255, 255, 255, 0.7); font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
         `;
         mainForm.appendChild(grp3);
 
@@ -1943,8 +2224,8 @@
         const grp4 = document.createElement('div');
         grp4.className = 'form-group';
         grp4.innerHTML = `
-            <label>💬 Commentaire</label>
-            <textarea id="add-commentaire-dyn" placeholder="Ajoutez un commentaire..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
+            <label style="color: white; font-weight: bold;">💬 Commentaire</label>
+            <textarea id="add-commentaire-dyn" placeholder="Ajoutez un commentaire..." style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
         `;
         mainForm.appendChild(grp4);
 
@@ -1954,7 +2235,7 @@
 
         const btnConfirm = document.createElement('button');
         btnConfirm.textContent = '✅ Ajouter';
-        btnConfirm.style.cssText = 'padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 10px; font-size: 14px;';
+        btnConfirm.style.cssText = 'padding: 10px 20px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-right: 10px; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnConfirm.addEventListener('click', () => {
             const val = document.getElementById('add-value-dyn').value;
             const selectCat = document.getElementById('add-categorie-dyn');
@@ -2032,7 +2313,7 @@
 
         const btnCancel = document.createElement('button');
         btnCancel.textContent = '❌ Annuler';
-        btnCancel.style.cssText = 'padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
+        btnCancel.style.cssText = 'padding: 10px 20px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancel.addEventListener('click', () => {
             document.getElementById('modal-add-favoris').classList.remove('active');
         });
@@ -2666,4 +2947,3 @@
     console.log('✅ Script PowerApp Gallery Favoris chargé (version simplifiée)');
     console.log('💡 Prêt pour la nouvelle méthode de sélection');
 })();
-
