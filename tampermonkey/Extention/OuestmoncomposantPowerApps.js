@@ -28,6 +28,139 @@
     // CODE POUR L'IFRAME (runtime-app.powerplatform.com)
     // ========================================
     if (isRuntimeApp) {
+        console.log('🔧 [DEBUG] Script chargé dans l\'iframe runtime-app');
+
+        // Fonction pour remplir le champ de recherche avec le symbole
+        function fillSearchFieldWithSymbol() {
+            console.log('🔧 [DEBUG] fillSearchFieldWithSymbol() appelée');
+            // Essayer d'accéder via postMessage
+            try {
+                console.log('🔧 [DEBUG] Envoi de GET_LAST_SYMBOL au parent');
+                window.parent.postMessage({ type: 'GET_LAST_SYMBOL' }, 'https://apps.powerapps.com');
+            } catch (e) {
+                console.error('❌ [DEBUG] Erreur lors de l\'envoi du message:', e);
+            }
+        }
+
+        // Écouter la réponse du parent avec le symbole
+        window.addEventListener('message', (event) => {
+            console.log('🔧 [DEBUG] Message reçu dans iframe:', event.data.type, 'depuis:', event.origin);
+            
+            if (event.origin !== 'https://apps.powerapps.com') {
+                console.log('⚠️ [DEBUG] Origine ignorée:', event.origin);
+                return;
+            }
+            
+            if (event.data.type === 'LAST_SYMBOL_RESPONSE') {
+                const lastSymbol = event.data.symbol;
+                console.log('🔧 [DEBUG] LAST_SYMBOL_RESPONSE reçu. Symbole:', lastSymbol);
+                
+                if (!lastSymbol) {
+                    console.log('⚠️ [DEBUG] Symbole vide, abandon');
+                    return;
+                }
+
+                console.log('🔍 [DEBUG] Recherche du champ input[role="combobox"]...');
+
+                // Chercher le champ input de type combobox
+                const searchField = document.querySelector('input[role="combobox"][placeholder="Find items"]');
+                
+                console.log('🔧 [DEBUG] Champ trouvé:', searchField);
+                
+                if (searchField) {
+                    console.log('✅ [DEBUG] Champ trouvé! ID:', searchField.id, 'Value actuelle:', searchField.value);
+                    
+                    // Méthode React-compatible pour Fluent UI
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                        window.HTMLInputElement.prototype,
+                        'value'
+                    ).set;
+
+                    console.log('🔧 [DEBUG] Focus sur le champ...');
+                    searchField.focus();
+                    
+                    console.log('🔧 [DEBUG] Click sur le champ pour activer...');
+                    searchField.click();
+                    
+                    setTimeout(() => {
+                        console.log('🔧 [DEBUG] Injection de la valeur caractère par caractère:', lastSymbol);
+                        
+                        // Injecter caractère par caractère
+                        let currentValue = '';
+                        for (let i = 0; i < lastSymbol.length; i++) {
+                            currentValue += lastSymbol[i];
+                            nativeInputValueSetter.call(searchField, currentValue);
+                            searchField.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        
+                        console.log('🔧 [DEBUG] Valeur après injection:', searchField.value);
+                        
+                        // Déclencher change event
+                        setTimeout(() => {
+                            console.log('🔧 [DEBUG] Dispatch change event...');
+                            searchField.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            // Blur puis click pour forcer la validation
+                            setTimeout(() => {
+                                console.log('🔧 [DEBUG] Blur du champ...');
+                                searchField.blur();
+                                
+                                setTimeout(() => {
+                                    console.log('🔧 [DEBUG] Click final sur le champ...');
+                                    searchField.click();
+                                    
+                                    setTimeout(() => {
+                                        console.log('✅ [DEBUG] Vérification finale - Valeur du champ:', searchField.value);
+                                    }, 200);
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                    
+                    console.log('✅ [DEBUG] Processus d\'injection terminé');
+                } else {
+                    console.error('❌ [DEBUG] Champ de recherche NON trouvé!');
+                    console.log('🔧 [DEBUG] Tous les inputs role=combobox:', document.querySelectorAll('input[role="combobox"]'));
+                    console.log('🔧 [DEBUG] Tous les inputs avec placeholder:', document.querySelectorAll('input[placeholder]'));
+                }
+            }
+        });
+
+        // Observer pour détecter les clics sur les boutons appmagic-button
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('.appmagic-button');
+            if (button) {
+                console.log('🖱️ [DEBUG] Clic détecté sur un bouton appmagic-button');
+                console.log('🔧 [DEBUG] Bouton:', button);
+                console.log('🔧 [DEBUG] Texte du bouton:', button.textContent.trim());
+                // Attendre un peu que le champ apparaisse puis demander le symbole
+                setTimeout(() => {
+                    console.log('🔧 [DEBUG] Appel de fillSearchFieldWithSymbol après 500ms');
+                    fillSearchFieldWithSymbol();
+                }, 500);
+            }
+        }, true);
+
+        // Observer pour détecter quand le champ de recherche apparaît
+        const searchFieldObserver = new MutationObserver(() => {
+            const searchField = document.querySelector('input[role="combobox"][placeholder="Find items"]');
+            if (searchField && !searchField.dataset.symbolFilled) {
+                console.log('🔧 [DEBUG] Champ de recherche détecté par MutationObserver!');
+                searchField.dataset.symbolFilled = 'true';
+                setTimeout(() => {
+                    console.log('🔧 [DEBUG] Appel de fillSearchFieldWithSymbol depuis MutationObserver');
+                    fillSearchFieldWithSymbol();
+                }, 300);
+            }
+        });
+
+        searchFieldObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        console.log('🔧 [DEBUG] MutationObserver activé pour le champ de recherche');
+
         // Injection des boutons dans l'iframe
         function injectButtonsInIframe() {
             const labels = document.querySelectorAll('.appmagic-label-text');
@@ -58,7 +191,7 @@
                         }, 'https://apps.powerapps.com');
                     });
 
-                    // Ajouter le bouton directement dans le div du label
+                    //Ajouter le bouton directement dans le div du label
                     label.style.display = 'inline-block';
                     label.appendChild(btnFavoris);
                 }
@@ -67,7 +200,7 @@
                 if (text === "Retirer un composant :" && !document.getElementById('btn-add-favoris-gallery-iframe')) {
                     const btnAddFavoris = document.createElement('button');
                     btnAddFavoris.id = 'btn-add-favoris-gallery-iframe';
-                    btnAddFavoris.textContent = '⭐ Ajouter aux Favoris';
+                    btnAddFavoris.textContent = '⭐Ajouter aux Favoris';
                     btnAddFavoris.style.cssText = 'margin-left: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8), 0px 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: inline-block;';
                     btnAddFavoris.addEventListener('mouseenter', () => {
                         btnAddFavoris.style.background = 'linear-gradient(135deg, #764ba2, #667eea)';
@@ -86,7 +219,7 @@
                         }, 'https://apps.powerapps.com');
                     });
 
-                    // Ajouter le bouton directement dans le div du label
+                    //Ajouter le bouton directement dans le div du label
                     label.style.display = 'inline-block';
                     label.appendChild(btnAddFavoris);
                 }
@@ -124,20 +257,65 @@
                 const findTargetFields = () => {
                     const allInputs = document.querySelectorAll('input[type="text"], input:not([type])');
 
-                    // Stratégie 1: Filtrer par ID avec patterns élargis
-                    let targetInputs = Array.from(allInputs).filter(input => {
+                    // Stratégie 1: Filtrer par ID avec patterns plus précis pour éviter field-60/field-61
+                    let field60Input = Array.from(allInputs).find(input => {
                         const id = input.id || '';
                         const name = input.name || '';
-                        return id.includes('field-5__control') || id.includes('field-5_') || id.includes('field5') ||
-                               id.includes('field-6__control') || id.includes('field-6_') || id.includes('field6') ||
-                               name.includes('field-5') || name.includes('field-6');
+                        const match60 = id.includes('field-60__control') || id.includes('field-60_') || name.includes('field-60');
+                        const match5 = id.includes('field-5__control') || id.includes('field-5_') || name.includes('field-5');
+                        
+                        return match60 || match5;
                     });
 
-                    // Stratégie 2: Si aucun champ trouvé par numéro, prendre les 2 premiers champs avec valeur
-                    if (targetInputs.length === 0 && allInputs.length >= 2) {
-                        targetInputs = Array.from(allInputs)
-                            .filter(input => input.value && input.value.trim().length > 0)
-                            .slice(0, 2);
+                    let field61Input = Array.from(allInputs).find(input => {
+                        const id = input.id || '';
+                        const name = input.name || '';
+                        const match61 = id.includes('field-61__control') || id.includes('field-61_') || name.includes('field-61');
+                        const match6 = id.includes('field-6__control') || id.includes('field-6_') || name.includes('field-6');
+                        
+                        return match61 || match6;
+                    });
+
+                    // Si field-60 est trouvé mais vide, ne RIEN mémoriser du tout
+                    if (field60Input && field60Input.value.trim().length === 0) {
+                        return []; // Ne rien mémoriser si le premier champ est vide
+                    }
+
+                    // Si field-60 existe avec une valeur, on le prend
+                    let targetInputs = [];
+                    if (field60Input && field60Input.value.trim().length > 0) {
+                        targetInputs.push(field60Input);
+                        
+                        //Ajouter field-61 SEULEMENT s'il existe ET a une valeur
+                        if (field61Input && field61Input.value.trim().length > 0) {
+                            targetInputs.push(field61Input);
+                        }
+                        
+                        // Retourner immédiatement, NE PAS passer à la Stratégie 2
+                        return targetInputs;
+                    }
+
+                    // Stratégie 2: SEULEMENT si field-60 n'existe PAS du tout (pas trouvé dans le DOM)
+                    // Si field-60 existe mais est vide, on a déjà retourné [] plus haut
+                    if (allInputs.length >= 1) {
+                        const firstInputWithValue = Array.from(allInputs).find(input => 
+                            input.value && input.value.trim().length > 0
+                        );
+                        
+                        if (firstInputWithValue) {
+                            targetInputs.push(firstInputWithValue);
+                            
+                            // Chercher un 2ème champ seulement si le 1er a une valeur
+                            const firstIndex = Array.from(allInputs).indexOf(firstInputWithValue);
+                            const remainingInputs = Array.from(allInputs).slice(firstIndex + 1);
+                            const secondInputWithValue = remainingInputs.find(input => 
+                                input.value && input.value.trim().length > 0
+                            );
+                            
+                            if (secondInputWithValue) {
+                                targetInputs.push(secondInputWithValue);
+                            }
+                        }
                     }
 
                     return targetInputs;
@@ -324,6 +502,72 @@
                         type: 'SET_FIELD2_SUCCESS'
                     }, 'https://apps.powerapps.com');
                 }, 700);
+            }
+
+            //Nouveau: Remplir le champ de recherche avec le symbole
+            if (event.data.type === 'FILL_SEARCH_WITH_SYMBOL') {
+                const symbol = event.data.symbol;
+                console.log('📥 [DEBUG] Message FILL_SEARCH_WITH_SYMBOL reçu avec symbole:', symbol);
+                
+                if (!symbol) {
+                    console.log('⚠️ [DEBUG] Symbole vide, abandon');
+                    return;
+                }
+
+                // Chercher le champ input de type combobox
+                const searchField = document.querySelector('input[role="combobox"][placeholder="Find items"]');
+                
+                if (searchField) {
+                    console.log('✅ [DEBUG] Champ trouvé pour FILL_SEARCH_WITH_SYMBOL');
+                    
+                    // Remplir le champ avec méthode React-compatible
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                        window.HTMLInputElement.prototype,
+                        'value'
+                    ).set;
+
+                    searchField.focus();
+                    
+                    console.log('🔧 [DEBUG] Click sur le champ pour activer...');
+                    searchField.click();
+                    
+                    setTimeout(() => {
+                        console.log('🔧 [DEBUG] Injection caractère par caractère...');
+                        let currentValue = '';
+                        for (let i = 0; i < symbol.length; i++) {
+                            currentValue += symbol[i];
+                            nativeInputValueSetter.call(searchField, currentValue);
+                            searchField.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        
+                        console.log('🔧 [DEBUG] Valeur après injection:', searchField.value);
+                        
+                        // Déclencher change event
+                        setTimeout(() => {
+                            console.log('🔧 [DEBUG] FILL_SEARCH - Dispatch change event...');
+                            searchField.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            // Blur puis click pour forcer la validation
+                            setTimeout(() => {
+                                console.log('🔧 [DEBUG] FILL_SEARCH - Blur du champ...');
+                                searchField.blur();
+                                
+                                setTimeout(() => {
+                                    console.log('🔧 [DEBUG] FILL_SEARCH - Click final sur le champ...');
+                                    searchField.click();
+                                    
+                                    setTimeout(() => {
+                                        console.log('✅ [DEBUG] FILL_SEARCH - Valeur finale:', searchField.value);
+                                    }, 200);
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                    
+                    console.log('✅ Champ de recherche rempli avec le symbole:', symbol);
+                } else {
+                    console.log('❌ [DEBUG] Champ de recherche non trouvé pour FILL_SEARCH_WITH_SYMBOL');
+                }
             }
         });
 
@@ -1269,7 +1513,7 @@
             }
 
             input[type="checkbox"]:checked::after {
-                content: "✓";
+                content: "×";
                 position: absolute;
                 top: 50%;
                 left: 50%;
@@ -1294,7 +1538,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <h3 style="margin: 0; color: white; line-height: 1;">📁 Dossiers</h3>
                         <div style="display: flex; gap: 5px; align-items: center;">
-                            <button class="btn-create-folder" id="btn-create-folder" style="background: var(--button-color); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">➕</button>
+                            <button class="btn-create-folder" id="btn-create-folder" style="background: var(--button-color); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">+</button>
                             <button class="btn-mode-edit-folder" id="btn-mode-edit-folder" style="background: rgba(243, 156, 18, 0.9); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">✏️</button>
                             <button class="btn-mode-delete-folder" id="btn-mode-delete-folder" style="background: rgba(231, 76, 60, 0.9); color: white; border: none; padding: 0; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">🗑️</button>
                         </div>
@@ -1308,18 +1552,18 @@
                             <option value="null">Sans Dossier</option>
                         </select>
                         <div class="folder-form-actions">
-                            <button class="btn-save-folder" id="btn-save-folder">✅ Créer</button>
-                            <button class="btn-cancel-folder" id="btn-cancel-folder">❌ Annuler</button>
+                            <button class="btn-save-folder" id="btn-save-folder">Créer</button>
+                            <button class="btn-cancel-folder" id="btn-cancel-folder">Annuler</button>
                         </div>
                     </div>
 
                     <div id="folder-edit-form" style="display: none; background: rgba(58, 58, 58, 0.8); padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 2px solid rgba(255, 193, 7, 0.5);">
-                        <h4 style="margin: 0 0 10px 0; color: rgba(255, 255, 255, 0.9);">✏️ Modifier le dossier</h4>
+                        <h4 style="margin: 0 0 10px 0; color: rgba(255, 255, 255, 0.9);">Modifier le dossier</h4>
                     <input type="text" id="edit-symbole" placeholder="Symbole" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
                     <input type="text" id="edit-designation" placeholder="Désignation" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
                     <div style="display: flex; gap: 5px; margin-top: 10px;">
-                        <button class="btn-save-edit-folder" id="btn-save-edit-folder" style="flex: 1; background: var(--button-color); color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">✅ Enregistrer</button>
-                        <button class="btn-cancel-edit-folder" id="btn-cancel-edit-folder" style="flex: 1; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">❌ Annuler</button>
+                        <button class="btn-save-edit-folder" id="btn-save-edit-folder" style="flex: 1; background: var(--button-color); color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">Enregistrer</button>
+                        <button class="btn-cancel-edit-folder" id="btn-cancel-edit-folder" style="flex: 1; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">Annuler</button>
                     </div>
                 </div>
 
@@ -1371,13 +1615,11 @@
         }, 3000);
     }
 
-    // Fonction pour ajouter aux favoris
+    // Fonction pourAjouter aux favoris
     function addToFavoris() {
-        console.log('🎯 Fonction addToFavoris appelée');
-        console.log('📤 Envoi d\'une demande à l\'iframe...');
-
         // Trouver l'iframe runtime
         const iframe = document.getElementById('fullscreen-app-host');
+        
         if (!iframe) {
             console.error('❌ Iframe fullscreen-app-host introuvable');
             showNotification('❌ Erreur : iframe non trouvée. Rechargez la page.', true);
@@ -1397,7 +1639,6 @@
                 type: 'GET_FIELD_VALUES'
             }, 'https://runtime-app.powerplatform.com');
 
-            console.log('✅ Message envoyé à l\'iframe, en attente de réponse...');
             showNotification('🔍 Recherche des valeurs en cours...', false);
         } catch (error) {
             console.error('❌ Erreur lors de l\'envoi du message:', error);
@@ -1412,6 +1653,27 @@
             return;
         }
 
+        // Handler pour envoyer le symbole mémorisé à l'iframe
+        if (event.data.type === 'GET_LAST_SYMBOL') {
+            console.log('🔧 [DEBUG PAGE] GET_LAST_SYMBOL reçu de l\'iframe');
+            const lastSymbol = GM_getValue('lastSymbol', '');
+            console.log('🔧 [DEBUG PAGE] Symbole mémorisé:', lastSymbol);
+            
+            const iframe = document.querySelector('iframe[name="fullscreen-app-host"]');
+            console.log('🔧 [DEBUG PAGE] Iframe trouvée:', iframe);
+            
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'LAST_SYMBOL_RESPONSE',
+                    symbol: lastSymbol
+                }, 'https://runtime-app.powerplatform.com');
+                console.log('📤 [DEBUG PAGE] LAST_SYMBOL_RESPONSE envoyé à l\'iframe avec symbole:', lastSymbol);
+            } else {
+                console.error('❌ [DEBUG PAGE] Iframe ou contentWindow non disponible');
+            }
+            return;
+        }
+
         // Handler pour ouvrir le modal depuis l'iframe
         if (event.data.type === 'OPEN_FAVORIS_MODAL') {
             displayFavoris();
@@ -1419,7 +1681,7 @@
             return;
         }
 
-        // Handler pour ajouter aux favoris depuis l'iframe
+        // Handler pourAjouter aux favoris depuis l'iframe
         if (event.data.type === 'ADD_TO_FAVORIS') {
             addToFavoris();
             return;
@@ -1438,7 +1700,7 @@
         if (event.data.type === 'FIELD_VALUES_RESPONSE') {
             // Vérifier si c'est un échec
             if (event.data.success === false) {
-                const errorMsg = event.data.error || 'Aucun élément trouvé à ajouter';
+                const errorMsg = event.data.error || 'Aucun élément trouvé àAjouter';
                 showNotification('❌ ' + errorMsg, true);
                 return;
             }
@@ -1446,7 +1708,6 @@
             const values = event.data.values || [];
 
             if (values.length === 0) {
-                console.log('❌ Aucune valeur trouvée');
                 showNotification('❌ Aucune valeur dans les champs field-5/field-6', true);
                 return;
             }
@@ -1454,10 +1715,6 @@
             // Combiner les valeurs (déduplication automatique avec Set)
             const uniqueValues = [...new Set(values)];
             const textToAdd = uniqueValues.join(' | ');
-
-            console.log('✅ Texte à ajouter:', textToAdd);
-            console.log(`📊 ${uniqueValues.length} valeur(s) unique(s) extraite(s)`);
-
 
             // Ouvrir le modal d'ajout avec la valeur
             openAddModal(textToAdd);
@@ -1523,12 +1780,12 @@
 
         // Bouton Renommer
         const btnRename = document.createElement('button');
-        btnRename.textContent = '✅ Renommer';
+        btnRename.textContent = 'Renommer';
         btnRename.style.cssText = 'flex: 1; padding: 12px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnRename.addEventListener('click', () => {
             const newName = inputNewName.value.trim();
             if (!newName) {
-                showNotification('❌ Le nom ne peut pas être vide', true);
+                showNotification('Le nom ne peut pas être vide', true);
                 return;
             }
             if (newName === categoryName) {
@@ -1545,7 +1802,7 @@
             });
 
             GM_setValue('favoris', favoris);
-            showNotification(`✅ Catégorie renommée : "${categoryName}" → "${newName}"`);
+            showNotification(`Catégorie renommée : "${categoryName}" → "${newName}"`);
             modal.classList.remove('active');
             displayFavoris();
         });
@@ -1553,7 +1810,7 @@
 
         // Bouton Supprimer
         const btnDelete = document.createElement('button');
-        btnDelete.textContent = '🗑️ Supprimer';
+        btnDelete.textContent = 'Supprimer';
         btnDelete.style.cssText = 'flex: 1; padding: 12px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnDelete.addEventListener('click', () => {
             const confirmMsg = favCount > 0
@@ -1569,16 +1826,16 @@
                 });
 
                 GM_setValue('favoris', favoris);
-                showNotification(`✅ Catégorie "${categoryName}" supprimée`);
+                showNotification(`Catégorie "${categoryName}" supprimée`);
                 modal.classList.remove('active');
                 displayFavoris();
             }
         });
         btnContainer.appendChild(btnDelete);
 
-        // Bouton Annuler
+        // BoutonAnnuler
         const btnCancel = document.createElement('button');
-        btnCancel.textContent = '❌ Annuler';
+        btnCancel.textContent = 'Annuler';
         btnCancel.style.cssText = 'flex: 1; padding: 12px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancel.addEventListener('click', () => {
             modal.classList.remove('active');
@@ -1603,7 +1860,7 @@
         // Récupérer le conteneur principal
         const modalContent = document.getElementById('modal-add-content-main');
 
-        // Construire le modal (similaire à openAddModal)
+        // Construire le modal (même structure que openAddModal)
         modalContent.innerHTML = '';
         modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: transparent; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
 
@@ -1611,7 +1868,7 @@
         const sidebar = document.createElement('div');
         sidebar.style.cssText = 'width: 300px; min-width: 300px; background: rgba(58, 58, 58, 0.5); padding: 20px; border-right: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px 0 0 10px;';
 
-        // Titre avec compteur
+        // Titre
         const titleContainer = document.createElement('div');
         titleContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
 
@@ -1627,19 +1884,7 @@
         folderZone.id = 'folder-selector-dynamic';
         folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
 
-        // Option "Sans Dossier"
-        const optionRoot = document.createElement('label');
-        optionRoot.className = 'folder-option-dyn';
-        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
-        optionRoot.innerHTML = `
-            <input type="checkbox" class="folder-checkbox" data-folder="null" ${favori.folder === null ? 'checked' : ''} style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
-            <span>Sans Dossier</span>
-        `;
-        optionRoot.addEventListener('mouseenter', () => { optionRoot.style.background = 'rgba(255, 255, 255, 0.15)'; });
-        optionRoot.addEventListener('mouseleave', () => { optionRoot.style.background = 'rgba(255, 255, 255, 0.05)'; });
-        folderZone.appendChild(optionRoot);
-
-        // Fonction récursive pour ajouter les dossiers avec indentation
+        // Fonction récursive pourAjouter les dossiers avec indentation
         function addFolderOptionsRecursive(parentId, level = 0) {
             const childDossiers = dossiers.filter(d => d.parent === parentId);
 
@@ -1655,7 +1900,7 @@
                 opt.addEventListener('mouseleave', () => { opt.style.background = 'rgba(255, 255, 255, 0.05)'; });
                 folderZone.appendChild(opt);
 
-                // Ajouter les sous-dossiers
+                //Ajouter les sous-dossiers
                 addFolderOptionsRecursive(dossier.id, level + 1);
             });
         }
@@ -1670,375 +1915,7 @@
 
         // Zone de création rapide
         const createTitle = document.createElement('h4');
-        createTitle.textContent = '➕ Créer un nouveau dossier';
-        createTitle.style.cssText = 'margin: 0 0 10px 0; color: white; font-size: 16px;';
-        sidebar.appendChild(createTitle);
-
-        const quickZone = document.createElement('div');
-        quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
-
-        const inputSymbole = document.createElement('input');
-        inputSymbole.type = 'text';
-        inputSymbole.id = 'quick-symbole-dyn';
-        inputSymbole.placeholder = 'Symbole';
-        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
-        quickZone.appendChild(inputSymbole);
-
-        const inputDesignation = document.createElement('input');
-        inputDesignation.type = 'text';
-        inputDesignation.id = 'quick-designation-dyn';
-        inputDesignation.placeholder = 'Désignation';
-        inputDesignation.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
-        quickZone.appendChild(inputDesignation);
-
-        const labelParent = document.createElement('label');
-        labelParent.textContent = 'Rajouter dans :';
-        labelParent.style.cssText = 'display: block; font-weight: bold; color: #667eea; margin-bottom: 5px; font-size: 13px;';
-        quickZone.appendChild(labelParent);
-
-        const selectParent = document.createElement('select');
-        selectParent.id = 'quick-parent-dyn';
-        selectParent.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px;';
-        selectParent.innerHTML = '<option value="null">📁 Sans Dossier</option>';
-
-        function addParentOptions(parentId, level = 0) {
-            const childDossiers = dossiers.filter(d => d.parent === parentId);
-            childDossiers.forEach(dossier => {
-                const option = document.createElement('option');
-                option.value = dossier.id;
-                option.textContent = '  '.repeat(level) + '📁 ' + dossier.name;
-                selectParent.appendChild(option);
-                addParentOptions(dossier.id, level + 1);
-            });
-        }
-        addParentOptions(null);
-        quickZone.appendChild(selectParent);
-
-        const btnCreate = document.createElement('button');
-        btnCreate.textContent = '✅ Créer le dossier';
-        btnCreate.style.cssText = 'width: 100%; padding: 10px; background: #38ef7d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
-        btnCreate.addEventListener('click', () => {
-            const symbole = inputSymbole.value.trim();
-            const designation = inputDesignation.value.trim();
-            const parent = selectParent.value === 'null' ? null : selectParent.value;
-            if (symbole && designation) {
-                const newId = createFolder(symbole, designation, parent);
-                openEditModal(index);
-                showNotification('✅ Dossier créé !');
-            } else {
-                showNotification('❌ Veuillez remplir les deux champs', true);
-            }
-        });
-        quickZone.appendChild(btnCreate);
-
-        sidebar.appendChild(quickZone);
-        modalContent.appendChild(sidebar);
-
-        // === FORMULAIRE PRINCIPAL (DROITE) ===
-        const mainForm = document.createElement('div');
-        mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto;';
-
-        const mainTitle = document.createElement('h2');
-        mainTitle.textContent = '✏️ Modifier le Favori';
-        mainTitle.style.cssText = 'margin: 0 0 20px 0; color: #667eea;';
-        mainForm.appendChild(mainTitle);
-
-        // Champ valeur
-        const grp1 = document.createElement('div');
-        grp1.className = 'form-group';
-        grp1.innerHTML = `
-            <label>📝 Valeur</label>
-            <input type="text" id="edit-value-dyn" value="${favori.text || favori}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;" />
-        `;
-        mainForm.appendChild(grp1);
-
-        // Champ catégorie
-        const grp2 = document.createElement('div');
-        grp2.className = 'form-group';
-        const label2 = document.createElement('label');
-        label2.textContent = '🏷️ Catégorie';
-        grp2.appendChild(label2);
-
-        // Container pour select + bouton sur la même ligne
-        const catContainer = document.createElement('div');
-        catContainer.style.cssText = 'display: flex; gap: 10px; align-items: center;';
-
-        const selectCat = document.createElement('select');
-        selectCat.id = 'edit-categorie-dyn';
-        selectCat.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;';
-
-        // Ajouter option vide
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = '-- Sélectionner --';
-        selectCat.appendChild(emptyOption);
-
-        // Ajouter les catégories existantes
-        const categoriesEdit = [...new Set(favoris.map(fav => fav.categorie).filter(cat => cat))];
-        categoriesEdit.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat;
-            option.textContent = cat;
-            if (cat === favori.categorie) option.selected = true;
-            selectCat.appendChild(option);
-        });
-
-        catContainer.appendChild(selectCat);
-
-        // Bouton "ou Créer" visible en permanence
-        const btnNewCat = document.createElement('button');
-        btnNewCat.textContent = '➕ Nouveau';
-        btnNewCat.type = 'button';
-        btnNewCat.style.cssText = 'padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;';
-        catContainer.appendChild(btnNewCat);
-
-        grp2.appendChild(catContainer);
-
-        // Zone de saisie pour nouvelle catégorie (cachée au départ)
-        const customZone = document.createElement('div');
-        customZone.id = 'custom-cat-zone-edit';
-        customZone.style.cssText = 'display: none; margin-top: 8px;';
-
-        const customContainer = document.createElement('div');
-        customContainer.style.cssText = 'display: flex; gap: 10px; align-items: center;';
-
-        const inputCustomCat = document.createElement('input');
-        inputCustomCat.type = 'text';
-        inputCustomCat.id = 'edit-categorie-custom-dyn';
-        inputCustomCat.placeholder = 'Nom de la nouvelle catégorie...';
-        inputCustomCat.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;';
-        customContainer.appendChild(inputCustomCat);
-
-        const btnAddCat = document.createElement('button');
-        btnAddCat.textContent = '✅ Créer';
-        btnAddCat.type = 'button';
-        btnAddCat.style.cssText = 'padding: 10px 15px; background: #38ef7d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;';
-        btnAddCat.addEventListener('click', () => {
-            const newCat = inputCustomCat.value.trim();
-            if (newCat) {
-                // Ajouter la nouvelle catégorie au select
-                const newOption = document.createElement('option');
-                newOption.value = newCat;
-                newOption.textContent = newCat;
-                newOption.selected = true;
-                selectCat.appendChild(newOption);
-                // Cacher la zone de saisie
-                customZone.style.display = 'none';
-                inputCustomCat.value = '';
-                showNotification('✅ Catégorie "' + newCat + '" ajoutée !');
-            } else {
-                showNotification('❌ Veuillez saisir un nom de catégorie', true);
-            }
-        });
-        customContainer.appendChild(btnAddCat);
-
-        const btnCancelCat = document.createElement('button');
-        btnCancelCat.textContent = '❌';
-        btnCancelCat.type = 'button';
-        btnCancelCat.style.cssText = 'padding: 10px 12px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
-        btnCancelCat.addEventListener('click', () => {
-            customZone.style.display = 'none';
-            inputCustomCat.value = '';
-        });
-        customContainer.appendChild(btnCancelCat);
-
-        customZone.appendChild(customContainer);
-        grp2.appendChild(customZone);
-
-        // Événement pour afficher la zone de saisie
-        btnNewCat.addEventListener('click', () => {
-            customZone.style.display = 'block';
-            inputCustomCat.focus();
-        });
-
-        mainForm.appendChild(grp2);
-
-        // Champ repère
-        const grp3 = document.createElement('div');
-        grp3.className = 'form-group';
-        grp3.innerHTML = `
-            <label>📍 Repère</label>
-            <input type="text" id="edit-repere-dyn" value="${favori.repere || ''}" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;" />
-            <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
-        `;
-        mainForm.appendChild(grp3);
-
-        // Champ commentaire
-        const grp4 = document.createElement('div');
-        grp4.className = 'form-group';
-        grp4.innerHTML = `
-            <label>💬 Commentaire</label>
-            <textarea id="edit-commentaire-dyn" placeholder="Ajoutez un commentaire..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-height: 80px; resize: vertical;">${favori.commentaire || ''}</textarea>
-        `;
-        mainForm.appendChild(grp4);
-
-        // Boutons d'action
-        const btnZone = document.createElement('div');
-        btnZone.style.cssText = 'margin-top: 20px;';
-
-        const btnConfirm = document.createElement('button');
-        btnConfirm.textContent = '✅ Enregistrer';
-        btnConfirm.style.cssText = 'padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 10px; font-size: 14px;';
-        btnConfirm.addEventListener('click', () => {
-            const val = document.getElementById('edit-value-dyn').value;
-            const selectCat = document.getElementById('edit-categorie-dyn');
-            const cat = selectCat.value.trim();
-            const rep = document.getElementById('edit-repere-dyn').value.trim();
-            const com = document.getElementById('edit-commentaire-dyn').value.trim();
-
-            const checkedBoxes = document.querySelectorAll('.folder-checkbox:checked');
-            const selectedFolders = Array.from(checkedBoxes).map(cb =>
-                cb.dataset.folder === 'null' ? null : cb.dataset.folder
-            );
-
-            if (selectedFolders.length === 0) {
-                showNotification('⚠️ Veuillez sélectionner au moins un dossier', true);
-                return;
-            }
-
-            // Supprimer l'ancien favori
-            favoris.splice(index, 1);
-
-            // Ajouter dans tous les dossiers sélectionnés
-            selectedFolders.forEach(folderId => {
-                favoris.push({
-                    text: val,
-                    folder: folderId,
-                    commentaire: com,
-                    categorie: cat,
-                    repere: rep,
-                    dateAjout: new Date().toISOString()
-                });
-            });
-
-            GM_setValue('favoris_gallery', favoris);
-            document.getElementById('modal-add-favoris').classList.remove('active');
-            displayFavoris();
-
-            if (selectedFolders.length === 1) {
-                showNotification('✅ Favori modifié avec succès !');
-            } else {
-                showNotification(`✅ Favori copié dans ${selectedFolders.length} dossiers !`);
-            }
-        });
-        btnZone.appendChild(btnConfirm);
-
-        const btnCancel = document.createElement('button');
-        btnCancel.textContent = '❌ Annuler';
-        btnCancel.style.cssText = 'padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;';
-        btnCancel.addEventListener('click', () => {
-            document.getElementById('modal-add-favoris').classList.remove('active');
-        });
-        btnZone.appendChild(btnCancel);
-
-        mainForm.appendChild(btnZone);
-        modalContent.appendChild(mainForm);
-
-        // Gestion des checkboxes
-        const checkboxes = document.querySelectorAll('.folder-checkbox');
-        const updateCounter = () => {
-            const count = document.querySelectorAll('.folder-checkbox:checked').length;
-            counter.textContent = count === 1 ? '1 sélectionné' : `${count} sélectionnés`;
-            counter.style.background = count > 1 ? '#38ef7d' : '#667eea';
-        };
-
-        checkboxes.forEach(cb => {
-            cb.addEventListener('change', updateCounter);
-        });
-
-        updateCounter();
-
-        // Afficher le modal
-        document.getElementById('modal-add-favoris').classList.add('active');
-
-        console.log('✅ Modal d\'édition affiché');
-    }
-
-    // Fonction pour ouvrir le modal d'ajout - VERSION DYNAMIQUE
-    function openAddModal(value) {
-        console.log('🎬 Ouverture du modal d\'ajout avec la valeur:', value);
-
-        // Récupérer le conteneur principal
-        const modalContent = document.getElementById('modal-add-content-main');
-
-        // CONSTRUIRE TOUT LE HTML DYNAMIQUEMENT
-        modalContent.innerHTML = '';
-        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: transparent; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
-
-        // === SIDEBAR (GAUCHE) ===
-        const sidebar = document.createElement('div');
-        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: rgba(58, 58, 58, 0.5); padding: 20px; border-right: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px 0 0 10px;';
-
-        // Titre avec compteur
-        const titleContainer = document.createElement('div');
-        titleContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
-
-        const title = document.createElement('h3');
-        title.textContent = '📁 Sélectionner un dossier';
-        title.style.cssText = 'margin: 0; color: white; font-size: 18px;';
-        titleContainer.appendChild(title);
-
-        sidebar.appendChild(titleContainer);
-
-        // Zone de sélection des dossiers
-        const folderZone = document.createElement('div');
-        folderZone.id = 'folder-selector-dynamic';
-        folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
-
-        // Option "Sans Dossier"
-        const optionRoot = document.createElement('label');
-        optionRoot.className = 'folder-option-dyn';
-        optionRoot.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
-        optionRoot.innerHTML = `
-            <input type="checkbox" class="folder-checkbox" data-folder="null" checked style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
-            <span>Sans Dossier</span>
-        `;
-        optionRoot.addEventListener('mouseenter', () => {
-            optionRoot.style.background = 'rgba(255, 255, 255, 0.15)';
-        });
-        optionRoot.addEventListener('mouseleave', () => {
-            optionRoot.style.background = 'rgba(255, 255, 255, 0.05)';
-        });
-        folderZone.appendChild(optionRoot);
-
-        // Fonction récursive pour ajouter les dossiers avec hiérarchie
-        function addFolderOptionsRecursive(parentId, level = 0) {
-            const childDossiers = dossiers.filter(d => d.parent === parentId);
-
-            childDossiers.forEach(dossier => {
-                const opt = document.createElement('label');
-                opt.className = 'folder-option-dyn';
-                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
-                opt.innerHTML = `
-                    <input type="checkbox" class="folder-checkbox" data-folder="${dossier.id}" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
-                    <span>📁 ${dossier.name}</span>
-                `;
-                opt.addEventListener('mouseenter', () => {
-                    opt.style.background = 'rgba(255, 255, 255, 0.15)';
-                });
-                opt.addEventListener('mouseleave', () => {
-                    opt.style.background = 'rgba(255, 255, 255, 0.05)';
-                });
-                folderZone.appendChild(opt);
-
-                // Ajouter récursivement les sous-dossiers
-                addFolderOptionsRecursive(dossier.id, level + 1);
-            });
-        }
-
-        // Ajouter tous les dossiers avec hiérarchie
-        addFolderOptionsRecursive(null);
-
-        sidebar.appendChild(folderZone);
-
-        // Séparateur
-        const sep = document.createElement('hr');
-        sep.style.cssText = 'border: none; border-top: 2px solid rgba(255, 255, 255, 0.2); margin: 20px 0;';
-        sidebar.appendChild(sep);
-
-        // Zone de création rapide
-        const createTitle = document.createElement('h4');
-        createTitle.textContent = '➕ Créer un nouveau dossier';
+        createTitle.textContent = 'Créer un nouveau dossier';
         createTitle.style.cssText = 'margin: 0 0 10px 0; color: white; font-size: 16px;';
         sidebar.appendChild(createTitle);
 
@@ -2083,7 +1960,7 @@
         quickZone.appendChild(selectParent);
 
         const btnCreate = document.createElement('button');
-        btnCreate.textContent = '✅ Créer le dossier';
+        btnCreate.textContent = 'Créer le dossier';
         btnCreate.style.cssText = 'width: 100%; padding: 10px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCreate.addEventListener('click', () => {
             const symbole = inputSymbole.value.trim();
@@ -2091,7 +1968,346 @@
             const parent = selectParent.value === 'null' ? null : selectParent.value;
             if (symbole && designation) {
                 const newId = createFolder(symbole, designation, parent);
-                // Recréer le modal pour afficher le nouveau dossier
+                openEditModal(index);
+                showNotification('Dossier créé !');
+            } else {
+                showNotification('Veuillez remplir les deux champs', true);
+            }
+        });
+        quickZone.appendChild(btnCreate);
+
+        sidebar.appendChild(quickZone);
+        modalContent.appendChild(sidebar);
+
+        // === FORMULAIRE PRINCIPAL (DROITE) ===
+        const mainForm = document.createElement('div');
+        mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto;';
+
+        const mainTitle = document.createElement('h2');
+        mainTitle.textContent = '✏️ Modifier le Favori';
+        mainTitle.style.cssText = 'margin: 0 0 20px 0; color: white;';
+        mainForm.appendChild(mainTitle);
+
+        // Champ valeur
+        const grp1 = document.createElement('div');
+        grp1.className = 'form-group';
+        grp1.innerHTML = `
+            <label style="color: white; font-weight: bold;">📝 Valeur</label>
+            <input type="text" id="edit-value-dyn" value="${favori.text || favori}" style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
+        `;
+        mainForm.appendChild(grp1);
+
+        // Champ catégorie
+        const grp2 = document.createElement('div');
+        grp2.className = 'form-group';
+        const label2 = document.createElement('label');
+        label2.textContent = '🏷️ Catégorie';
+        label2.style.cssText = 'color: white; font-weight: bold;';
+        grp2.appendChild(label2);
+
+        // Container pour select + bouton sur la même ligne
+        const catContainer = document.createElement('div');
+        catContainer.style.cssText = 'display: flex; gap: 10px; align-items: center;';
+
+        const selectCat = document.createElement('select');
+        selectCat.id = 'edit-categorie-dyn';
+        selectCat.style.cssText = 'flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;';
+
+        //Ajouter option vide
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-- Sélectionner --';
+        selectCat.appendChild(emptyOption);
+
+        //Ajouter les catégories existantes
+        const categoriesEdit = [...new Set(favoris.map(fav => fav.categorie).filter(cat => cat))];
+        categoriesEdit.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            if (cat === favori.categorie) option.selected = true;
+            selectCat.appendChild(option);
+        });
+
+        catContainer.appendChild(selectCat);
+
+        // Bouton "ouCréer" visible en permanence
+        const btnNewCat = document.createElement('button');
+        btnNewCat.textContent = 'Nouveau';
+        btnNewCat.type = 'button';
+        btnNewCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        catContainer.appendChild(btnNewCat);
+
+        grp2.appendChild(catContainer);
+
+        // Zone de saisie pour nouvelle catégorie (cachée au départ)
+        const customZone = document.createElement('div');
+        customZone.id = 'custom-cat-zone-edit';
+        customZone.style.cssText = 'display: none; margin-top: 8px;';
+
+        const customContainer = document.createElement('div');
+        customContainer.style.cssText = 'display: flex; gap: 10px; align-items: center;';
+
+        const inputCustomCat = document.createElement('input');
+        inputCustomCat.type = 'text';
+        inputCustomCat.id = 'edit-categorie-custom-dyn';
+        inputCustomCat.placeholder = 'Nom de la nouvelle catégorie...';
+        inputCustomCat.style.cssText = 'flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;';
+        customContainer.appendChild(inputCustomCat);
+
+        const btnAddCat = document.createElement('button');
+        btnAddCat.textContent = 'Créer';
+        btnAddCat.type = 'button';
+        btnAddCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        btnAddCat.addEventListener('click', () => {
+            const newCat = inputCustomCat.value.trim();
+            if (newCat) {
+                //Ajouter la nouvelle catégorie au select
+                const newOption = document.createElement('option');
+                newOption.value = newCat;
+                newOption.textContent = newCat;
+                newOption.selected = true;
+                selectCat.appendChild(newOption);
+                // Cacher la zone de saisie
+                customZone.style.display = 'none';
+                inputCustomCat.value = '';
+                showNotification('✅ Catégorie "' + newCat + '" ajoutée !');
+            } else {
+                showNotification('❌ Veuillez saisir un nom de catégorie', true);
+            }
+        });
+        customContainer.appendChild(btnAddCat);
+
+        const btnCancelCat = document.createElement('button');
+        btnCancelCat.textContent = 'X';
+        btnCancelCat.type = 'button';
+        btnCancelCat.style.cssText = 'padding: 10px 12px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        btnCancelCat.addEventListener('click', () => {
+            customZone.style.display = 'none';
+            inputCustomCat.value = '';
+        });
+        customContainer.appendChild(btnCancelCat);
+
+        customZone.appendChild(customContainer);
+        grp2.appendChild(customZone);
+
+        // Événement pour afficher la zone de saisie
+        btnNewCat.addEventListener('click', () => {
+            customZone.style.display = 'block';
+            inputCustomCat.focus();
+        });
+
+        mainForm.appendChild(grp2);
+
+        // Champ repère
+        const grp3 = document.createElement('div');
+        grp3.className = 'form-group';
+        grp3.innerHTML = `
+            <label style="color: white; font-weight: bold;">📍 Repère</label>
+            <input type="text" id="edit-repere-dyn" value="${favori.repere || ''}" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
+            <small style="color: rgba(255, 255, 255, 0.7); font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
+        `;
+        mainForm.appendChild(grp3);
+
+        // Champ commentaire
+        const grp4 = document.createElement('div');
+        grp4.className = 'form-group';
+        grp4.innerHTML = `
+            <label style="color: white; font-weight: bold;">💬 Commentaire</label>
+            <textarea id="edit-commentaire-dyn" placeholder="Ajoutez un commentaire..." style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px; min-height: 80px; resize: vertical;">${favori.commentaire || ''}</textarea>
+        `;
+        mainForm.appendChild(grp4);
+
+        // Boutons d'action
+        const btnZone = document.createElement('div');
+        btnZone.style.cssText = 'margin-top: 20px;';
+
+        const btnConfirm = document.createElement('button');
+        btnConfirm.textContent = 'Enregistrer';
+        btnConfirm.style.cssText = 'padding: 10px 20px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-right: 10px; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        btnConfirm.addEventListener('click', () => {
+            const val = document.getElementById('edit-value-dyn').value;
+            const selectCat = document.getElementById('edit-categorie-dyn');
+            const cat = selectCat.value.trim();
+            const rep = document.getElementById('edit-repere-dyn').value.trim();
+            const com = document.getElementById('edit-commentaire-dyn').value.trim();
+
+            const checkedBoxes = document.querySelectorAll('.folder-checkbox:checked');
+            let selectedFolders = Array.from(checkedBoxes).map(cb =>
+                cb.dataset.folder === 'null' ? null : cb.dataset.folder
+            );
+
+            // Si aucun dossier n'est sélectionné, utiliser null (Sans Dossier)
+            if (selectedFolders.length === 0) {
+                selectedFolders = [null];
+            }
+
+            // Supprimer l'ancien favori
+            favoris.splice(index, 1);
+
+            //Ajouter dans tous les dossiers sélectionnés
+            selectedFolders.forEach(folderId => {
+                favoris.push({
+                    text: val,
+                    folder: folderId,
+                    commentaire: com,
+                    categorie: cat,
+                    repere: rep,
+                    dateAjout: new Date().toISOString()
+                });
+            });
+
+            GM_setValue('favoris_gallery', favoris);
+            document.getElementById('modal-add-favoris').classList.remove('active');
+            displayFavoris();
+
+            if (selectedFolders.length === 1) {
+                showNotification('✅ Favori modifié avec succès !');
+            } else {
+                showNotification(`✅ Favori copié dans ${selectedFolders.length} dossiers !`);
+            }
+        });
+        btnZone.appendChild(btnConfirm);
+
+        const btnCancel = document.createElement('button');
+        btnCancel.textContent = 'Annuler';
+        btnCancel.style.cssText = 'padding: 10px 20px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        btnCancel.addEventListener('click', () => {
+            document.getElementById('modal-add-favoris').classList.remove('active');
+        });
+        btnZone.appendChild(btnCancel);
+
+        mainForm.appendChild(btnZone);
+        modalContent.appendChild(mainForm);
+
+        // Afficher le modal
+        document.getElementById('modal-add-favoris').classList.add('active');
+
+        console.log('✅ Modal d\'édition affiché');
+    }
+
+    // Fonction pour ouvrir le modal d'ajout - VERSION DYNAMIQUE
+    function openAddModal(value) {
+        console.log('🎬 Ouverture du modal d\'ajout avec la valeur:', value);
+
+        // Récupérer le conteneur principal
+        const modalContent = document.getElementById('modal-add-content-main');
+
+        // CONSTRUIRE TOUT LE HTML DYNAMIQUEMENT
+        modalContent.innerHTML = '';
+        modalContent.style.cssText = 'display: flex; flex-direction: row; gap: 20px; padding: 20px; background: transparent; border-radius: 15px; max-width: 1200px; width: 95%; max-height: 85vh; overflow: visible; box-sizing: border-box;';
+
+        // === SIDEBAR (GAUCHE) ===
+        const sidebar = document.createElement('div');
+        sidebar.style.cssText = 'width: 300px; min-width: 300px; background: rgba(58, 58, 58, 0.5); padding: 20px; border-right: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px 0 0 10px;';
+
+        // Titre
+        const titleContainer = document.createElement('div');
+        titleContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
+
+        const title = document.createElement('h3');
+        title.textContent = '📁 Sélectionner un dossier';
+        title.style.cssText = 'margin: 0; color: white; font-size: 18px;';
+        titleContainer.appendChild(title);
+
+        sidebar.appendChild(titleContainer);
+
+        // Zone de sélection des dossiers
+        const folderZone = document.createElement('div');
+        folderZone.id = 'folder-selector-dynamic';
+        folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
+
+        // Fonction récursive pourAjouter les dossiers avec hiérarchie
+        function addFolderOptionsRecursive(parentId, level = 0) {
+            const childDossiers = dossiers.filter(d => d.parent === parentId);
+
+            childDossiers.forEach(dossier => {
+                const opt = document.createElement('label');
+                opt.className = 'folder-option-dyn';
+                opt.style.cssText = 'display: flex; align-items: center; padding: 10px; margin: 5px 0; padding-left: ' + (10 + level * 20) + 'px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; color: white;';
+                opt.innerHTML = `
+                    <input type="checkbox" class="folder-checkbox" data-folder="${dossier.id}" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                    <span>📁 ${dossier.name}</span>
+                `;
+                opt.addEventListener('mouseenter', () => {
+                    opt.style.background = 'rgba(255, 255, 255, 0.15)';
+                });
+                opt.addEventListener('mouseleave', () => {
+                    opt.style.background = 'rgba(255, 255, 255, 0.05)';
+                });
+                folderZone.appendChild(opt);
+
+                //Ajouter récursivement les sous-dossiers
+                addFolderOptionsRecursive(dossier.id, level + 1);
+            });
+        }
+
+        //Ajouter tous les dossiers avec hiérarchie
+        addFolderOptionsRecursive(null);
+
+        sidebar.appendChild(folderZone);
+
+        // Séparateur
+        const sep = document.createElement('hr');
+        sep.style.cssText = 'border: none; border-top: 2px solid rgba(255, 255, 255, 0.2); margin: 20px 0;';
+        sidebar.appendChild(sep);
+
+        // Zone de création rapide
+        const createTitle = document.createElement('h4');
+        createTitle.textContent = 'Créer un nouveau dossier';
+        createTitle.style.cssText = 'margin: 0 0 10px 0; color: white; font-size: 16px;';
+        sidebar.appendChild(createTitle);
+
+        const quickZone = document.createElement('div');
+        quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
+
+        const inputSymbole = document.createElement('input');
+        inputSymbole.type = 'text';
+        inputSymbole.id = 'quick-symbole-dyn';
+        inputSymbole.placeholder = 'Symbole';
+        inputSymbole.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
+        quickZone.appendChild(inputSymbole);
+
+        const inputDesignation = document.createElement('input');
+        inputDesignation.type = 'text';
+        inputDesignation.id = 'quick-designation-dyn';
+        inputDesignation.placeholder = 'Désignation';
+        inputDesignation.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
+        quickZone.appendChild(inputDesignation);
+
+        const labelParent = document.createElement('label');
+        labelParent.textContent = 'Rajouter dans :';
+        labelParent.style.cssText = 'display: block; font-weight: bold; color: white; margin-bottom: 5px; font-size: 13px;';
+        quickZone.appendChild(labelParent);
+
+        const selectParent = document.createElement('select');
+        selectParent.id = 'quick-parent-dyn';
+        selectParent.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: none; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: white; box-sizing: border-box; font-size: 14px;';
+        selectParent.innerHTML = '<option value="null">📁 Sans Dossier</option>';
+
+        function addParentOptions(parentId, level = 0) {
+            const childDossiers = dossiers.filter(d => d.parent === parentId);
+            childDossiers.forEach(dossier => {
+                const option = document.createElement('option');
+                option.value = dossier.id;
+                option.textContent = '  '.repeat(level) + '📁 ' + dossier.name;
+                selectParent.appendChild(option);
+                addParentOptions(dossier.id, level + 1);
+            });
+        }
+        addParentOptions(null);
+        quickZone.appendChild(selectParent);
+
+        const btnCreate = document.createElement('button');
+        btnCreate.textContent = 'Créer le dossier';
+        btnCreate.style.cssText = 'width: 100%; padding: 10px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
+        btnCreate.addEventListener('click', () => {
+            const symbole = inputSymbole.value.trim();
+            const designation = inputDesignation.value.trim();
+            const parent = selectParent.value === 'null' ? null : selectParent.value;
+            if (symbole && designation) {
+                const newId = createFolder(symbole, designation, parent);
+                // ReCréer le modal pour afficher leNouveau dossier
                 openAddModal(value);
                 showNotification('✅ Dossier créé !');
             } else {
@@ -2108,7 +2324,7 @@
         mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto;';
 
         const mainTitle = document.createElement('h2');
-        mainTitle.textContent = '⭐ Ajouter aux Favoris';
+        mainTitle.textContent = '⭐Ajouter aux Favoris';
         mainTitle.style.cssText = 'margin: 0 0 20px 0; color: white;';
         mainForm.appendChild(mainTitle);
 
@@ -2137,13 +2353,13 @@
         selectCat.id = 'add-categorie-dyn';
         selectCat.style.cssText = 'flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;';
 
-        // Ajouter option vide
+        //Ajouter option vide
         const emptyOption = document.createElement('option');
         emptyOption.value = '';
         emptyOption.textContent = '-- Sélectionner --';
         selectCat.appendChild(emptyOption);
 
-        // Ajouter les catégories existantes
+        //Ajouter les catégories existantes
         const categoriesAdd = [...new Set(favoris.map(fav => fav.categorie).filter(cat => cat))];
         categoriesAdd.forEach(cat => {
             const option = document.createElement('option');
@@ -2154,9 +2370,9 @@
 
         catContainer.appendChild(selectCat);
 
-        // Bouton "ou Créer" visible en permanence
+        // Bouton "ouCréer" visible en permanence
         const btnNewCat = document.createElement('button');
-        btnNewCat.textContent = '➕ Nouveau';
+        btnNewCat.textContent = 'Nouveau';
         btnNewCat.type = 'button';
         btnNewCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         catContainer.appendChild(btnNewCat);
@@ -2179,13 +2395,13 @@
         customContainer.appendChild(inputCustomCat);
 
         const btnAddCat = document.createElement('button');
-        btnAddCat.textContent = '✅ Créer';
+        btnAddCat.textContent = 'Créer';
         btnAddCat.type = 'button';
         btnAddCat.style.cssText = 'padding: 10px 15px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnAddCat.addEventListener('click', () => {
             const newCat = inputCustomCat.value.trim();
             if (newCat) {
-                // Ajouter la nouvelle catégorie au select
+                //Ajouter la nouvelle catégorie au select
                 const newOption = document.createElement('option');
                 newOption.value = newCat;
                 newOption.textContent = newCat;
@@ -2202,7 +2418,7 @@
         customContainer.appendChild(btnAddCat);
 
         const btnCancelCat = document.createElement('button');
-        btnCancelCat.textContent = '❌';
+        btnCancelCat.textContent = 'X';
         btnCancelCat.type = 'button';
         btnCancelCat.style.cssText = 'padding: 10px 12px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancelCat.addEventListener('click', () => {
@@ -2246,7 +2462,7 @@
         btnZone.style.cssText = 'margin-top: 20px;';
 
         const btnConfirm = document.createElement('button');
-        btnConfirm.textContent = '✅ Ajouter';
+        btnConfirm.textContent = 'Ajouter';
         btnConfirm.style.cssText = 'padding: 10px 20px; background: var(--button-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-right: 10px; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnConfirm.addEventListener('click', () => {
             const val = document.getElementById('add-value-dyn').value;
@@ -2257,18 +2473,18 @@
 
             // Récupérer TOUS les dossiers cochés
             const checkedBoxes = document.querySelectorAll('.folder-checkbox:checked');
-            const selectedFolders = Array.from(checkedBoxes).map(cb =>
+            let selectedFolders = Array.from(checkedBoxes).map(cb =>
                 cb.dataset.folder === 'null' ? null : cb.dataset.folder
             );
 
+            // Si aucun dossier n'est sélectionné, utiliser null (Sans Dossier)
             if (selectedFolders.length === 0) {
-                showNotification('⚠️ Veuillez sélectionner au moins un dossier', true);
-                return;
+                selectedFolders = [null];
             }
 
             // Vérifier les doublons
             const doublons = [];
-            const nouveaux = [];
+            constNouveaux = [];
 
             selectedFolders.forEach(folderId => {
                 const exists = favoris.some(fav => fav.text === val && fav.folder === folderId);
@@ -2281,12 +2497,12 @@
                         doublons.push(folder ? folder.name : 'Dossier inconnu');
                     }
                 } else {
-                    nouveaux.push(folderId);
+                   Nouveaux.push(folderId);
                 }
             });
 
             // Si TOUS sont des doublons
-            if (doublons.length > 0 && nouveaux.length === 0) {
+            if (doublons.length > 0 &&Nouveaux.length === 0) {
                 const msg = `⚠️ Ce favori existe déjà dans :\n\n${doublons.map(d => `• ${d}`).join('\n')}\n\nAucun ajout effectué.`;
                 alert(msg);
                 return;
@@ -2294,14 +2510,14 @@
 
             // Si certains sont des doublons
             if (doublons.length > 0) {
-                const msg = `⚠️ Ce favori existe déjà dans :\n\n${doublons.map(d => `• ${d}`).join('\n')}\n\nIl sera ajouté uniquement dans les ${nouveaux.length} autre(s) dossier(s).\n\nContinuer ?`;
+                const msg = `⚠️ Ce favori existe déjà dans :\n\n${doublons.map(d => `• ${d}`).join('\n')}\n\nIl sera ajouté uniquement dans les ${Nouveaux.length} autre(s) dossier(s).\n\nContinuer ?`;
                 if (!confirm(msg)) {
                     return;
                 }
             }
 
-            // Ajouter dans tous les dossiers NON-doublons
-            nouveaux.forEach(folderId => {
+            //Ajouter dans tous les dossiers NON-doublons
+           Nouveaux.forEach(folderId => {
                 favoris.push({
                     text: val,
                     folder: folderId,
@@ -2315,16 +2531,16 @@
             GM_setValue('favoris_gallery', favoris);
             document.getElementById('modal-add-favoris').classList.remove('active');
 
-            if (nouveaux.length === 1) {
+            if (Nouveaux.length === 1) {
                 showNotification('✅ Favori ajouté avec succès !');
             } else {
-                showNotification(`✅ Favori ajouté dans ${nouveaux.length} dossiers !`);
+                showNotification(`✅ Favori ajouté dans ${Nouveaux.length} dossiers !`);
             }
         });
         btnZone.appendChild(btnConfirm);
 
         const btnCancel = document.createElement('button');
-        btnCancel.textContent = '❌ Annuler';
+        btnCancel.textContent = 'Annuler';
         btnCancel.style.cssText = 'padding: 10px 20px; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);';
         btnCancel.addEventListener('click', () => {
             document.getElementById('modal-add-favoris').classList.remove('active');
@@ -2333,17 +2549,6 @@
 
         mainForm.appendChild(btnZone);
         modalContent.appendChild(mainForm);
-
-        // Gestion de la sélection multiple des dossiers avec cases à cocher
-        document.querySelectorAll('.folder-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                // Mettre à jour le compteur
-                const count = document.querySelectorAll('.folder-checkbox:checked').length;
-                const counter = document.getElementById('folder-counter');
-                counter.textContent = count === 1 ? '1 sélectionné' : `${count} sélectionnés`;
-                counter.style.background = count > 1 ? '#38ef7d' : '#667eea';
-            });
-        });
 
         // Afficher le modal
         document.getElementById('modal-add-favoris').classList.add('active');
@@ -2403,7 +2608,7 @@
             }
         });
 
-        // Ajouter les favoris filtrés dans les catégories
+        //Ajouter les favoris filtrés dans les catégories
         filteredFavoris.forEach(fav => {
             const cat = fav.categorie || 'Sans catégorie';
             if (!categories[cat]) {
@@ -2494,7 +2699,7 @@
                     }
                 }
 
-                // Ajouter le commentaire
+                //Ajouter le commentaire
                 let commentaireHTML = '';
                 if (favori.commentaire) {
                     commentaireHTML = `<div style="margin-top: 5px;"><small style="color: #666;">💬 ${favori.commentaire}</small></div>`;
@@ -2533,7 +2738,7 @@
             listContent.appendChild(section);
         });
 
-        // Ajouter les événements
+        //Ajouter les événements
         document.querySelectorAll('.btn-edit-favoris').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2550,12 +2755,45 @@
             });
         });
 
-        // Ajouter l'événement de clic sur la zone du favori pour injecter
+        //Ajouter l'événement de clic sur la zone du favori pour injecter
         document.querySelectorAll('.favoris-item-text').forEach(textZone => {
             textZone.addEventListener('click', (e) => {
                 const index = parseInt(textZone.dataset.index);
                 const favori = favoris[index];
+                console.log('🔧 [DEBUG PAGE] Clic sur favori. Index:', index, 'Favori:', favori);
+                
                 if (favori) {
+                    // Extraire le nombre à 8 chiffres du nom du dossier
+                    let symbole = '';
+                    
+                    if (favori.folder) {
+                        const folder = dossiers.find(d => d.id === favori.folder);
+                        console.log('🔧 [DEBUG PAGE] Dossier trouvé:', folder);
+                        
+                        if (folder && folder.name) {
+                            // Chercher un nombre à 8 chiffres dans le nom du dossier
+                            const match8Digits = folder.name.match(/\b\d{8}\b/);
+                            if (match8Digits) {
+                                symbole = match8Digits[0];
+                                GM_setValue('lastSymbol', symbole);
+                                console.log('✅ [DEBUG PAGE] Symbole à 8 chiffres extrait du dossier:', symbole, 'depuis:', folder.name);
+                                
+                                // Vérification immédiate
+                                const verif = GM_getValue('lastSymbol', '');
+                                console.log('🔧 [DEBUG PAGE] Vérification immédiate - Symbole stocké:', verif);
+                            } else {
+                                console.log('⚠️ [DEBUG PAGE] Aucun nombre à 8 chiffres trouvé dans le nom du dossier:', folder.name);
+                            }
+                        }
+                    } else {
+                        console.log('⚠️ [DEBUG PAGE] Aucun dossier associé à ce favori');
+                    }
+                    
+                    if (!symbole) {
+                        console.log('⚠️ [DEBUG PAGE] Aucun symbole mémorisé');
+                        GM_setValue('lastSymbol', '');
+                    }
+                    
                     // Fermer le modal
                     const modal = document.getElementById('modal-favoris-gallery');
                     if (modal) {
@@ -2566,11 +2804,11 @@
                     injectValueToField2(favori.text || favori);
                 }
             });
-            // Ajouter un style pour indiquer que c'est cliquable
+            //Ajouter un style pour indiquer que c'est cliquable
             textZone.style.cursor = 'pointer';
         });
 
-        // Ajouter les événements pour les boutons d'édition de catégorie
+        //Ajouter les événements pour les boutons d'édition de catégorie
         document.querySelectorAll('.btn-edit-category').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2579,7 +2817,7 @@
             });
         });
 
-        // Ajouter les événements pour le collapse/expand des catégories
+        //Ajouter les événements pour le collapse/expand des catégories
         document.querySelectorAll('.category-header').forEach(header => {
             header.addEventListener('click', (e) => {
                 // Ne pas déclencher si on clique sur le bouton d'édition
@@ -2628,7 +2866,7 @@
         const folderList = document.getElementById('folder-list');
         folderList.innerHTML = '';
 
-        // Ajouter "Tous les favoris" en premier (seulement en mode normal)
+        //Ajouter "Tous les favoris" en premier (seulement en mode normal)
         if (folderMode === 'normal') {
             const divAll = document.createElement('div');
             divAll.className = 'folder-item' + (currentFolder === 'all' ? ' active' : '');
@@ -2642,20 +2880,7 @@
             });
             folderList.appendChild(divAll);
 
-            // Ajouter "Sans Dossier"
-            const divRoot = document.createElement('div');
-            divRoot.className = 'folder-item' + (currentFolder === null ? ' active' : '');
-            divRoot.innerHTML = `
-                <span class="folder-icon"></span>
-                <span class="folder-name">Sans Dossier</span>
-            `;
-            divRoot.addEventListener('click', () => {
-                currentFolder = null;
-                displayFavoris();
-            });
-            folderList.appendChild(divRoot);
-
-            // Ajouter un séparateur
+            //Ajouter un séparateur
             const separator = document.createElement('div');
             separator.style.cssText = 'height: 1px; background: #ddd; margin: 10px 0;';
             folderList.appendChild(separator);
@@ -2729,7 +2954,7 @@
 
         select.innerHTML = '<option value="null">Sans Dossier</option>';
 
-        // Fonction récursive pour ajouter les dossiers avec indentation
+        // Fonction récursive pourAjouter les dossiers avec indentation
         function addFolderOptions(parentId, level = 0) {
             const childDossiers = dossiers.filter(d => d.parent === parentId);
 
@@ -2739,7 +2964,7 @@
                 option.textContent = '  '.repeat(level) + '📁 ' + dossier.name;
                 select.appendChild(option);
 
-                // Ajouter les sous-dossiers
+                //Ajouter les sous-dossiers
                 addFolderOptions(dossier.id, level + 1);
             });
         }
@@ -2752,7 +2977,7 @@
         // Plus utilisée - l'arborescence dans le panneau gauche remplace le breadcrumb
     }
 
-    // Fonction pour créer un dossier
+    // Fonction pourCréer un dossier
     function createFolder(symbole, designation, parentId = null) {
         const folderName = `${symbole} - ${designation}`;
         const newFolder = {
@@ -2816,11 +3041,25 @@
         }
 
         try {
+            // Récupérer le symbole mémorisé
+            const lastSymbol = GM_getValue('lastSymbol', '');
+            
             // Envoyer un message à l'iframe pour injecter la valeur
             iframe.contentWindow.postMessage({
                 type: 'SET_FIELD2_VALUE',
                 value: text
             }, 'https://runtime-app.powerplatform.com');
+
+            // Si un symbole a été mémorisé, envoyer un message pour remplir le champ de recherche
+            if (lastSymbol) {
+                setTimeout(() => {
+                    iframe.contentWindow.postMessage({
+                        type: 'FILL_SEARCH_WITH_SYMBOL',
+                        symbol: lastSymbol
+                    }, 'https://runtime-app.powerplatform.com');
+                    console.log('📤 Message FILL_SEARCH_WITH_SYMBOL envoyé avec symbole:', lastSymbol);
+                }, 500);
+            }
 
             console.log('✅ Message d\'injection envoyé à l\'iframe');
             showNotification('✅ Valeur injectée dans le champ !', false);
