@@ -7,8 +7,8 @@
 // @match        https://apps.powerapps.com/play/e/8ce66143-5dbc-4269-9f4f-16af25fd3458/a/cb3ad194-69f8-47e8-8d8b-3ab7cb9816a4*
 // @match        https://apps.powerapps.com/*
 // @match        https://runtime-app.powerplatform.com/*
-// @upload       https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
-// @download     https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @upload       https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @download     https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-idle
@@ -40,14 +40,16 @@
                     const btnFavoris = document.createElement('button');
                     btnFavoris.id = 'btn-favoris-gallery-iframe';
                     btnFavoris.textContent = '📋 Mes Favoris';
-                    btnFavoris.style.cssText = 'margin-left: 15px; background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: all 0.2s ease; display: inline-block;';
+                    btnFavoris.style.cssText = 'margin-left: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8), 0px 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: inline-block;';
                     btnFavoris.addEventListener('mouseenter', () => {
-                        btnFavoris.style.background = '#45a049';
-                        btnFavoris.style.transform = 'translateY(-1px)';
+                        btnFavoris.style.background = 'linear-gradient(135deg, #764ba2, #667eea)';
+                        btnFavoris.style.transform = 'translateY(-2px)';
+                        btnFavoris.style.boxShadow = 'inset 0px 3px 6px -2px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -1px rgba(0, 0, 0, 0.8), 0px 6px 16px rgba(102, 126, 234, 0.6), 0px 0px 16px rgba(118, 75, 162, 0.4)';
                     });
                     btnFavoris.addEventListener('mouseleave', () => {
-                        btnFavoris.style.background = '#4CAF50';
+                        btnFavoris.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
                         btnFavoris.style.transform = 'translateY(0)';
+                        btnFavoris.style.boxShadow = 'inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8), 0px 4px 12px rgba(102, 126, 234, 0.4)';
                     });
                     btnFavoris.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -66,14 +68,16 @@
                     const btnAddFavoris = document.createElement('button');
                     btnAddFavoris.id = 'btn-add-favoris-gallery-iframe';
                     btnAddFavoris.textContent = '⭐ Ajouter aux Favoris';
-                    btnAddFavoris.style.cssText = 'margin-left: 15px; background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: all 0.2s ease; display: inline-block;';
+                    btnAddFavoris.style.cssText = 'margin-left: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8), 0px 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: inline-block;';
                     btnAddFavoris.addEventListener('mouseenter', () => {
-                        btnAddFavoris.style.background = '#1976D2';
-                        btnAddFavoris.style.transform = 'translateY(-1px)';
+                        btnAddFavoris.style.background = 'linear-gradient(135deg, #764ba2, #667eea)';
+                        btnAddFavoris.style.transform = 'translateY(-2px)';
+                        btnAddFavoris.style.boxShadow = 'inset 0px 3px 6px -2px rgba(255, 255, 255, 0.6), inset 0px -3px 6px -1px rgba(0, 0, 0, 0.8), 0px 6px 16px rgba(102, 126, 234, 0.6), 0px 0px 16px rgba(118, 75, 162, 0.4)';
                     });
                     btnAddFavoris.addEventListener('mouseleave', () => {
-                        btnAddFavoris.style.background = '#2196F3';
+                        btnAddFavoris.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
                         btnAddFavoris.style.transform = 'translateY(0)';
+                        btnAddFavoris.style.boxShadow = 'inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8), 0px 4px 12px rgba(102, 126, 234, 0.4)';
                     });
                     btnAddFavoris.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -355,24 +359,28 @@
                 top: 20px;
                 right: 20px;
                 z-index: 10000;
-                background: var(--button-color);
+                background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
                 border: none;
                 padding: 12px 24px;
-                border-radius: 20px;
+                border-radius: 12px;
                 font-size: 14px;
                 font-weight: 600;
                 cursor: pointer;
-                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
-                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
-                transition: 0.3s;
+                box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8),
+                            0px 4px 12px rgba(102, 126, 234, 0.4);
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.3);
             }
 
             #btn-favoris-gallery:hover {
-                background: rgba(255, 255, 255, 0.25);
-                box-shadow: inset 0px 3px 6px rgba(255, 255, 255, 0.6),
-                            inset 0px -3px 6px rgba(0, 0, 0, 0.8),
-                            0px 0px 8px rgba(255, 255, 255, 0.05);
+                background: linear-gradient(135deg, #764ba2, #667eea);
+                box-shadow: inset 0px 3px 6px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -1px rgba(0, 0, 0, 0.8),
+                            0px 6px 16px rgba(102, 126, 234, 0.6),
+                            0px 0px 16px rgba(118, 75, 162, 0.4);
+                transform: translateY(-2px);
             }
 
             #btn-add-favoris-gallery {
@@ -380,24 +388,28 @@
                 top: 20px;
                 right: 180px;
                 z-index: 10000;
-                background: var(--button-color);
+                background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
                 border: none;
                 padding: 12px 24px;
-                border-radius: 20px;
+                border-radius: 12px;
                 font-size: 14px;
                 font-weight: 600;
                 cursor: pointer;
-                box-shadow: inset 0px 3px 6px -4px rgba(255, 255, 255, 0.6),
-                            inset 0px -3px 6px -2px rgba(0, 0, 0, 0.8);
-                transition: 0.3s;
+                box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8),
+                            0px 4px 12px rgba(102, 126, 234, 0.4);
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.3);
             }
 
             #btn-add-favoris-gallery:hover {
-                background: rgba(255, 255, 255, 0.25);
-                box-shadow: inset 0px 3px 6px rgba(255, 255, 255, 0.6),
-                            inset 0px -3px 6px rgba(0, 0, 0, 0.8),
-                            0px 0px 8px rgba(255, 255, 255, 0.05);
+                background: linear-gradient(135deg, #764ba2, #667eea);
+                box-shadow: inset 0px 3px 6px -2px rgba(255, 255, 255, 0.6),
+                            inset 0px -3px 6px -1px rgba(0, 0, 0, 0.8),
+                            0px 6px 16px rgba(102, 126, 234, 0.6),
+                            0px 0px 16px rgba(118, 75, 162, 0.4);
+                transform: translateY(-2px);
             }
 
             #modal-favoris-gallery {
