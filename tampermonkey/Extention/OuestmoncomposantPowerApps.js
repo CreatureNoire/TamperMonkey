@@ -7,8 +7,8 @@
 // @match        https://apps.powerapps.com/play/e/8ce66143-5dbc-4269-9f4f-16af25fd3458/a/cb3ad194-69f8-47e8-8d8b-3ab7cb9816a4*
 // @match        https://apps.powerapps.com/*
 // @match        https://runtime-app.powerplatform.com/*
-// @upload       https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
-// @download     https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @upload       https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
+// @download     https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-idle
