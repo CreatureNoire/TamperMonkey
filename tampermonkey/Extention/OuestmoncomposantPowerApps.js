@@ -757,6 +757,25 @@
                     }
                 }
 
+                @keyframes borderColorCycle {
+                    0% {
+                        border-color: #0080ff;
+                        box-shadow: 0 0 15px rgba(0, 128, 255, 0.5);
+                    }
+                    33% {
+                        border-color: #00ff88;
+                        box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+                    }
+                    66% {
+                        border-color: #ff00ff;
+                        box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+                    }
+                    100% {
+                        border-color: #0080ff;
+                        box-shadow: 0 0 15px rgba(0, 128, 255, 0.5);
+                    }
+                }
+
                 /* Boîte intérieure avec contenu */
                 .modal-inner-box {
                     background: var(--login-box-color);
@@ -787,15 +806,21 @@
                 .sidebar-folders {
                     width: 250px;
                     border-right: 2px solid rgba(255, 255, 255, 0.1);
-                    padding-right: 20px;
+                    border-radius: 12px;
+                    padding: 15px;
                     overflow-y: auto;
                     max-height: calc(80vh - 60px);
+                    animation: borderColorCycle 6s ease-in-out infinite;
                 }
 
                 .main-content-favoris {
                     flex: 1;
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-left: 15px;
                     overflow-y: auto;
                     max-height: calc(80vh - 60px);
+                    animation: borderColorCycle 6s ease-in-out infinite;
                 }
 
                 #modal-add-favoris {
@@ -885,6 +910,9 @@
                 .search-bar {
                     margin-bottom: 20px;
                     position: relative;
+                    border: 2px solid #ffc107;
+                    border-radius: 12px;
+                    padding: 5px;
                 }
 
                 .search-bar input {
@@ -1265,12 +1293,18 @@
                     padding-bottom: 15px;
                 }
 
+                #folder-list {
+                    padding: 10px;
+                    margin-top: 10px;
+                }
+
                 .folder-item {
                     display: flex;
                     align-items: center;
                     padding: 8px 12px;
                     margin: 5px 0;
                     border-radius: 12px;
+                    border: 2px solid #ffc107;
                     cursor: pointer;
                     transition: all 0.3s ease;
                     background: rgba(58, 58, 58, 0.5);
@@ -1279,11 +1313,13 @@
 
                 .folder-item:hover {
                     background: rgba(255, 255, 255, 0.15);
+                    border-color: #ffeb3b;
                     transform: translateX(5px);
                 }
 
                 .folder-item.active {
                     background: rgba(255, 255, 255, 0.25);
+                    border-color: #ffd700;
                     color: white;
                     font-weight: bold;
                 }
@@ -1522,20 +1558,27 @@
                     border-radius: 6px;
                     cursor: pointer;
                     position: relative;
-                    border: 2px solid rgba(255, 255, 255, 0.2);
+                    border: 3px solid rgba(255, 255, 255, 0.5);
                     transition: all 0.3s ease;
-                    box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.3),
-                                inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);
+                    box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                                inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8),
+                                0 0 8px rgba(255, 255, 255, 0.3);
                 }
 
                 input[type="checkbox"]:hover {
-                    border-color: rgba(255, 255, 255, 0.4);
-                    background: rgba(255, 255, 255, 0.1);
+                    border-color: rgba(255, 255, 255, 0.8);
+                    background: rgba(255, 255, 255, 0.2);
+                    box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                                inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8),
+                                0 0 12px rgba(255, 255, 255, 0.5);
                 }
 
                 input[type="checkbox"]:checked {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-color: rgba(255, 255, 255, 0.5);
+                    border-color: rgba(255, 255, 255, 0.9);
+                    box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6),
+                                inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8),
+                                0 0 15px rgba(102, 126, 234, 0.8);
                 }
 
                 input[type="checkbox"]:checked::after {
@@ -1545,8 +1588,9 @@
                     left: 50%;
                     transform: translate(-50%, -50%);
                     color: white;
-                    font-size: 14px;
+                    font-size: 16px;
                     font-weight: bold;
+                    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
                 }
             </style>
         `;
@@ -1908,7 +1952,7 @@
             // Zone de sélection des dossiers (hiérarchique)
             const folderZone = document.createElement('div');
             folderZone.id = 'folder-selector-dynamic';
-            folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
+            folderZone.style.cssText = 'background: var(--input-color); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; animation: borderColorCycle 6s ease-in-out infinite;';
 
             // Fonction récursive pourAjouter les dossiers avec indentation
             function addFolderOptionsRecursive(parentId, level = 0) {
@@ -1946,7 +1990,7 @@
             sidebar.appendChild(createTitle);
 
             const quickZone = document.createElement('div');
-            quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
+            quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; animation: borderColorCycle 6s ease-in-out infinite;';
 
             const inputSymbole = document.createElement('input');
             inputSymbole.type = 'text';
@@ -2007,7 +2051,7 @@
 
             // === FORMULAIRE PRINCIPAL (DROITE) ===
             const mainForm = document.createElement('div');
-            mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto;';
+            mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto; border-radius: 12px; margin-left: 15px; animation: borderColorCycle 6s ease-in-out infinite;';
 
             const mainTitle = document.createElement('h2');
             mainTitle.textContent = '✏️ Modifier le Favori';
@@ -2241,7 +2285,7 @@
             // Zone de sélection des dossiers
             const folderZone = document.createElement('div');
             folderZone.id = 'folder-selector-dynamic';
-            folderZone.style.cssText = 'background: var(--input-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;';
+            folderZone.style.cssText = 'background: var(--input-color); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; animation: borderColorCycle 6s ease-in-out infinite;';
 
             // Fonction récursive pourAjouter les dossiers avec hiérarchie
             function addFolderOptionsRecursive(parentId, level = 0) {
@@ -2285,7 +2329,7 @@
             sidebar.appendChild(createTitle);
 
             const quickZone = document.createElement('div');
-            quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; border: 2px solid rgba(56, 239, 125, 0.3);';
+            quickZone.style.cssText = 'background: var(--input-color); padding: 15px; border-radius: 12px; animation: borderColorCycle 6s ease-in-out infinite;';
 
             const inputSymbole = document.createElement('input');
             inputSymbole.type = 'text';
@@ -2347,7 +2391,7 @@
 
             // === FORMULAIRE PRINCIPAL (DROITE) ===
             const mainForm = document.createElement('div');
-            mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto;';
+            mainForm.style.cssText = 'flex: 1; padding: 20px; overflow-y: auto; border-radius: 12px; margin-left: 15px; animation: borderColorCycle 6s ease-in-out infinite;';
 
             const mainTitle = document.createElement('h2');
             mainTitle.textContent = '⭐Ajouter aux Favoris';
