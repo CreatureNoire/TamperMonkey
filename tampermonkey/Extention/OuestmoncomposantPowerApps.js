@@ -805,7 +805,7 @@
 
                 .sidebar-folders {
                     width: 250px;
-                    border-right: 2px solid rgba(255, 255, 255, 0.1);
+                    border: 2px solid rgba(255, 255, 255, 0.2);
                     border-radius: 12px;
                     padding: 15px;
                     overflow-y: auto;
@@ -815,6 +815,7 @@
 
                 .main-content-favoris {
                     flex: 1;
+                    border: 2px solid rgba(255, 255, 255, 0.2);
                     border-radius: 12px;
                     padding: 15px;
                     margin-left: 15px;
@@ -1304,7 +1305,6 @@
                     padding: 8px 12px;
                     margin: 5px 0;
                     border-radius: 12px;
-                    border: 2px solid #ffc107;
                     cursor: pointer;
                     transition: all 0.3s ease;
                     background: rgba(58, 58, 58, 0.5);
@@ -1313,13 +1313,11 @@
 
                 .folder-item:hover {
                     background: rgba(255, 255, 255, 0.15);
-                    border-color: #ffeb3b;
                     transform: translateX(5px);
                 }
 
                 .folder-item.active {
                     background: rgba(255, 255, 255, 0.25);
-                    border-color: #ffd700;
                     color: white;
                     font-weight: bold;
                 }
@@ -1631,6 +1629,10 @@
                             <h4 style="margin: 0 0 10px 0; color: rgba(255, 255, 255, 0.9);">Modifier le dossier</h4>
                         <input type="text" id="edit-symbole" placeholder="Symbole" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
                         <input type="text" id="edit-designation" placeholder="Désignation" style="width: calc(100% - 10px); padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;" />
+                        <label style="display: block; font-weight: bold; color: white; margin: 8px 5px 2px 5px; font-size: 13px;">Déplacer dans :</label>
+                        <select id="edit-parent-folder" style="width: calc(100% - 10px); padding: 10px; margin: 5px; border: none; border-radius: 8px; background: var(--input-color); color: white; font-size: 14px; box-sizing: border-box;">
+                            <option value="null">Sans Dossier</option>
+                        </select>
                         <div style="display: flex; gap: 5px; margin-top: 10px;">
                             <button class="btn-save-edit-folder" id="btn-save-edit-folder" style="flex: 1; background: var(--button-color); color: white; border: 2px solid #00ff00; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">Enregistrer</button>
                             <button class="btn-cancel-edit-folder" id="btn-cancel-edit-folder" style="flex: 1; background: var(--input-color); color: rgba(255, 255, 255, 0.7); border: 2px solid #ff0000; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: inset 0px 2px 4px -2px rgba(255, 255, 255, 0.6), inset 0px -2px 4px -1px rgba(0, 0, 0, 0.8);">Annuler</button>
@@ -2174,7 +2176,7 @@
             grp3.className = 'form-group';
             grp3.innerHTML = `
                 <label style="color: white; font-weight: bold;">📍 Repère</label>
-                <input type="text" id="edit-repere-dyn" value="${favori.repere || ''}" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
+                <input type="text" id="edit-repere-dyn" value="${favori.repere || ''}" placeholder="Exemple: R1, Q2, T25 (Séparé par une virgule pour ajouter plusieurs repère)." style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
                 <small style="color: rgba(255, 255, 255, 0.7); font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
             `;
             mainForm.appendChild(grp3);
@@ -2513,7 +2515,7 @@
             grp3.className = 'form-group';
             grp3.innerHTML = `
                 <label style="color: white; font-weight: bold;">📍 Repère</label>
-                <input type="text" id="add-repere-dyn" placeholder="Ex: Zone A, Secteur 3... (séparez par des virgules)" style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
+                <input type="text" id="add-repere-dyn" placeholder="Exemple: R1, Q2, T25 (Séparé par une virgule pour ajouter plusieurs repère)." style="width: 100%; padding: 10px; border: none; border-radius: 12px; background: var(--input-color); color: white; font-size: 14px;" />
                 <small style="color: rgba(255, 255, 255, 0.7); font-size: 12px; display: block; margin-top: 5px;">💡 Séparez les repères par des virgules</small>
             `;
             mainForm.appendChild(grp3);
@@ -2636,12 +2638,22 @@
             const listContent = document.getElementById('favoris-list-content');
             listContent.innerHTML = '';
 
+            // Fonction pour récupérer tous les sous-dossiers d'un dossier
+            function getAllSubFolders(folderId) {
+                const subFolders = [folderId];
+                const children = dossiers.filter(d => d.parent === folderId);
+                children.forEach(child => {
+                    subFolders.push(...getAllSubFolders(child.id));
+                });
+                return subFolders;
+            }
+
             // Filtrer les favoris
             let filteredFavoris;
             if (searchTerm) {
                 // Recherche globale dans tous les favoris
                 filteredFavoris = favoris.filter(fav => {
-                    const text = (fav.text || fav).toLowerCase();
+                    const text = (fav.text || fav.nom || fav).toLowerCase();
                     const commentaire = (fav.commentaire || '').toLowerCase();
                     const categorie = (fav.categorie || '').toLowerCase();
                     const repere = (fav.repere || '').toLowerCase();
@@ -2659,8 +2671,9 @@
                 // Filtrer les favoris sans dossier
                 filteredFavoris = favoris.filter(fav => !fav.folder);
             } else {
-                // Filtrer par dossier actuel
-                filteredFavoris = favoris.filter(fav => fav.folder === currentFolder);
+                // Filtrer par dossier actuel ET tous ses sous-dossiers
+                const allFolderIds = getAllSubFolders(currentFolder);
+                filteredFavoris = favoris.filter(fav => allFolderIds.includes(fav.folder));
             }
 
             if (filteredFavoris.length === 0) {
@@ -2690,14 +2703,40 @@
                 categories[cat].push(fav);
             });
 
-            // Afficher par catégorie
-            Object.keys(categories).sort().forEach(categorie => {
+            // Afficher par catégorie (uniquement celles qui ont des favoris)
+            Object.keys(categories).sort().forEach((categorie, index) => {
+                // Cacher les catégories vides
+                if (categories[categorie].length === 0) {
+                    return;
+                }
+
+                // Générer une couleur unique pour chaque catégorie
+                const colors = [
+                    '#4285f4', // Bleu
+                    '#34a853', // Vert
+                    '#fbbc04', // Jaune/Orange
+                    '#ea4335', // Rouge
+                    '#9c27b0', // Violet
+                    '#00bcd4', // Cyan
+                    '#ff9800', // Orange
+                    '#e91e63', // Rose
+                    '#009688', // Teal
+                    '#ff5722', // Orange foncé
+                    '#3f51b5', // Indigo
+                    '#8bc34a', // Vert clair
+                ];
+                const categoryColor = colors[index % colors.length];
+
                 const section = document.createElement('div');
                 section.className = 'category-section';
+                section.style.border = `2px solid ${categoryColor}`;
+                section.style.borderRadius = '8px';
+                section.style.padding = '10px';
+                section.style.marginBottom = '15px';
 
                 const header = document.createElement('div');
                 header.className = 'category-header';
-                header.style.cssText = 'position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;';
+                header.style.cssText = `position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; color: ${categoryColor};`;
 
                 // Icône de collapse/expand
                 const collapseIcon = document.createElement('span');
@@ -2745,29 +2784,41 @@
                     const li = document.createElement('li');
                     li.className = 'favoris-item';
                     li.style.margin = '5px 0';
+                    li.style.borderLeft = `4px solid ${categoryColor}`; // Bordure de la couleur de la catégorie
 
-                    // Construire le texte du composant
-                    let displayText = favori.text || favori;
+                    // Construire le texte du favori (reste tel quel)
+                    let displayText = favori.text || favori.nom || favori;
 
-                    // Construire le badge du dossier
-                    let folderBadge = '';
+                    // Extraire symbole et désignation du DOSSIER
+                    let symbole = '';
+                    let designation = '';
+
                     if (favori.folder) {
                         const folder = dossiers.find(d => d.id === favori.folder);
-                        if (folder) {
-                            folderBadge = `<div style="margin-top: 5px;"><small style="background: #e8f4f8; color: #0066cc; padding: 2px 8px; border-radius: 4px; border: 1px solid #0066cc; font-weight: 600; display: inline-block;">📁 ${folder.name}</small></div>`;
+                        if (folder && folder.name) {
+                            // Essayer de séparer symbole et désignation du nom du dossier
+                            if (folder.name.includes(' - ')) {
+                                const parts = folder.name.split(' - ');
+                                symbole = parts[0].trim();
+                                designation = parts.slice(1).join(' - ').trim();
+                                console.log('Dossier - Symbole:', symbole, 'Désignation:', designation);
+                            } else {
+                                // Si pas de séparation, tout va dans la désignation
+                                designation = folder.name;
+                                console.log('Dossier sans symbole, désignation:', designation);
+                            }
                         }
-                    } else {
-                        // Afficher "Sans Dossier" pour tous les favoris sans dossier
-                        folderBadge = `<div style="margin-top: 5px;"><small style="background: #f0f0f0; color: #666; padding: 2px 8px; border-radius: 4px; border: 1px solid #999; font-weight: 600; display: inline-block;">Sans Dossier</small></div>`;
                     }
 
-                    // Gérer les repères multiples (séparés par des virgules) - en bas à droite
+                    // Note: On n'affiche plus le badge du dossier car on affiche déjà symbole + désignation séparément
+
+                    // Gérer les repères multiples (séparés par des virgules) - avec bordure
                     let reperesHTML = '';
                     if (favori.repere) {
                         const reperes = favori.repere.split(',').map(r => r.trim()).filter(r => r);
                         if (reperes.length > 0) {
                             reperesHTML = reperes.map(r =>
-                                `<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 4px; border: 1px solid #ffc107; font-size: 0.85em; font-weight: 600; white-space: nowrap; display: inline-block;">📍 ${r}</span>`
+                                `<span style="background: rgba(251, 188, 5, 0.15); color: #ffa726; padding: 4px 10px; border-radius: 16px; border: 1px solid rgba(251, 188, 5, 0.4); font-size: 0.85em; font-weight: 600; white-space: nowrap; display: inline-block;">📍 ${r}</span>`
                             ).join(' ');
                         }
                     }
@@ -2778,18 +2829,89 @@
                         commentaireHTML = `<div style="margin-top: 5px;"><small style="color: #666;">💬 ${favori.commentaire}</small></div>`;
                     }
 
+                    // Créer le HTML des repères
+                    let reperesContainerHTML = '';
+                    if (favori.repere) {
+                        const reperes = favori.repere.split(',').map(r => r.trim()).filter(r => r);
+                        if (reperes.length > 0) {
+                            const reperesItems = reperes.map(r =>
+                                `<span style="background: rgba(251, 188, 5, 0.15); color: #ffa726; padding: 2px 6px; border-radius: 12px; border: 1px solid rgba(251, 188, 5, 0.4); font-size: 0.7em; font-weight: 600; white-space: nowrap; display: inline-block;">📍 ${r}</span>`
+                            ).join(' ');
+                            reperesContainerHTML = `<div class="favoris-item-reperes" style="position: absolute; bottom: 8px; right: 10px; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: 50%;">${reperesItems}</div>`;
+                        }
+                    }
+
                     li.innerHTML = `
-                        <div class="favoris-item-text" data-index="${globalIndex}">
-                            <div>${displayText}</div>
-                            ${folderBadge}
-                            ${commentaireHTML}
+                        <div style="display: flex; align-items: flex-start; width: 100%;">
+                            <span class="drag-handle" style="cursor: move; font-size: 16px; color: rgba(255, 255, 255, 0.4); margin-right: 8px; user-select: none; flex-shrink: 0;">⋮⋮</span>
+                            <div class="favoris-item-text" data-index="${globalIndex}" style="flex: 1;">
+                            </div>
                         </div>
                         <div class="favoris-item-actions">
                             <button class="btn-edit-favoris" data-index="${globalIndex}">✏️</button>
                             <button class="btn-delete-favoris" data-index="${globalIndex}">🗑️</button>
                         </div>
-                        ${reperesHTML ? `<div class="favoris-item-reperes">${reperesHTML}</div>` : ''}
+                        ${reperesContainerHTML}
                     `;
+
+                    // Construire le contenu dans le DOM plutôt que dans le template
+                    const textContainer = li.querySelector('.favoris-item-text');
+
+                    // Afficher d'abord le nom du favori
+                    const favoriName = document.createElement('div');
+                    favoriName.style.cssText = 'font-size: 1.1em; color: white; font-weight: 500; margin-bottom: 8px;';
+                    favoriName.textContent = displayText;
+                    textContainer.appendChild(favoriName);
+
+                    // Ajouter le commentaire
+                    if (commentaireHTML) {
+                        textContainer.insertAdjacentHTML('beforeend', commentaireHTML);
+                    }
+
+                    // Créer une zone en bas à gauche pour les infos du dossier (symbole + désignation)
+                    const bottomContainer = document.createElement('div');
+                    bottomContainer.style.cssText = 'display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px;';
+
+                    // Ajouter symbole + désignation si présents
+                    if (symbole || designation) {
+                        if (symbole) {
+                            // Zone symbole - Plus petite
+                            const symboleBox = document.createElement('div');
+                            symboleBox.style.cssText = 'background: rgba(66, 133, 244, 0.3); padding: 4px 10px; border-radius: 8px; border: 2px solid #4285f4; text-align: center;';
+                            symboleBox.innerHTML = `<span style="font-weight: bold; color: #4285f4; font-size: 0.9em; letter-spacing: 0.3px;">${symbole}</span>`;
+                            bottomContainer.appendChild(symboleBox);
+                        }
+
+                        if (designation) {
+                            // Zone désignation - Adaptée au texte (pas flex: 1)
+                            const designationBox = document.createElement('div');
+                            designationBox.style.cssText = 'background: rgba(52, 168, 83, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(52, 168, 83, 0.4); display: inline-block;';
+                            designationBox.innerHTML = `<span style="font-size: 0.85em; color: #5fd687; line-height: 1.3; font-weight: 500;">📁 ${designation}</span>`;
+                            bottomContainer.appendChild(designationBox);
+                        }
+
+                        // Ajouter le conteneur en bas seulement s'il y a du contenu
+                        textContainer.appendChild(bottomContainer);
+                    }
+
+                    // Rendre le favori draggable uniquement via la poignée
+                    li.draggable = false; // Désactiver le drag par défaut
+                    li.dataset.favoriIndex = globalIndex;
+
+                    const dragHandle = li.querySelector('.drag-handle');
+                    dragHandle.draggable = true;
+
+                    dragHandle.addEventListener('dragstart', (e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('favoriIndex', globalIndex.toString());
+                        li.style.opacity = '0.5';
+                    });
+
+                    dragHandle.addEventListener('dragend', (e) => {
+                        li.style.opacity = '1';
+                    });
+
                     ul.appendChild(li);
                 });
 
@@ -2931,6 +3053,7 @@
             if (folderMode === 'normal') {
                 const divAll = document.createElement('div');
                 divAll.className = 'folder-item' + (currentFolder === 'all' ? ' active' : '');
+                divAll.style.background = 'rgba(156, 39, 176, 0.15)'; // Violet pour "Tous les favoris"
                 divAll.innerHTML = `
                     <span class="folder-icon">📋</span>
                     <span class="folder-name">Tous les favoris</span>
@@ -2944,6 +3067,7 @@
                 //Ajouter "Sans Dossier"
                 const divNoFolder = document.createElement('div');
                 divNoFolder.className = 'folder-item' + (currentFolder === 'none' ? ' active' : '');
+                divNoFolder.style.background = 'rgba(158, 158, 158, 0.15)'; // Gris pour "Sans Dossier"
                 divNoFolder.innerHTML = `
                     <span class="folder-icon">📄</span>
                     <span class="folder-name">Sans Dossier</span>
@@ -2952,6 +3076,49 @@
                     currentFolder = 'none';
                     displayFavoris();
                 });
+
+                // Permettre le drop sur "Sans Dossier" pour déplacer vers la racine
+                divNoFolder.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                    divNoFolder.style.outline = '2px dashed #9e9e9e';
+                });
+
+                divNoFolder.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    divNoFolder.style.outline = 'none';
+                });
+
+                divNoFolder.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    divNoFolder.style.outline = 'none';
+
+                    const draggedFolderId = e.dataTransfer.getData('folderId');
+                    const draggedFavoriIndex = e.dataTransfer.getData('favoriIndex');
+
+                    if (draggedFolderId) {
+                        // Déplacer un dossier à la racine
+                        const draggedFolder = dossiers.find(d => d.id === draggedFolderId);
+                        if (draggedFolder) {
+                            draggedFolder.parent = null;
+                            GM_setValue('dossiers', dossiers);
+                            showNotification('✅ Dossier déplacé à la racine');
+                            displayFolders();
+                        }
+                    } else if (draggedFavoriIndex) {
+                        // Retirer le favori de tout dossier
+                        const index = parseInt(draggedFavoriIndex);
+                        if (!isNaN(index) && favoris[index]) {
+                            favoris[index].folder = null;
+                            GM_setValue('favoris', favoris);
+                            showNotification('✅ Favori déplacé hors dossier');
+                            displayFavoris();
+                        }
+                    }
+                });
+
                 folderList.appendChild(divNoFolder);
 
                 //Ajouter un séparateur
@@ -2968,6 +3135,23 @@
                     const div = document.createElement('div');
                     div.className = 'folder-item' + (currentFolder === dossier.id ? ' active' : '');
                     div.style.paddingLeft = (12 + level * 20) + 'px';
+
+                    // Couleurs selon le niveau hiérarchique
+                    let folderColor = '';
+                    let folderBorderColor = '';
+                    if (level === 0) {
+                        // Dossier parent (racine) - Bleu
+                        folderColor = 'rgba(66, 133, 244, 0.15)';
+                        folderBorderColor = 'rgba(66, 133, 244, 0.3)';
+                    } else if (level === 1) {
+                        // Enfant niveau 1 - Vert
+                        folderColor = 'rgba(52, 168, 83, 0.15)';
+                        folderBorderColor = 'rgba(52, 168, 83, 0.3)';
+                    } else {
+                        // Enfant niveau 2+ - Orange
+                        folderColor = 'rgba(251, 188, 5, 0.15)';
+                        folderBorderColor = 'rgba(251, 188, 5, 0.3)';
+                    }
 
                     // Affichage différent selon le mode
                     if (folderMode === 'delete') {
@@ -2994,18 +3178,126 @@
                         div.addEventListener('click', () => {
                             selectedFolderForEdit = dossier;
                             document.getElementById('edit-symbole').value = dossier.name.split(' - ')[0] || '';
-                            document.getElementById('edit-designation').value = dossier.name.split(' - ')[1] || '';
+                            document.getElementById('edit-designation').value = dossier.name.split(' - ')[1] || dossier.name;
+
+                            // Remplir le sélecteur de dossier parent
+                            const parentSelect = document.getElementById('edit-parent-folder');
+                            parentSelect.innerHTML = '<option value="null">Sans Dossier</option>';
+
+                            // Fonction récursive pour exclure le dossier actuel et ses descendants
+                            function canBeParent(folderId) {
+                                if (folderId === dossier.id) return false;
+                                const folder = dossiers.find(d => d.id === folderId);
+                                if (!folder) return true;
+                                if (folder.parent === dossier.id) return false;
+                                return folder.parent ? canBeParent(folder.parent) : true;
+                            }
+
+                            // Ajouter tous les dossiers possibles (sauf le dossier actuel et ses descendants)
+                            dossiers.forEach(d => {
+                                if (canBeParent(d.id)) {
+                                    const option = document.createElement('option');
+                                    option.value = d.id;
+                                    option.textContent = d.name;
+                                    if (d.id === dossier.parent) {
+                                        option.selected = true;
+                                    }
+                                    parentSelect.appendChild(option);
+                                }
+                            });
+
                             document.getElementById('folder-edit-form').style.display = 'block';
                         });
                     } else {
-                        // Mode normal
+                        // Mode normal avec couleurs selon le niveau (sans bordure)
+                        div.style.background = folderColor;
                         div.innerHTML = `
+                            <span class="drag-handle-folder" style="cursor: move; font-size: 14px; color: rgba(255, 255, 255, 0.4); margin-right: 8px; user-select: none;">⋮⋮</span>
                             <span class="folder-icon">📁</span>
                             <span class="folder-name">${dossier.name}</span>
                         `;
-                        div.addEventListener('click', () => {
+                        div.addEventListener('click', (e) => {
+                            // Ne pas naviguer si on clique sur la poignée de drag
+                            if (e.target.classList.contains('drag-handle-folder')) {
+                                return;
+                            }
                             currentFolder = dossier.id;
                             displayFavoris();
+                        });
+
+                        // Rendre le dossier draggable uniquement via la poignée
+                        div.draggable = false;
+                        div.dataset.folderId = dossier.id;
+
+                        const dragHandleFolder = div.querySelector('.drag-handle-folder');
+                        dragHandleFolder.draggable = true;
+
+                        // Événements drag pour le dossier source (via la poignée)
+                        dragHandleFolder.addEventListener('dragstart', (e) => {
+                            e.stopPropagation();
+                            e.dataTransfer.effectAllowed = 'move';
+                            e.dataTransfer.setData('folderId', dossier.id);
+                            div.style.opacity = '0.5';
+                        });
+
+                        dragHandleFolder.addEventListener('dragend', (e) => {
+                            div.style.opacity = '1';
+                        });
+
+                        // Événements drop pour le dossier cible
+                        div.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.dataTransfer.dropEffect = 'move';
+                            div.style.outline = '2px dashed #4285f4';
+                        });
+
+                        div.addEventListener('dragleave', (e) => {
+                            e.preventDefault();
+                            div.style.outline = 'none';
+                        });
+
+                        div.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            div.style.outline = 'none';
+
+                            const draggedFolderId = e.dataTransfer.getData('folderId');
+                            const draggedFavoriIndex = e.dataTransfer.getData('favoriIndex');
+
+                            if (draggedFolderId) {
+                                // Déplacer un dossier dans un autre dossier
+                                if (draggedFolderId !== dossier.id) {
+                                    const draggedFolder = dossiers.find(d => d.id === draggedFolderId);
+                                    if (draggedFolder) {
+                                        // Vérifier qu'on ne crée pas de boucle
+                                        function isDescendant(folderId, potentialAncestorId) {
+                                            if (folderId === potentialAncestorId) return true;
+                                            const folder = dossiers.find(d => d.id === folderId);
+                                            if (!folder || !folder.parent) return false;
+                                            return isDescendant(folder.parent, potentialAncestorId);
+                                        }
+
+                                        if (!isDescendant(dossier.id, draggedFolderId)) {
+                                            draggedFolder.parent = dossier.id;
+                                            GM_setValue('dossiers', dossiers);
+                                            showNotification(`✅ Dossier déplacé dans "${dossier.name}"`);
+                                            displayFolders();
+                                        } else {
+                                            showNotification('❌ Impossible : création de boucle', true);
+                                        }
+                                    }
+                                }
+                            } else if (draggedFavoriIndex) {
+                                // Déplacer un favori dans ce dossier
+                                const index = parseInt(draggedFavoriIndex);
+                                if (!isNaN(index) && favoris[index]) {
+                                    favoris[index].folder = dossier.id;
+                                    GM_setValue('favoris', favoris);
+                                    showNotification(`✅ Favori déplacé dans "${dossier.name}"`);
+                                    displayFavoris();
+                                }
+                            }
                         });
                     }
 
@@ -3053,9 +3345,9 @@
             // Plus utilisée - l'arborescence dans le panneau gauche remplace le breadcrumb
         }
 
-        // Fonction pourCréer un dossier
+        // Fonction pour créer un dossier
         function createFolder(symbole, designation, parentId = null) {
-            const folderName = `${symbole} - ${designation}`;
+            const folderName = symbole ? `${symbole} - ${designation}` : designation;
             const newFolder = {
                 id: Date.now().toString(),
                 name: folderName,
@@ -3188,8 +3480,9 @@
             const parentSelect = document.getElementById('input-parent-folder');
             const parent = parentSelect.value === 'null' ? null : parentSelect.value;
 
-            if (!symbole || !designation) {
-                showNotification('❌ Veuillez remplir Symbole et Désignation', true);
+            // Symbole optionnel, mais au moins la désignation est requise
+            if (!designation) {
+                showNotification('❌ Veuillez remplir au moins la désignation', true);
                 return;
             }
 
@@ -3234,16 +3527,20 @@
 
             const symbole = document.getElementById('edit-symbole').value.trim();
             const designation = document.getElementById('edit-designation').value.trim();
+            const newParent = document.getElementById('edit-parent-folder').value;
 
-            if (!symbole || !designation) {
-                showNotification('❌ Veuillez remplir Symbole et Désignation', true);
+            // Symbole optionnel, mais au moins la désignation est requise
+            if (!designation) {
+                showNotification('❌ Veuillez remplir au moins la désignation', true);
                 return;
             }
 
-            const newName = symbole + ' - ' + designation;
+            const newName = symbole ? (symbole + ' - ' + designation) : designation;
             const folder = dossiers.find(d => d.id === selectedFolderForEdit.id);
             if (folder) {
                 folder.name = newName;
+                // Mettre à jour le parent (null si "null" est sélectionné)
+                folder.parent = newParent === 'null' ? null : newParent;
                 GM_setValue('dossiers', dossiers);
                 showNotification('✅ Dossier modifié avec succès');
             }
