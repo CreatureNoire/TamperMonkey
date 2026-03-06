@@ -1,19 +1,3 @@
-    // ==UserScript==
-    // @name         PowerApp Gallery Favoris
-    // @namespace    http://tampermonkey.net/
-    // @version      3.0
-    // @description  Gestion des favoris pour PowerApps (avec postMessage)
-    // @author       Vous
-    // @match        https://apps.powerapps.com/play/e/8ce66143-5dbc-4269-9f4f-16af25fd3458/a/cb3ad194-69f8-47e8-8d8b-3ab7cb9816a4*
-    // @match        https://apps.powerapps.com/*
-    // @match        https://runtime-app.powerplatform.com/*
-    // @upload       https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
-    // @download     https://github.com/CreatureNoire/TamperMonkey/blob/master/tampermonkey/Extention/OuestmoncomposantPowerApps.js
-    // @grant        GM_setValue
-    // @grant        GM_getValue
-    // @run-at       document-idle
-    // ==/UserScript==
-
     (function() {
         'use strict';
 
