@@ -5,10 +5,10 @@
     // @description  Ajoute quatre boutons RP, RU, CP, RN avec soldes (fin d'année pour RP/RU/CP, aujourd'hui pour RN)
     // @author       Vous
     // @match        https://optimum.sncf.fr/chronotime/*
-    // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
     // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/CouleurAgenda.js
-    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
-    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20RP%20et%20RU%20Optimum.js
+    // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
+    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Script%20Principal/ScriptOptimum.js
+    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Script%20Principal/ScriptOptimum.js
     // @grant        none
     // ==/UserScript==
 
@@ -16,7 +16,7 @@
     'use strict';
 
     const versionLocale = GM_info.script.version;
-    const scriptURL = "https://raw.githubusercontent.com/Syfrost/JustWork-Next-Extension/master/tampermonkey/mainscript.user.js";
+    const scriptURL = "https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Script%20Principal/ScriptOptimum.js";
 
     console.log("[Script Collector Auto] Version locale :", versionLocale);
 
@@ -55,7 +55,7 @@
     function afficherBoutonMAJ(versionDistante, installUrl) {
         const container = document.querySelector('div[style*="position: fixed"][style*="bottom: 10px"][style*="right: 10px"]');
         if (!container || document.getElementById("btnMajScript")) return;
-    
+
         const btn = document.createElement("button");
         btn.id = "btnMajScript";
         btn.innerText = `🆕 MAJ dispo (${versionDistante})`;
@@ -63,7 +63,7 @@
             alert("Une nouvelle version du script est disponible.\nUn nouvel onglet va s’ouvrir pour l’installation.");
             window.open(installUrl, "_blank");
         };
-    
+
         // Récupérer le message du dernier commit via l’API GitHub
         fetch("https://api.github.com/repos/Syfrost/JustWork-Next-Extension/commits?path=tampermonkey/mainscript.user.js&page=1&per_page=1")
             .then(res => res.json())
@@ -75,7 +75,7 @@
             .catch(err => {
                 console.warn("[Script Collector Auto] ⚠️ Erreur récupération commit :", err);
             });
-    
+
         styleButton(btn, "#ffc107", "fa-arrow-up");
         container.appendChild(btn);
     }
