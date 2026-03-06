@@ -251,18 +251,26 @@
         return wrapper;
     }
 
-    // Fonction pour créer l'affichage du solde RN (sans bouton)
+    // Fonction pour créer l'affichage du solde RN (AVEC bouton)
     function createRNDisplay() {
         const wrapper = document.createElement('div');
         wrapper.className = 'modern-button-wrapper';
-        wrapper.style.cssText = 'flex-direction: row; gap: 8px;';
 
-        // Label RN avec style moderne
-        const label = document.createElement('div');
-        label.textContent = 'RN :';
-        label.style.cssText = 'font-size: 13px; font-weight: 600; color: #333; display: flex; align-items: center;';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'modern-button btn-rn-custom';
+        
+        // Définir une couleur de fond par défaut (sera remplacée par le script Calendrier couleur.js)
+        button.style.backgroundColor = '#6c757d'; // Gris par défaut
+        button.style.color = 'white';
+        
+        // Créer la structure HTML sans icône sparkle
+        button.innerHTML = `
+            <div class="dots_border"></div>
+            <span class="text_button">RN</span>
+        `;
 
-        // Affichage du solde
+        // Créer l'élément pour afficher le solde
         const soldeDisplay = document.createElement('div');
         soldeDisplay.className = 'solde-display-rn modern-button-solde';
 
@@ -271,8 +279,14 @@
         spinner.className = 'modern-loading-spinner';
         soldeDisplay.appendChild(spinner);
 
-        wrapper.appendChild(label);
+        wrapper.appendChild(button);
         wrapper.appendChild(soldeDisplay);
+
+        // Ajouter l'événement de clic pour créer une régularisation RN
+        button.addEventListener('click', function() {
+            console.log('Bouton RN cliqué');
+            createRegularisation('RN');
+        });
 
         return wrapper;
     }
@@ -822,9 +836,16 @@
         return null;
     }
 
-    // Fonction pour simuler la création d'une régularisation (RP/RU)
+    // Fonction pour simuler la création d'une régularisation (RP/RU/RN)
     function createRegularisation(motifCode) {
         console.log(`Tentative de création de régularisation avec motif: ${motifCode}...`);
+
+        // Déterminer le texte de recherche selon le motif
+        let searchText = motifCode;
+        if (motifCode === 'RN') {
+            searchText = 'repos nuit';
+            console.log('Recherche du motif "repos nuit" pour RN');
+        }
 
         // Chercher différents sélecteurs possibles pour le bouton "Nouveau"
         let nouveauButton = document.querySelector('.agenda_acmcreercmb button.dropReg');
@@ -867,7 +888,7 @@
 
                     // Attendre que le formulaire apparaisse et remplir le champ motif
                     setTimeout(function() {
-                        fillMotifCode(motifCode);
+                        fillMotifCode(searchText);
                     }, 300);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkMenu);
@@ -1024,23 +1045,23 @@
             buttonContainer.setAttribute('aria-label', 'Boutons personnalisés');
             buttonContainer.style.cssText = 'display: flex; flex-direction: row; gap: 8px; margin-left: 8px;';
 
-            // Créer les boutons et l'affichage RN
+            // Créer les boutons (RP, RU, CP et maintenant RN aussi)
             const rpButton = createButton('RP', 'btn-rp-custom', false);
             const ruButton = createButton('RU', 'btn-ru-custom', false);
             const cpButton = createButton('CP', 'btn-cp-custom', true);
-            const rnDisplay = createRNDisplay();
+            const rnButton = createRNDisplay(); // Maintenant c'est un vrai bouton
 
             // Ajouter les boutons au conteneur
             buttonContainer.appendChild(rpButton);
             buttonContainer.appendChild(ruButton);
             buttonContainer.appendChild(cpButton);
-            buttonContainer.appendChild(rnDisplay);
+            buttonContainer.appendChild(rnButton);
 
             // Insérer le conteneur dans la zone phx-agenda-accesrapides
             const accesRapides = document.querySelector('.phx-agenda-accesrapides');
             if (accesRapides) {
                 accesRapides.appendChild(buttonContainer);
-                console.log('Boutons RP, RU, CP et affichage RN ajoutés avec succès dans phx-agenda-accesrapides');
+                console.log('Boutons RP, RU, CP et RN ajoutés avec succès dans phx-agenda-accesrapides');
 
                 // Charger immédiatement les soldes depuis le cache
                 const hasCachedData = loadSoldesFromCache();
