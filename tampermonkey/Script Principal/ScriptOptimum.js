@@ -1,7 +1,7 @@
     // ==UserScript==
-    // @name         Boutons Supplémentaires Optimum
+    // @name         Script Optimum
     // @namespace    http://tampermonkey.net/
-    // @version      1.8
+    // @version      1.0
     // @description  Ajoute quatre boutons RP, RU, CP, RN avec soldes (fin d'année pour RP/RU/CP, aujourd'hui pour RN)
     // @author       Vous
     // @match        https://optimum.sncf.fr/chronotime/*
