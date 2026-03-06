@@ -1,15 +1,3 @@
-    // ==UserScript==
-    // @name         Boutons Supplémentaires Optimum
-    // @namespace    http://tampermonkey.net/
-    // @version      1.7
-    // @description  Ajoute trois boutons RP, RU, CP (soldes fin d'année) et affichage du solde RN (aujourd'hui) - Détection matricule améliorée
-    // @author       Vous
-    // @match        https://optimum.sncf.fr/chronotime/*
-    // @updateURL    https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
-    // @downloadURL  https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Bouton%20Supl%C3%A9mentaire%20Optimum.js
-    // @grant        none
-    // ==/UserScript==
-
     (function() {
         'use strict';
 
