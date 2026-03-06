@@ -4,7 +4,7 @@
     // Injection du CSS pour les toasts
     const toastCSS = `
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
-        
+
         :root {
             --tr: all 0.5s ease 0s;
             --ch1: #05478a;
@@ -310,13 +310,34 @@
             border: 1.5px solid #fff2;
             font-family: "Varela Round", sans-serif;
             color: #f5f5f5;
-            transform: scale(0.9);
-            animation: symodal-scale-in 0.3s ease forwards;
+            position: relative;
+            margin: auto;
         }
 
-        @keyframes symodal-scale-in {
-            to {
-                transform: scale(1);
+        .symodal.from-button {
+            position: fixed;
+            left: var(--start-x);
+            top: var(--start-y);
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+
+        .symodal.from-button.animate {
+            animation: symodal-expand-and-move 0.3s linear forwards;
+        }
+
+        @keyframes symodal-expand-and-move {
+            0% {
+                left: var(--start-x);
+                top: var(--start-y);
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            100% {
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
             }
         }
 
@@ -615,11 +636,11 @@
     // Fonction principale pour afficher les toasts
     window.sytoast = function(type, message, duration = 5000) {
         const container = getToastContainer();
-        
+
         // Créer l'élément toast
         const toast = document.createElement('div');
         toast.className = `sytoast ${type}`;
-        
+
         // Créer le contenu
         const title = getTitle(type);
         toast.innerHTML = `
@@ -627,26 +648,26 @@
             <h3>${title}</h3>
             <p>${message}</p>
         `;
-        
+
         // Ajouter au conteneur
         container.appendChild(toast);
-        
+
         // Déclencher l'animation d'apparition
         setTimeout(() => toast.classList.add('show'), 10);
-        
+
         // Gestion de la fermeture par clic
         const closeBtn = toast.querySelector('.sytoast-close');
         closeBtn.addEventListener('click', () => {
             removeToast(toast);
         });
-        
+
         // Fermeture automatique
         if (duration > 0) {
             setTimeout(() => {
                 removeToast(toast);
             }, duration);
         }
-        
+
         return toast;
     };
 
@@ -819,54 +840,54 @@
             try {
                 console.log('⏳ Attente du chargement de la page...');
                 await delay(2000); // Augmenter le délai initial
-                
+
                 const doc = iframe.contentDocument || iframe.contentWindow.document;
-                
+
                 console.log('🔍 DEBUG: Recherche des form-row...');
                 const formRows = doc.querySelectorAll('.form-row');
                 console.log(`📊 Nombre de form-row trouvées: ${formRows.length}`);
-                
+
                 // Attendre que les selects soient remplis (surtout mask_equipe)
                 let attempts = 0;
                 const maxAttempts = 10;
-                
+
                 const waitForSelects = async () => {
                     const printerSelect = doc.querySelector('select[id="printer_equipe"]');
                     const maskSelect = doc.querySelector('select[id="mask_equipe"]');
-                    
+
                     const printerHasOptions = printerSelect && printerSelect.options.length > 1;
                     const maskHasOptions = maskSelect && maskSelect.options.length > 1;
-                    
+
                     console.log(`🔄 Tentative ${attempts + 1}/${maxAttempts}`);
                     console.log(`  - printer_equipe: ${printerSelect?.options.length || 0} options`);
                     console.log(`  - mask_equipe: ${maskSelect?.options.length || 0} options`);
-                    
+
                     // On attend seulement que printer_equipe soit rempli
                     // mask_equipe peut être vide (dépend de la configuration)
                     if (printerHasOptions) {
                         console.log('✅ printer_equipe chargé, on continue...');
                         return true;
                     }
-                    
+
                     if (attempts < maxAttempts) {
                         attempts++;
                         await delay(500);
                         return waitForSelects();
                     }
-                    
+
                     console.log('⏰ Timeout atteint, on continue avec ce qu\'on a...');
                     return false;
                 };
-                
+
                 await waitForSelects();
-                
+
                 formRows.forEach((row, index) => {
                     console.log(`\n--- Form-row ${index + 1} ---`);
                     console.log('HTML:', row.innerHTML.substring(0, 200));
-                    
+
                     const selects = row.querySelectorAll('select');
                     console.log(`Nombre de select trouvés: ${selects.length}`);
-                    
+
                     selects.forEach((select, sIndex) => {
                         console.log(`  Select ${sIndex + 1}:`);
                         console.log(`    ID: ${select.id}`);
@@ -878,11 +899,11 @@
                         })));
                     });
                 });
-                
+
                 // Chercher spécifiquement printer_equipe et mask_equipe
                 const printerSelect = doc.querySelector('select[id="printer_equipe"]');
                 const maskSelect = doc.querySelector('select[id="mask_equipe"]');
-                
+
                 if (printerSelect) {
                     cachedPrinterOptions = Array.from(printerSelect.options)
                         .filter(opt => opt.value !== '') // Filtrer les options vides
@@ -895,7 +916,7 @@
                 } else {
                     console.log('❌ printer_equipe NON trouvé');
                 }
-                
+
                 if (maskSelect) {
                     cachedMaskOptions = Array.from(maskSelect.options)
                         .filter(opt => opt.value !== '') // Filtrer les options vides
@@ -908,7 +929,7 @@
                 } else {
                     console.log('❌ mask_equipe NON trouvé');
                 }
-                
+
                 // Si mask_equipe est toujours vide, chercher ailleurs
                 if (cachedMaskOptions.length === 0) {
                     console.log('⚠️ mask_equipe vide, recherche alternative...');
@@ -922,11 +943,11 @@
                         });
                     });
                 }
-                
+
                 // NE PAS nettoyer l'iframe, on en a besoin pour les mises à jour
-                
+
                 if (callback) callback();
-                
+
             } catch (e) {
                 console.error('❌ Erreur lors du debug:', e);
                 if (iframe.parentNode) {
@@ -949,7 +970,7 @@
         try {
             const doc = iframeForMaskUpdate.contentDocument || iframeForMaskUpdate.contentWindow.document;
             const printerSelect = doc.querySelector('select[id="printer_equipe"]');
-            
+
             if (!printerSelect) {
                 console.log('❌ printer_equipe non trouvé dans l\'iframe');
                 return [];
@@ -958,14 +979,14 @@
             // Changer la valeur de l'imprimante
             console.log(`🔄 Changement d'imprimante vers: ${printerId}`);
             printerSelect.value = printerId;
-            
+
             // Déclencher l'événement change
             const changeEvent = new Event('change', { bubbles: true });
             printerSelect.dispatchEvent(changeEvent);
-            
+
             // Attendre que les masques se chargent
             await delay(1000);
-            
+
             const maskSelect = doc.querySelector('select[id="mask_equipe"]');
             if (!maskSelect) {
                 console.log('❌ mask_equipe non trouvé');
@@ -1046,22 +1067,22 @@
     // --------------------------
     function detectTransitionButtons() {
         const buttons = [];
-        
+
         // Détecter tous les boutons de transition
         const allTransitionButtons = document.querySelectorAll('button[collector-trans-id]');
         allTransitionButtons.forEach(btn => {
             const id = btn.getAttribute('collector-trans-id');
-            const name = btn.getAttribute('collector-next-state-name') || 
-                        btn.querySelector('span')?.textContent.trim() || 
+            const name = btn.getAttribute('collector-next-state-name') ||
+                        btn.querySelector('span')?.textContent.trim() ||
                         'Transition ' + id;
-            
+
             buttons.push({
                 id,
                 name,
                 element: btn
             });
         });
-        
+
         return buttons;
     }
 
@@ -1073,10 +1094,10 @@
 
     function activateSelectionMode(callback) {
         if (selectionMode) return;
-        
+
         selectionMode = true;
         console.log('🎯 Mode sélection activé');
-        
+
         // Ajouter un overlay transparent MAIS qui ne bloque PAS les clics sur les boutons
         const overlay = document.createElement('div');
         overlay.id = 'button-selection-overlay';
@@ -1092,10 +1113,10 @@
             pointer-events: none;
         `;
         document.body.appendChild(overlay);
-        
+
         // Toast d'instruction
         sytoastInfo('Cliquez sur un bouton de transition pour le configurer', 0);
-        
+
         // Mettre en surbrillance tous les boutons de transition
         const transitionButtons = document.querySelectorAll('button[collector-trans-id]');
         transitionButtons.forEach(btn => {
@@ -1104,25 +1125,25 @@
             btn.style.pointerEvents = 'auto';
             btn.style.position = 'relative';
             btn.style.zIndex = '10000';
-            
+
             const handler = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const id = btn.getAttribute('collector-trans-id');
-                const name = btn.getAttribute('collector-next-state-name') || 
-                            btn.querySelector('span')?.textContent.trim() || 
+                const name = btn.getAttribute('collector-next-state-name') ||
+                            btn.querySelector('span')?.textContent.trim() ||
                             'Transition ' + id;
-                
+
                 console.log('✅ Bouton sélectionné:', id, name);
                 deactivateSelectionMode();
                 callback(id, name);
             };
-            
+
             buttonClickHandlers.set(btn, handler);
             btn.addEventListener('click', handler, true);
         });
-        
+
         // Ajouter un bouton d'annulation visible
         const cancelBtn = document.createElement('div');
         cancelBtn.id = 'selection-cancel-btn';
@@ -1152,18 +1173,18 @@
 
     function deactivateSelectionMode() {
         if (!selectionMode) return;
-        
+
         selectionMode = false;
         console.log('❌ Mode sélection désactivé');
-        
+
         // Retirer l'overlay
         const overlay = document.getElementById('button-selection-overlay');
         if (overlay) overlay.remove();
-        
+
         // Retirer le bouton d'annulation
         const cancelBtn = document.getElementById('selection-cancel-btn');
         if (cancelBtn) cancelBtn.remove();
-        
+
         // Retirer les surbrillances et les handlers
         const transitionButtons = document.querySelectorAll('button[collector-trans-id]');
         transitionButtons.forEach(btn => {
@@ -1171,14 +1192,14 @@
             btn.style.pointerEvents = '';
             btn.style.position = '';
             btn.style.zIndex = '';
-            
+
             const handler = buttonClickHandlers.get(btn);
             if (handler) {
                 btn.removeEventListener('click', handler, true);
                 buttonClickHandlers.delete(btn);
             }
         });
-        
+
         // Fermer le toast d'instruction
         sytoastClear();
     }
@@ -1198,7 +1219,7 @@
     // --------------------------
     // Créer et afficher le modal
     // --------------------------
-    function showPrintModal(onConfirm, configMode = false, transitionId = null, transitionName = null) {
+    function showPrintModal(onConfirm, configMode = false, transitionId = null, transitionName = null, sourceButton = null) {
         // Récupérer les options des deux selects
         const printerOptions = getOptionsFromSelect('printer_equipe');
         const maskOptions = getOptionsFromSelect('mask_equipe');
@@ -1210,11 +1231,9 @@
 
         // Vérifier si on a au moins les imprimantes ET si l'iframe est disponible
         if (printerOptions.length === 0 || !iframeForMaskUpdate) {
-            sytoastWarning("Chargement des options d'impression...");
+            // Précharger silencieusement sans afficher de toast
             debugAndLoadSelectOptions(() => {
-                // Fermer le toast de chargement
-                sytoastClear();
-                showPrintModal(onConfirm, configMode, transitionId, transitionName);
+                showPrintModal(onConfirm, configMode, transitionId, transitionName, sourceButton);
             });
             return;
         }
@@ -1231,6 +1250,25 @@
         const modal = document.createElement('div');
         modal.className = 'symodal';
 
+        // Calculer l'origine de l'animation si on a un bouton source
+        if (sourceButton) {
+            const rect = sourceButton.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            // Définir la position de départ exacte du bouton
+            modal.classList.add('from-button');
+            modal.style.setProperty('--start-x', `${centerX}px`);
+            modal.style.setProperty('--start-y', `${centerY}px`);
+
+            console.log('🎯 Animation depuis le bouton:', {
+                x: centerX,
+                y: centerY,
+                rect: rect,
+                button: sourceButton
+            });
+        }
+
         // Récupérer les configurations existantes
         const printConfigs = getPrintConfigs();
 
@@ -1240,7 +1278,7 @@
                 <h2>🖨️ Impression d'étiquette</h2>
                 <button class="symodal-close" type="button">×</button>
             </div>
-            
+
             <div class="symodal-tabs">
                 <button class="symodal-tab ${!configMode ? 'active' : ''}" data-tab="print">Impression</button>
                 <button class="symodal-tab ${configMode ? 'active' : ''}" data-tab="config">Configuration (${Object.keys(printConfigs).length})</button>
@@ -1252,7 +1290,7 @@
                     <div class="symodal-field">
                         <label>Imprimante :</label>
                         <select class="symodal-select" id="modal-printer">
-                            ${printerOptions.map(opt => 
+                            ${printerOptions.map(opt =>
                                 `<option value="${opt.value}" ${(existingConfig && opt.value === existingConfig.printer) || (!existingConfig && opt.selected) ? 'selected' : ''}>${opt.text}</option>`
                             ).join('')}
                         </select>
@@ -1281,9 +1319,9 @@
                             Cliquez pour sélectionner un bouton de transition à configurer
                         </p>
                     </div>
-                    
+
                     <div class="symodal-config-list" id="config-list">
-                        ${Object.keys(printConfigs).length === 0 ? 
+                        ${Object.keys(printConfigs).length === 0 ?
                             '<div class="symodal-no-config">Aucune configuration enregistrée</div>' :
                             Object.values(printConfigs).map(config => {
                                 return `
@@ -1315,6 +1353,17 @@
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
 
+        // Si le modal vient d'un bouton, déclencher l'animation après l'ajout au DOM
+        if (sourceButton) {
+            // Forcer le reflow pour que les styles CSS soient appliqués
+            modal.offsetHeight;
+
+            // Déclencher l'animation en ajoutant la classe
+            requestAnimationFrame(() => {
+                modal.classList.add('animate');
+            });
+        }
+
         // Fonction pour fermer le modal
         const closeModal = () => {
             overlay.style.opacity = '0';
@@ -1341,14 +1390,14 @@
         // Gestion des onglets
         const tabs = modal.querySelectorAll('.symodal-tab');
         const tabContents = modal.querySelectorAll('.symodal-tab-content');
-        
+
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.getAttribute('data-tab');
-                
+
                 tabs.forEach(t => t.classList.remove('active'));
                 tabContents.forEach(c => c.classList.remove('active'));
-                
+
                 tab.classList.add('active');
                 const content = modal.querySelector(`[data-content="${tabName}"]`);
                 if (content) content.classList.add('active');
@@ -1364,7 +1413,7 @@
                     sytoastSuccess(`Bouton sélectionné: ${selectedName}`);
                     // Réouvrir le modal en mode configuration pour ce bouton
                     setTimeout(() => {
-                        showPrintModal(null, false, selectedId, selectedName);
+                        showPrintModal(null, false, selectedId, selectedName, null);
                     }, 100);
                 });
             });
@@ -1383,12 +1432,12 @@
 
                 if (action === 'edit') {
                     closeModal();
-                    showPrintModal(null, false, id, name);
+                    showPrintModal(null, false, id, name, btn);
                 } else if (action === 'delete') {
                     if (confirm(`Supprimer la configuration pour "${name}" ?`)) {
                         deletePrintConfig(id);
                         closeModal();
-                        showPrintModal(null, true);
+                        showPrintModal(null, true, null, null, null);
                         sytoastSuccess('Configuration supprimée !');
                     }
                 }
@@ -1406,18 +1455,18 @@
         printerSelect.addEventListener('change', async () => {
             const selectedPrinter = printerSelect.value;
             console.log('🔄 Changement d\'imprimante:', selectedPrinter);
-            
+
             // Désactiver le select et afficher le chargement
             maskSelect.disabled = true;
             maskSelect.innerHTML = '<option value="">Chargement...</option>';
             maskLoading.style.display = 'inline';
-            
+
             // Charger les masques
             const masks = await updateMaskOptions(selectedPrinter);
-            
+
             // Mettre à jour le select des masques
             if (masks.length > 0) {
-                maskSelect.innerHTML = masks.map(opt => 
+                maskSelect.innerHTML = masks.map(opt =>
                     `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.text}</option>`
                 ).join('');
                 maskSelect.disabled = false;
@@ -1425,7 +1474,7 @@
                 maskSelect.innerHTML = '<option value="">Aucun masque disponible</option>';
                 maskSelect.disabled = true;
             }
-            
+
             maskLoading.style.display = 'none';
         });
 
@@ -1437,12 +1486,12 @@
                 maskSelect.disabled = true;
                 maskSelect.innerHTML = '<option value="">Chargement...</option>';
                 maskLoading.style.display = 'inline';
-                
+
                 const masks = await updateMaskOptions(initialPrinter);
-                
+
                 if (masks.length > 0) {
                     // Si on a une config existante, pré-sélectionner le masque sauvegardé
-                    maskSelect.innerHTML = masks.map(opt => 
+                    maskSelect.innerHTML = masks.map(opt =>
                         `<option value="${opt.value}" ${(existingConfig && opt.value === existingConfig.mask) || (!existingConfig && opt.selected) ? 'selected' : ''}>${opt.text}</option>`
                     ).join('');
                     maskSelect.disabled = false;
@@ -1451,11 +1500,11 @@
                     maskSelect.innerHTML = '<option value="">Aucun masque disponible</option>';
                     maskSelect.disabled = true;
                 }
-                
+
                 maskLoading.style.display = 'none';
             }
         };
-        
+
         // Charger les masques après un court délai pour s'assurer que le modal est bien affiché
         setTimeout(loadInitialMasks, 100);
 
@@ -1464,17 +1513,17 @@
             saveConfigBtn.addEventListener('click', () => {
                 const selectedPrinter = printerSelect.value;
                 const selectedMask = maskSelect.value;
-                
+
                 if (!selectedPrinter) {
                     sytoastWarning('Veuillez sélectionner une imprimante');
                     return;
                 }
-                
+
                 if (savePrintConfig(transitionId, transitionName, selectedPrinter, selectedMask)) {
                     sytoastSuccess('Configuration sauvegardée !');
                     closeModal();
                     // Réouvrir le modal sur l'onglet configuration
-                    setTimeout(() => showPrintModal(null, true), 300);
+                    setTimeout(() => showPrintModal(null, true, null, null, null), 300);
                 } else {
                     sytoastError('Erreur lors de la sauvegarde');
                 }
@@ -1497,7 +1546,7 @@
     // --------------------------
     function imprimerEtiquette(printer, mask) {
         console.log('🖨️ Début impression avec:', { printer, mask });
-        
+
         const iframe = document.createElement("iframe");
         iframe.style.display = "none";
         iframe.src = urlImpression;
@@ -1507,69 +1556,69 @@
             try {
                 console.log('⏳ Attente du chargement de la page d\'impression...');
                 await delay(2000); // Augmenter le délai
-                
+
                 const doc = iframe.contentDocument || iframe.contentWindow.document;
-                
+
                 // Attendre que les selects soient disponibles
                 let attempts = 0;
                 const maxAttempts = 10;
-                
+
                 const waitForSelects = async () => {
                     const printerSelect = doc.querySelector('select[id="printer_equipe"]');
                     const maskSelect = doc.querySelector('select[id="mask_equipe"]');
-                    
+
                     console.log(`🔄 Tentative ${attempts + 1}/${maxAttempts} - Selects trouvés:`, {
                         printer: !!printerSelect,
                         mask: !!maskSelect,
                         printerOptions: printerSelect?.options.length || 0,
                         maskOptions: maskSelect?.options.length || 0
                     });
-                    
+
                     if (printerSelect && printerSelect.options.length > 1) {
                         return true;
                     }
-                    
+
                     if (attempts < maxAttempts) {
                         attempts++;
                         await delay(500);
                         return waitForSelects();
                     }
-                    
+
                     return false;
                 };
-                
+
                 const selectsReady = await waitForSelects();
-                
+
                 if (!selectsReady) {
                     sytoastError("Les sélections d'impression ne sont pas disponibles");
                     if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
                     return;
                 }
-                
+
                 // Appliquer les sélections
                 const printerSelect = doc.querySelector('select[id="printer_equipe"]');
                 const maskSelect = doc.querySelector('select[id="mask_equipe"]');
-                
+
                 if (printer && printerSelect) {
                     console.log('📝 Application imprimante:', printer);
                     printerSelect.value = printer;
-                    
+
                     // Déclencher l'événement change pour charger les masques
                     const changeEvent = new Event('change', { bubbles: true });
                     printerSelect.dispatchEvent(changeEvent);
-                    
+
                     // Attendre que les masques se chargent
                     await delay(1500);
                 }
-                
+
                 if (mask && maskSelect) {
                     console.log('📝 Application masque:', mask);
                     maskSelect.value = mask;
                 }
-                
+
                 // Attendre un peu avant de cliquer sur le bouton
                 await delay(500);
-                
+
                 const bouton = doc.getElementById("btnPrintEtiquette");
                 console.log('🔍 Bouton d\'impression trouvé:', !!bouton);
 
@@ -1577,7 +1626,7 @@
                     console.log('✅ Clic sur le bouton d\'impression');
                     bouton.click();
                     sytoastSuccess("Étiquette imprimée avec succès !");
-                    
+
                     // Nettoyer l'iframe après un délai
                     setTimeout(() => {
                         if (iframe.parentNode) {
@@ -1657,7 +1706,7 @@
         btn.onclick = () => {
             showPrintModal((printer, mask) => {
                 imprimerEtiquette(printer, mask);
-            });
+            }, false, null, null, btn);
         };
 
         container.appendChild(btn);
@@ -1669,28 +1718,28 @@
     function intercepterBoutonsTransition() {
         const printConfigs = getPrintConfigs();
         const configuredIds = Object.keys(printConfigs);
-        
+
         // Intercepter SEULEMENT les boutons qui ont une configuration
         configuredIds.forEach(transitionId => {
             const btn = document.querySelector(`button[collector-trans-id="${transitionId}"]`);
-            
+
             if (!btn) return;
-            
+
             // Éviter de rajouter plusieurs fois le listener
             if (btn.dataset.listener === "true") return;
             btn.dataset.listener = "true";
-            
+
             console.log(`🔗 Intercepter le bouton ${transitionId} avec config:`, printConfigs[transitionId]);
-            
+
             btn.addEventListener("click", function () {
                 setTimeout(() => {
                     const config = printConfigs[transitionId];
-                    
+
                     console.log(`✅ Configuration trouvée pour ${transitionId}:`, config);
-                    sytoastConfirm("Souhaitez-vous imprimer l'étiquette ?", 
+                    sytoastConfirm("Souhaitez-vous imprimer l'étiquette ?",
                         () => {
                             imprimerEtiquette(config.printer, config.mask);
-                        }, 
+                        },
                         () => {}
                     );
                 }, 100); // petit délai pour laisser l'action native se faire
@@ -1714,10 +1763,10 @@
     // Init au chargement
     createManualPrintButton();
     intercepterBoutonsTransition();
-    
-    // Charger les options au démarrage
-    console.log('🔄 Chargement initial des options d\'impression...');
+
+    // Précharger les options au démarrage (en arrière-plan, silencieux)
+    console.log('🔄 Préchargement des options d\'impression en arrière-plan...');
     debugAndLoadSelectOptions(() => {
-        console.log('✅ Options chargées avec succès !');
+        console.log('✅ Options préchargées avec succès ! Le modal sera instantané.');
     });
 })();
