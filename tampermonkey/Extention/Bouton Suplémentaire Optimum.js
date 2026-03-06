@@ -625,13 +625,19 @@
 
     // Fonction pour récupérer le matricule de l'utilisateur
     function getMatricule() {
-        // Méthode 0: Utiliser le matricule intercepté depuis les requêtes API (LE PLUS FIABLE)
+        // Méthode 0: Utiliser le matricule manuel si défini
+        if (manualMatricule && /^\d{7}$/.test(manualMatricule)) {
+            console.log('✅ Matricule manuel utilisé:', manualMatricule);
+            return manualMatricule;
+        }
+
+        // Méthode 1: Utiliser le matricule intercepté depuis les requêtes API (LE PLUS FIABLE)
         if (cachedMatricule) {
             console.log('✅ Matricule trouvé dans les requêtes interceptées:', cachedMatricule);
             return cachedMatricule;
         }
 
-        // Méthode 1: Chercher dans l'URL (le plus fiable pour Optimum)
+        // Méthode 2: Chercher dans l'URL (le plus fiable pour Optimum)
         const urlMatch = window.location.href.match(/matricule[=\/](\d{7})/);
         if (urlMatch) {
             console.log('✅ Matricule trouvé dans l\'URL:', urlMatch[1]);
@@ -735,6 +741,58 @@
     // Variable globale pour stocker le token intercepté
     let cachedToken = null;
     let cachedMatricule = null;
+    let manualMatricule = localStorage.getItem('optimum-manual-matricule') || null;
+
+    // Fonction pour éditer le matricule via le menu Tampermonkey
+    function editMatricule() {
+        const currentMatricule = manualMatricule || cachedMatricule || '';
+        const source = manualMatricule ? '(manuel)' : cachedMatricule ? '(auto-détecté)' : '(non défini)';
+        
+        const newMatricule = prompt(
+            `Matricule actuel: ${currentMatricule} ${source}\n\n` +
+            `Entrez le nouveau matricule (7 chiffres) ou laissez vide pour revenir à l'auto-détection:`,
+            manualMatricule || ''
+        );
+        
+        // Si l'utilisateur annule, ne rien faire
+        if (newMatricule === null) {
+            return;
+        }
+        
+        // Si le champ est vide, réactiver l'auto-détection
+        if (newMatricule.trim() === '') {
+            manualMatricule = null;
+            localStorage.removeItem('optimum-manual-matricule');
+            alert('✅ Auto-détection du matricule réactivée');
+            console.log('🔄 Retour à l\'auto-détection du matricule');
+            
+            // Recharger les soldes
+            executeApiRequests();
+            return;
+        }
+        
+        // Valider le format du matricule
+        const cleanMatricule = newMatricule.trim().replace(/\s/g, '');
+        if (!/^\d{7}$/.test(cleanMatricule)) {
+            alert('❌ Le matricule doit contenir exactement 7 chiffres');
+            return;
+        }
+        
+        // Enregistrer le nouveau matricule
+        manualMatricule = cleanMatricule;
+        localStorage.setItem('optimum-manual-matricule', cleanMatricule);
+        alert(`✅ Matricule ${cleanMatricule} enregistré avec succès !`);
+        console.log('✅ Matricule manuel sauvegardé:', cleanMatricule);
+        
+        // Recharger les soldes avec le nouveau matricule
+        executeApiRequests();
+    }
+
+    // Enregistrer la commande dans le menu Tampermonkey
+    if (typeof GM_registerMenuCommand !== 'undefined') {
+        GM_registerMenuCommand("✏️ Modifier le matricule", editMatricule);
+    }
+
 
     // Intercepter les requêtes fetch pour capturer le token ET le matricule
     const originalFetch = window.fetch;
