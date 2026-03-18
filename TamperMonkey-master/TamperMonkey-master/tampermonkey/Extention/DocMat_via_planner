@@ -1,0 +1,128 @@
+(function () {
+    'use strict';
+
+    const composantDocmatMap = new Map();
+
+    // 1. Hook sur fetch
+    const hookFetch = () => {
+        const originalFetch = window.fetch;
+        window.fetch = async (...args) => {
+            const response = await originalFetch(...args);
+
+            try {
+                const clone = response.clone();
+                const url = args[0];
+
+                if (typeof url === 'string' && url.includes('graph.microsoft.com') && url.includes('/planner/plans/') && url.includes('$expand=details')) {
+                    const json = await clone.json();
+                    processGraphResponse(json);
+                }
+            } catch (e) {
+                console.warn('Erreur lecture Graph :', e);
+            }
+
+            return response;
+        };
+    };
+
+    // 2. Traitement des données Graph
+    const processGraphResponse = (json) => {
+        if (!json?.value?.length) return;
+
+        json.value.forEach(task => {
+            const title = task.title || "";
+            const references = task?.details?.references || {};
+
+            const matchComposant = title.match(/\b\d{8}\b/); // ex: 08660980
+            if (!matchComposant) return;
+
+            const composant = matchComposant[0];
+
+            const docmatLinkKey = Object.keys(references).find(k => k.includes('docmat'));
+            if (!docmatLinkKey) return;
+
+            const decoded = decodeURIComponent(docmatLinkKey);
+            const matchDocmat = decoded.match(/\/search\/(\d{9})/);
+            if (!matchDocmat) return;
+
+            composantDocmatMap.set(composant, matchDocmat[1]);
+        });
+
+        insertButtons();
+    };
+
+    // 3. Ajout du bouton dans l'interface
+    const insertButtons = () => {
+        const rows = document.querySelectorAll('#basicPlanView .grid > div > div');
+
+        rows.forEach(row => {
+            if (row.querySelector('.btn-docmat-right')) return;
+
+            const collectorBtn = row.querySelector('.btn-repa-of');
+            if (!collectorBtn) return;
+
+            const text = row.innerText;
+            const match = text.match(/\b\d{8}\b/);
+            const composant = match ? match[0] : null;
+
+            const docmatId = composantDocmatMap.get(composant);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn-docmat-right';
+const img = document.createElement('img');
+img.src = 'https://docmat.sncf.fr/assets/images/logo-sncf.png';
+img.alt = 'SNCF';
+
+// 🔧 Définir la hauteur et/ou la largeur ici :
+img.style.height = '15px'; // ⬅️ Modifie la hauteur ici si besoin (ex: '20px')
+img.style.width = '30px'; // ⬅️ Décommente cette ligne si tu veux définir la largeur
+
+img.style.verticalAlign = 'middle';
+
+//img.style.marginRight = '3px'; // espace entre l’image et le texte
+
+
+btn.appendChild(img);
+/*const span = document.createElement('span');
+span.textContent = 'Docmat';
+span.style.verticalAlign = 'middle';
+span.style.fontSize = 'px';
+span.style.fontWeight = 'bold';
+
+
+btn.appendChild(span);*/
+
+
+
+            btn.title = docmatId ? `Ouvrir Docmat ${docmatId}` : 'Lien Docmat introuvable';
+            btn.style.marginLeft = '6px';
+            btn.style.border = '1px solid #444';
+            btn.style.borderRadius = '6px';
+            btn.style.padding = '2px 6px';
+            btn.style.backgroundColor = '#eeeeee';
+            btn.style.cursor = 'pointer';
+
+            btn.onclick = () => {
+                if (docmatId) {
+                    window.open(`https://docmat.sncf.fr/#/search/${docmatId}`, '_blank');
+                } else {
+                    alert("❌ Aucun lien Docmat trouvé pour ce composant.");
+                }
+            };
+
+            collectorBtn.parentNode.insertBefore(btn, collectorBtn.nextSibling);
+        });
+    };
+
+    // 4. Observation du DOM pour relancer insertButtons si nécessaire
+    const domObserver = new MutationObserver(() => {
+        insertButtons();
+    });
+
+    window.addEventListener('load', () => {
+        hookFetch();
+        setTimeout(() => {
+            domObserver.observe(document.body, { childList: true, subtree: true });
+        }, 1000);
+    });
+})();
