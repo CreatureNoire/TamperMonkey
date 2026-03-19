@@ -37,81 +37,16 @@
             fillPowerAppsInput("input[appmagic-control='TextInput7_4textbox']", nomModule);
             fillPowerAppsInput("input[appmagic-control='TextInput7_5textbox']", causeRebut);
             fillPowerAppsInput("input[appmagic-control='TextInput7textbox']", numOF);
-            
+
             // Remplir le lien CollectorPlus si disponible
             const collectorLinkInput = unsafeWindow.document.getElementById('collectorLink');
             if (collectorLinkInput && collectorLinkInput.value.trim()) {
                 fillPowerAppsInput("input[appmagic-control='TextInput7_6textbox']", collectorLinkInput.value.trim());
                 console.log('[DEBUG] Lien CollectorPlus rempli:', collectorLinkInput.value.trim());
             }
-            
-            // Contourner la validation d'image obligatoire
-            bypassImageValidation();
         } else {
             console.log('[DEBUG] Les variables sont vides, remplissage ignoré');
         }
-    }
-
-    function bypassImageValidation() {
-        console.log('[DEBUG] Tentative de contournement de la validation d\'image');
-        
-        // Simuler la présence d'une image en modifiant les éléments DOM
-        setTimeout(() => {
-            // Chercher le bouton d'envoi qui pourrait être bloqué
-            const sendButton = unsafeWindow.document.querySelector('div[data-appmagic-icon-name="Basel_Send"]');
-            if (sendButton) {
-                console.log('[DEBUG] Bouton d\'envoi trouvé, suppression des restrictions');
-                
-                // Supprimer les attributs qui pourraient bloquer l'envoi
-                const parentButton = sendButton.closest('.powerapps-icon');
-                if (parentButton) {
-                    parentButton.removeAttribute('aria-disabled');
-                    parentButton.style.pointerEvents = 'auto';
-                    parentButton.style.opacity = '1';
-                    console.log('[DEBUG] Restrictions du bouton d\'envoi supprimées');
-                }
-            }
-            
-            // Masquer le message "Image PRM :" si présent
-            const imageLabels = unsafeWindow.document.querySelectorAll('.appmagic-label-text');
-            imageLabels.forEach(label => {
-                if (label.textContent && label.textContent.includes('Image PRM')) {
-                    console.log('[DEBUG] Label "Image PRM" trouvé, masquage');
-                    const container = label.closest('.appmagic-group');
-                    if (container) {
-                        container.style.display = 'none';
-                        console.log('[DEBUG] Container d\'image masqué');
-                    }
-                }
-            });
-            
-            // Simuler qu'une image est présente en modifiant les classes
-            const addMediaButtons = unsafeWindow.document.querySelectorAll('.addmedia-no-media');
-            addMediaButtons.forEach(button => {
-                button.style.display = 'none';
-                console.log('[DEBUG] Bouton "ajouter image" masqué');
-            });
-            
-            const hasMediaButtons = unsafeWindow.document.querySelectorAll('.addmedia-has-media');
-            hasMediaButtons.forEach(button => {
-                button.style.display = 'block';
-                console.log('[DEBUG] État "image présente" activé');
-            });
-            
-            // Créer une image fictive si nécessaire
-            const imageContainers = unsafeWindow.document.querySelectorAll('.appmagic-image');
-            imageContainers.forEach(container => {
-                const img = container.querySelector('img');
-                if (img && (!img.src || img.src.includes('blob:'))) {
-                    // Créer une image 1x1 pixel transparente
-                    const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                    img.src = transparentPixel;
-                    img.style.visibility = 'visible';
-                    console.log('[DEBUG] Image fictive créée');
-                }
-            });
-            
-        }, 500);
     }
 
     // Suppression du remplissage automatique au chargement et via MutationObserver
@@ -298,9 +233,6 @@
                         <button id="updateValues" class="submit-btn" data-text="Mettre à jour">
                             <span class="btn-text">Mettre à jour</span>
                         </button>
-                        <button id="bypassImage" class="submit-btn" data-text="Contourner Image">
-                            <span class="btn-text">Contourner Image</span>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -368,12 +300,6 @@
             updateConstants(newNumSer, newSymbole, newNomModule, newCauseRebut, newNumOF);
         });
 
-        // Bypass image validation button
-        unsafeWindow.document.getElementById('bypassImage').addEventListener('click', () => {
-            console.log('[DEBUG] Bouton Contourner Image cliqué');
-            bypassImageValidation();
-        });
-
         // Collector fetch button
         const input = unsafeWindow.document.getElementById('collectorLink');
         const button = unsafeWindow.document.getElementById('fetchData');
@@ -394,7 +320,7 @@
                     const doc = parser.parseFromString(resp.responseText, 'text/html');
 
                     console.log('[DEBUG] Début extraction Info Agent');
-                    
+
                     let newNumSer = "";
                     let newSymbole = "";
                     let newNomModule = "";
@@ -402,14 +328,14 @@
                     let newNumOF = "";
                     const allRows = doc.querySelectorAll('div.row');
                     console.log('[DEBUG] Nombre de div.row trouvées:', allRows.length);
-                    
+
                     // Extraction du symbole et nom de module depuis div.col-xs-7.text-center.panel-title
                     const symboleDivs = doc.querySelectorAll('div.col-xs-7.text-center.panel-title');
                     console.log('[DEBUG] Nombre de div.col-xs-7.text-center.panel-title trouvées:', symboleDivs.length);
                     symboleDivs.forEach((div, idx) => {
                         const textContent = div.textContent.trim();
                         console.log(`[DEBUG] Contenu div.col-xs-7.text-center.panel-title ${idx}:`, textContent);
-                        
+
                         // Cherche le pattern: nombre à 8 chiffres - nom du module
                         const matchSymboleEtNom = textContent.match(/^(\d{8})\s*-\s*(.+?)$/);
                         if (matchSymboleEtNom && matchSymboleEtNom[1] && matchSymboleEtNom[2]) {
@@ -418,7 +344,7 @@
                             console.log(`[DEBUG] Extraction symbole et nom depuis div.col-xs-7.text-center.panel-title ${idx}:`, { symbole: newSymbole, nomModule: newNomModule });
                         } else {
                             console.log(`[DEBUG] Pattern non trouvé dans div ${idx}, tentative de recherche alternative`);
-                            
+
                             // Alternative: chercher dans les rows enfants
                             const rows = div.querySelectorAll('div.row');
                             rows.forEach((row, rowIdx) => {
@@ -433,7 +359,7 @@
                             });
                         }
                     });
-                    
+
                     // Extraction du n° OF
                     allRows.forEach((row, idx) => {
                         // Cherche label ou texte contenant n° OF
@@ -498,7 +424,7 @@
                         if (match && match[1]) {
                             let causeRebutText = match[1].trim();
                             console.log('[DEBUG] Texte Info Agent complet:', causeRebutText);
-                            
+
                             // Regex pour extraire SEULEMENT ce qui vient après "XX -- DD/MM/YYYY -- "
                             const pattern = /([A-Z]{2})\s*--\s*(\d{2}\/\d{2}\/\d{4})\s*--\s*(.+)/;
                             const matchPattern = causeRebutText.match(pattern);
