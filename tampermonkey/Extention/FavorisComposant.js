@@ -1,4 +1,4 @@
-    (function() {
+(function() {
         'use strict';
 
         // Détection du contexte : page principale ou iframe
@@ -592,73 +592,610 @@
         let folderMode = 'normal'; // 'normal', 'delete', 'edit'
         let selectedFolderForEdit = null;
 
-        function buildFavorisExportPayload() {
-            return {
-                version: 1,
-                exportedAt: new Date().toISOString(),
-                favoris: Array.isArray(favoris) ? favoris : [],
-                dossiers: Array.isArray(dossiers) ? dossiers : []
-            };
+        function downloadJsonFile(data, fileName) {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
         }
 
-        function exportFavorisJson() {
-            try {
-                const payload = buildFavorisExportPayload();
-                const json = JSON.stringify(payload, null, 2);
+        function openJsonFilePicker(onLoad) {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json,application/json';
+            fileInput.style.display = 'none';
 
-                if (typeof copyToClipboard === 'function') {
-                    copyToClipboard(json);
-                }
-
-                const confirmPrompt = window.prompt('📤 Export JSON (copiez le contenu si besoin)', json);
-                if (confirmPrompt === null) {
-                    showNotification('✅ Export JSON prêt (copié si possible)');
-                }
-            } catch (error) {
-                console.error('❌ Erreur export JSON:', error);
-                showNotification('❌ Erreur lors de l\'export JSON', true);
-            }
-        }
-
-        function importFavorisJson() {
-            const input = window.prompt('📥 Collez le JSON des favoris à importer');
-            if (!input) {
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(input);
-                const importedFavoris = Array.isArray(parsed?.favoris) ? parsed.favoris : (Array.isArray(parsed) ? parsed : null);
-                const importedDossiers = Array.isArray(parsed?.dossiers) ? parsed.dossiers : [];
-
-                if (!importedFavoris) {
-                    showNotification('❌ JSON invalide: favoris manquants', true);
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) {
+                    fileInput.remove();
                     return;
                 }
 
-                favoris = importedFavoris;
-                dossiers = importedDossiers;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const data = JSON.parse(reader.result);
+                        onLoad(data);
+                    } catch (error) {
+                        console.error('❌ JSON invalide:', error);
+                        alert('❌ Impossible de lire ce JSON.');
+                    }
+                };
 
-                GM_setValue('favoris_gallery', favoris);
-                GM_setValue('dossiers_gallery', dossiers);
+                reader.onerror = () => {
+                    console.error('❌ Erreur lecture fichier JSON:', reader.error);
+                    alert('❌ Impossible de lire le fichier sélectionné.');
+                };
 
-                if (typeof displayFavoris === 'function') {
-                    displayFavoris();
+                reader.readAsText(file, 'utf-8');
+                fileInput.remove();
+            });
+
+            document.body.appendChild(fileInput);
+            fileInput.click();
+        }
+
+        function exportFavorisJson() {
+            const payload = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                favoris: GM_getValue('favoris_gallery', []),
+                dossiers: GM_getValue('dossiers_gallery', [])
+            };
+
+            const dateStamp = payload.exportedAt.slice(0, 10);
+            downloadJsonFile(payload, `powerapps-favoris-${dateStamp}.json`);
+            showNotification('✅ Export Favoris terminé.');
+        }
+
+        function importFavorisJson() {
+            openJsonFilePicker((data) => {
+                if (!data || !Array.isArray(data.favoris)) {
+                    alert('❌ JSON Favoris invalide.');
+                    return;
                 }
-                if (typeof displayFolders === 'function') {
-                    displayFolders();
-                }
 
-                showNotification('✅ Import JSON terminé');
-            } catch (error) {
-                console.error('❌ Erreur import JSON:', error);
-                showNotification('❌ JSON invalide, import annulé', true);
+                const confirmOverwrite = confirm('Importer Favoris va remplacer votre configuration actuelle. Continuer ?');
+                if (!confirmOverwrite) return;
+
+                GM_setValue('favoris_gallery', data.favoris || []);
+                GM_setValue('dossiers_gallery', data.dossiers || []);
+
+                favoris = GM_getValue('favoris_gallery', []);
+                dossiers = GM_getValue('dossiers_gallery', []);
+                displayFavoris();
+                showNotification('✅ Import Favoris terminé.');
+            });
+        }
+
+        if (!isInIframe && typeof GM_registerMenuCommand === 'function') {
+            GM_registerMenuCommand('Configuration Export/Import', openAutoExportConfig);
+        }
+
+        // ========================================
+        // AUTO-EXPORT LOCAL AUTOMATIQUE TOUTES LES 3H
+        // ========================================
+
+        // Récupérer la config d'auto-export sauvegardée
+        let autoExportFileName = GM_getValue('autoExportFileName', 'ComposantExport');
+        let autoExportEnabled = GM_getValue('autoExportEnabled', true);
+        let autoExportIntervalId = null;
+        let lastAutoExportTime = GM_getValue('lastAutoExportTime', null);
+        let autoExportDirHandle = null; // Handle du dossier choisi (File System Access API)
+        let autoExportDirName = GM_getValue('autoExportDirName', ''); // Nom du dossier pour affichage
+
+        // Durée entre chaque auto-export : 3 heures en millisecondes
+        const AUTO_EXPORT_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3H
+
+        // Fonction d'auto-export : sauve le fichier JSON directement dans le dossier choisi ou télécharge
+        function performAutoExport() {
+            if (!autoExportEnabled) return;
+
+            const payload = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                favoris: GM_getValue('favoris_gallery', []),
+                dossiers: GM_getValue('dossiers_gallery', [])
+            };
+
+            const dateStamp = new Date().toISOString().slice(0, 10);
+            const timeStamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+            const fileName = `${autoExportFileName}_${dateStamp}_${timeStamp}.json`;
+            const jsonData = JSON.stringify(payload, null, 2);
+
+            // Si on a un handle de dossier (File System Access API), écrire directement dedans
+            if (autoExportDirHandle) {
+                autoExportDirHandle.getFileHandle(fileName, { create: true })
+                    .then(fileHandle => fileHandle.createWritable())
+                    .then(writable => {
+                        return writable.write(jsonData).then(() => writable.close());
+                    })
+                    .then(() => {
+                        lastAutoExportTime = new Date().toISOString();
+                        GM_setValue('lastAutoExportTime', lastAutoExportTime);
+                        console.log('✅ Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
+                        showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
+                    })
+                    .catch(err => {
+                        console.warn('⚠️ Écriture directe échouée, fallback téléchargement:', err);
+                        downloadJsonFile(payload, fileName);
+                        lastAutoExportTime = new Date().toISOString();
+                        GM_setValue('lastAutoExportTime', lastAutoExportTime);
+                        showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName, lastAutoExportTime);
+                    });
+            } else {
+                downloadJsonFile(payload, fileName);
+                lastAutoExportTime = new Date().toISOString();
+                GM_setValue('lastAutoExportTime', lastAutoExportTime);
+                console.log('✅ Auto-export téléchargé → ' + fileName);
+                showExportPanel('✅ Export réussi !', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
             }
         }
 
-        if (typeof GM_registerMenuCommand === 'function') {
-            GM_registerMenuCommand('📤 Exporter favoris (JSON)', exportFavorisJson);
-            GM_registerMenuCommand('📥 Importer favoris (JSON)', importFavorisJson);
+        // Panel persistant après un export (reste affiché jusqu'au clic sur la croix)
+        function showExportPanel(title, detail, timestamp) {
+            // Supprimer un panel existant s'il y en a un
+            const existing = document.getElementById('export-success-panel');
+            if (existing) existing.remove();
+
+            const timeStr = new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = new Date(timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            const panel = document.createElement('div');
+            panel.id = 'export-success-panel';
+            panel.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 100001;
+                background: linear-gradient(135deg, #1a2a1a, #1e2e1e);
+                color: #e0e0e0;
+                border-radius: 14px;
+                padding: 16px 20px;
+                min-width: 320px;
+                max-width: 420px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(74, 222, 128, 0.2);
+                border: 1px solid rgba(74, 222, 128, 0.3);
+                font-family: 'Segoe UI', sans-serif;
+                animation: slideInExportPanel 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            `;
+
+            panel.innerHTML = `
+                <style>
+                    @keyframes slideInExportPanel {
+                        from { transform: translateX(100px); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOutExportPanel {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100px); opacity: 0; }
+                    }
+                    #export-success-panel .panel-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+                    #export-success-panel .panel-title {
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: #4ade80;
+                    }
+                    #export-success-panel .panel-close {
+                        background: none;
+                        border: none;
+                        color: #888;
+                        font-size: 20px;
+                        cursor: pointer;
+                        padding: 2px 6px;
+                        border-radius: 6px;
+                        transition: all 0.2s;
+                        line-height: 1;
+                    }
+                    #export-success-panel .panel-close:hover {
+                        background: rgba(255,255,255,0.1);
+                        color: #fff;
+                    }
+                    #export-success-panel .panel-detail {
+                        font-size: 13px;
+                        color: #b0d0b0;
+                        word-break: break-all;
+                    }
+                    #export-success-panel .panel-time {
+                        font-size: 11px;
+                        color: #667;
+                        margin-top: 2px;
+                    }
+                    #export-success-panel .panel-bar {
+                        height: 3px;
+                        background: rgba(74, 222, 128, 0.3);
+                        border-radius: 3px;
+                        margin-top: 6px;
+                        overflow: hidden;
+                    }
+                    #export-success-panel .panel-bar-fill {
+                        height: 100%;
+                        background: #4ade80;
+                        border-radius: 3px;
+                        width: 100%;
+                    }
+                </style>
+                <div class="panel-header">
+                    <span class="panel-title">${title}</span>
+                    <button class="panel-close" id="export-panel-close-btn" title="Fermer">✕</button>
+                </div>
+                <div class="panel-detail">${detail}</div>
+                <div class="panel-time">🕐 ${dateStr} à ${timeStr}</div>
+                <div class="panel-bar"><div class="panel-bar-fill"></div></div>
+            `;
+
+            document.body.appendChild(panel);
+
+            // Bouton fermer
+            document.getElementById('export-panel-close-btn').addEventListener('click', () => {
+                panel.style.animation = 'slideOutExportPanel 0.25s ease forwards';
+                setTimeout(() => panel.remove(), 250);
+            });
+        }
+
+        // Démarrer/Arrêter le timer d'auto-export
+        function startAutoExportTimer() {
+            if (autoExportIntervalId) {
+                clearInterval(autoExportIntervalId);
+            }
+            if (autoExportEnabled) {
+                // Premier export immédiat si le dernier date de plus de 3H
+                if (lastAutoExportTime) {
+                    const elapsed = Date.now() - new Date(lastAutoExportTime).getTime();
+                    if (elapsed >= AUTO_EXPORT_INTERVAL_MS) {
+                        performAutoExport();
+                    }
+                }
+                autoExportIntervalId = setInterval(performAutoExport, AUTO_EXPORT_INTERVAL_MS);
+                console.log('⏱️ Auto-export local activé : toutes les 3 heures → fichier:', autoExportFileName);
+            }
+        }
+
+        function stopAutoExportTimer() {
+            if (autoExportIntervalId) {
+                clearInterval(autoExportIntervalId);
+                autoExportIntervalId = null;
+            }
+        }
+
+        // Modal de configuration auto-export (CTRL+ALT+R)
+        function openAutoExportConfig() {
+            // Supprimer l'ancien modal s'il existe
+            const old = document.getElementById('modal-auto-export-config');
+            if (old) old.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'modal-auto-export-config';
+            modal.style.cssText = `
+                position: fixed;
+                inset: 0;
+                z-index: 100000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(4px);
+                animation: fadeInAutoExport 0.2s ease;
+            `;
+
+            modal.innerHTML = `
+                <style>
+                    @keyframes fadeInAutoExport { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideUpAutoExport { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                    #auto-export-config-box {
+                        background: #1e1e1e;
+                        border-radius: 16px;
+                        padding: 28px 32px;
+                        min-width: 440px;
+                        max-width: 520px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        animation: slideUpAutoExport 0.3s ease;
+                        font-family: 'Segoe UI', sans-serif;
+                        color: #e0e0e0;
+                    }
+                    #auto-export-config-box h2 {
+                        margin: 0 0 8px 0;
+                        font-size: 20px;
+                        color: #fff;
+                    }
+                    #auto-export-config-box .subtitle {
+                        font-size: 13px;
+                        color: #888;
+                        margin-bottom: 20px;
+                    }
+                    #auto-export-config-box label.field-label {
+                        display: block;
+                        font-size: 13px;
+                        margin-bottom: 6px;
+                        color: #bbb;
+                        font-weight: 600;
+                    }
+                    #auto-export-filename-input {
+                        width: 100%;
+                        box-sizing: border-box;
+                        padding: 10px 14px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        background: #2a2a2a;
+                        color: #fff;
+                        font-size: 14px;
+                        outline: none;
+                        transition: border-color 0.2s;
+                        margin-bottom: 6px;
+                    }
+                    #auto-export-filename-input:focus {
+                        border-color: #667eea;
+                    }
+                    #auto-export-filename-input::placeholder {
+                        color: #666;
+                    }
+                    .auto-export-filename-preview {
+                        font-size: 11px;
+                        color: #777;
+                        margin-bottom: 18px;
+                        font-style: italic;
+                    }
+                    .auto-export-toggle-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 20px;
+                    }
+                    .auto-export-toggle-label {
+                        font-size: 14px;
+                        color: #ccc;
+                    }
+                    .auto-export-toggle {
+                        position: relative;
+                        width: 48px;
+                        height: 26px;
+                        cursor: pointer;
+                    }
+                    .auto-export-toggle input {
+                        opacity: 0;
+                        width: 0;
+                        height: 0;
+                    }
+                    .auto-export-toggle .slider {
+                        position: absolute;
+                        inset: 0;
+                        background: #444;
+                        border-radius: 26px;
+                        transition: background 0.3s;
+                    }
+                    .auto-export-toggle .slider:before {
+                        content: '';
+                        position: absolute;
+                        width: 20px;
+                        height: 20px;
+                        background: #fff;
+                        border-radius: 50%;
+                        left: 3px;
+                        top: 3px;
+                        transition: transform 0.3s;
+                    }
+                    .auto-export-toggle input:checked + .slider {
+                        background: #667eea;
+                    }
+                    .auto-export-toggle input:checked + .slider:before {
+                        transform: translateX(22px);
+                    }
+                    .auto-export-btn-row {
+                        display: flex;
+                        gap: 10px;
+                        justify-content: space-between;
+                    }
+                    .auto-export-btn {
+                        padding: 10px 22px;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .auto-export-btn-save {
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: #fff;
+                    }
+                    .auto-export-btn-save:hover {
+                        filter: brightness(1.15);
+                        transform: translateY(-1px);
+                    }
+                    .auto-export-btn-cancel {
+                        background: #333;
+                        color: #ccc;
+                    }
+                    .auto-export-btn-cancel:hover {
+                        background: #444;
+                    }
+                    .auto-export-info {
+                        background: rgba(102, 126, 234, 0.1);
+                        border: 1px solid rgba(102, 126, 234, 0.2);
+                        border-radius: 8px;
+                        padding: 10px 14px;
+                        font-size: 12px;
+                        color: #a0b0e0;
+                        margin-bottom: 18px;
+                        line-height: 1.5;
+                    }
+                    .auto-export-download-tip {
+                        background: rgba(74, 222, 128, 0.08);
+                        border: 1px solid rgba(74, 222, 128, 0.2);
+                        border-radius: 8px;
+                        padding: 10px 14px;
+                        font-size: 12px;
+                        color: #7dd3a0;
+                        margin-bottom: 18px;
+                        line-height: 1.5;
+                    }
+                </style>
+                <div id="auto-export-config-box">
+                    <h2>💾 Configuration Auto-Export Local</h2>
+                    <p class="subtitle">Exporte automatiquement vos favoris sur votre PC toutes les 3 heures</p>
+
+                    <div class="auto-export-info">
+                        💡 Choisissez un <b>dossier de destination</b> et le fichier JSON y sera sauvegardé directement.<br>
+                        Un nouveau fichier sera créé automatiquement toutes les <b>3 heures</b>.<br>
+                        Raccourci : <b>Ctrl + Alt + R</b> pour rouvrir cette fenêtre.
+                    </div>
+
+                    <label class="field-label">📂 Dossier de destination</label>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                        <div id="auto-export-path-display" style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#2a2a2a;color:#fff;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px;">${autoExportDirName ? '📁 ' + autoExportDirName : '<span style=&quot;color:#666;&quot;>Aucun dossier sélectionné</span>'}</div>
+                        <button id="auto-export-btn-browse" style="padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#3a3a5c;color:#c0c0ff;transition:all 0.2s;white-space:nowrap;">📁 Parcourir…</button>
+                    </div>
+                    <div id="auto-export-path-hint" style="font-size:11px;color:#666;margin-bottom:18px;font-style:italic;">
+                        ${autoExportDirName ? '✅ Les fichiers seront enregistrés dans ce dossier' : 'Cliquez sur Parcourir pour choisir le dossier, sinon → Téléchargements'}
+                    </div>
+
+                    <label class="field-label" for="auto-export-filename-input">📄 Nom du fichier d\'export</label>
+                    <input type="text" id="auto-export-filename-input" placeholder="ComposantExport" value="${autoExportFileName.replace(/"/g, '&quot;')}" />
+                    <div class="auto-export-filename-preview" id="auto-export-filename-preview">
+                        Aperçu : ${autoExportFileName}_2026-03-19_14h30.json
+                    </div>
+
+                    <div class="auto-export-toggle-row">
+                        <span class="auto-export-toggle-label">⏱️ Activer l'auto-export toutes les 3H</span>
+                        <label class="auto-export-toggle">
+                            <input type="checkbox" id="auto-export-enabled-toggle" ${autoExportEnabled ? 'checked' : ''} />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0 16px 0;padding-top:16px;">
+                        <label class="field-label" style="margin-bottom:10px;">📦 Import / Export Manuel</label>
+                        <div style="display:flex;gap:10px;margin-bottom:16px;">
+                            <button class="auto-export-btn" id="auto-export-btn-manual-export" style="flex:1;background:#1e3a5f;color:#7db8f0;">📤 Exporter JSON</button>
+                            <button class="auto-export-btn" id="auto-export-btn-manual-import" style="flex:1;background:#3a1e5f;color:#c0a0f0;">📥 Importer JSON</button>
+                        </div>
+                    </div>
+
+                    <div class="auto-export-btn-row">
+                        <button class="auto-export-btn auto-export-btn-cancel" id="auto-export-btn-cancel">Annuler</button>
+                        <button class="auto-export-btn auto-export-btn-save" id="auto-export-btn-save">💾 Sauvegarder</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Bouton Parcourir - ouvre le sélecteur de dossier natif (File System Access API)
+            document.getElementById('auto-export-btn-browse').addEventListener('click', async () => {
+                if (typeof window.showDirectoryPicker === 'function') {
+                    try {
+                        autoExportDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                        autoExportDirName = autoExportDirHandle.name;
+                        GM_setValue('autoExportDirName', autoExportDirName);
+                        document.getElementById('auto-export-path-display').textContent = '📁 ' + autoExportDirName;
+                        document.getElementById('auto-export-path-hint').textContent = '✅ Les fichiers seront enregistrés dans ce dossier';
+                        document.getElementById('auto-export-path-hint').style.color = '#4ade80';
+                        showNotification('📂 Dossier sélectionné : ' + autoExportDirName);
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('❌ Erreur sélection dossier:', err);
+                            showNotification('❌ Erreur lors de la sélection du dossier', true);
+                        }
+                    }
+                } else {
+                    showNotification('⚠️ Votre navigateur ne supporte pas le choix de dossier. Les fichiers iront dans vos Téléchargements.', true);
+                }
+            });
+
+            // Preview dynamique du nom de fichier
+            const filenameInput = document.getElementById('auto-export-filename-input');
+            const filenamePreview = document.getElementById('auto-export-filename-preview');
+            filenameInput.addEventListener('input', () => {
+                const name = filenameInput.value.trim() || 'ComposantExport';
+                filenamePreview.textContent = 'Aperçu : ' + name + '_2026-03-19_14h30.json';
+            });
+
+            // Fermer en cliquant en dehors
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+
+            // Bouton Annuler
+            document.getElementById('auto-export-btn-cancel').addEventListener('click', () => {
+                modal.remove();
+            });
+
+            // Bouton Sauvegarder
+            document.getElementById('auto-export-btn-save').addEventListener('click', () => {
+                const nameInput = document.getElementById('auto-export-filename-input').value.trim();
+                const enabledToggle = document.getElementById('auto-export-enabled-toggle').checked;
+
+                autoExportFileName = nameInput || 'ComposantExport';
+                autoExportEnabled = enabledToggle;
+                GM_setValue('autoExportFileName', autoExportFileName);
+                GM_setValue('autoExportEnabled', autoExportEnabled);
+                GM_setValue('autoExportDirName', autoExportDirName);
+
+                if (autoExportEnabled) {
+                    startAutoExportTimer();
+                    const dest = autoExportDirName ? '📂 ' + autoExportDirName : '📥 Téléchargements';
+                    showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain dans 3h.');
+                } else {
+                    stopAutoExportTimer();
+                    showNotification('⏸️ Auto-export désactivé.');
+                }
+
+                modal.remove();
+            });
+
+            // Bouton Export Manuel (JSON classique)
+            document.getElementById('auto-export-btn-manual-export').addEventListener('click', () => {
+                exportFavorisJson();
+                modal.remove();
+            });
+
+            // Bouton Import Manuel (JSON classique)
+            document.getElementById('auto-export-btn-manual-import').addEventListener('click', () => {
+                modal.remove();
+                importFavorisJson();
+            });
+
+            // Fermer avec Escape
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
+
+        // Raccourci clavier CTRL + ALT + R
+        if (!isInIframe) {
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openAutoExportConfig();
+                }
+            });
+
+            // Démarrer le timer si activé
+            setTimeout(() => {
+                if (autoExportEnabled) {
+                    startAutoExportTimer();
+                }
+            }, 2000);
         }
 
         // Styles CSS pour le modal et les boutons - Interface moderne from Uiverse.io
@@ -3434,11 +3971,51 @@
 
         // Fonction pour copier dans le presse-papiers
         function copyToClipboard(text) {
+            const fallbackCopy = () => {
+                try {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.setAttribute('readonly', '');
+                    textarea.style.position = 'fixed';
+                    textarea.style.top = '-9999px';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    const success = document.execCommand('copy');
+                    textarea.remove();
+
+                    if (success) {
+                        showNotification('✅ Copié dans le presse-papiers !');
+                    } else {
+                        showNotification('❌ Erreur lors de la copie', true);
+                    }
+                } catch (err) {
+                    showNotification('❌ Erreur lors de la copie', true);
+                    console.error('Erreur de copie (fallback):', err);
+                }
+            };
+
+            if (typeof GM_setClipboard === 'function') {
+                try {
+                    GM_setClipboard(text, { type: 'text', mimetype: 'text/plain' });
+                    showNotification('✅ Copié dans le presse-papiers !');
+                    return;
+                } catch (err) {
+                    console.warn('⚠️ GM_setClipboard a échoué:', err);
+                }
+            }
+
+            const hasFocus = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
+            if (!hasFocus || !navigator.clipboard) {
+                fallbackCopy();
+                return;
+            }
+
             navigator.clipboard.writeText(text).then(() => {
                 showNotification('✅ Copié dans le presse-papiers !');
             }).catch(err => {
-                showNotification('❌ Erreur lors de la copie', true);
-                console.error('Erreur de copie:', err);
+                console.warn('⚠️ navigator.clipboard a échoué:', err);
+                fallbackCopy();
             });
         }
 
