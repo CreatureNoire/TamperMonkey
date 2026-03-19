@@ -1350,16 +1350,16 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             modal.querySelector('.dialog-btn-primary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1385,22 +1385,22 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             modal.querySelector('.dialog-btn-danger').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(true);
             });
-
+            
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(false);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1426,35 +1426,35 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
             modal.classList.add('show');
-
+            
             const input = modal.querySelector('.dialog-input');
             input.focus();
             input.select();
-
+            
             const validate = () => {
                 const value = input.value;
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(value || null);
             };
-
+            
             modal.querySelector('.dialog-btn-primary').addEventListener('click', validate);
-
+            
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     validate();
                 }
             });
-
+            
             modal.querySelector('.dialog-btn-secondary').addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => modal.remove(), 300);
                 resolve(null);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -1471,7 +1471,7 @@
             // Vérifier si GM_getValue existe (Tampermonkey)
             if (typeof GM_getValue !== 'undefined') {
                 console.log('🔄 Début de la migration des données Tampermonkey vers localStorage...');
-
+                
                 // Migrer les favoris
                 if (!localStorage.getItem('docmat_favorites')) {
                     const oldFavorites = GM_getValue('docmat_favorites', '[]');
@@ -1480,7 +1480,7 @@
                         console.log('✅ Favoris migrés:', JSON.parse(oldFavorites).length, 'éléments');
                     }
                 }
-
+                
                 // Migrer les termes personnalisés
                 if (!localStorage.getItem('docmat_custom_terms')) {
                     const oldTerms = GM_getValue('docmat_custom_terms', '[]');
@@ -1489,7 +1489,7 @@
                         console.log('✅ Termes personnalisés migrés:', JSON.parse(oldTerms).length, 'éléments');
                     }
                 }
-
+                
                 // Migrer les dossiers
                 if (!localStorage.getItem('docmat_folders')) {
                     const oldFolders = GM_getValue('docmat_folders', '[]');
@@ -1498,7 +1498,7 @@
                         console.log('✅ Dossiers migrés:', JSON.parse(oldFolders).length, 'éléments');
                     }
                 }
-
+                
                 // Migrer les catégories
                 if (!localStorage.getItem('docmat_categories')) {
                     const defaultCategories = JSON.stringify([
@@ -1514,7 +1514,7 @@
                         console.log('✅ Catégories migrées');
                     }
                 }
-
+                
                 console.log('✅ Migration terminée avec succès !');
             }
         } catch (e) {
@@ -1677,7 +1677,7 @@
     function getCategoryForTitle(title) {
         const categories = getDocumentCategories();
         const titleLower = title.toLowerCase();
-
+        
         // Chercher une catégorie dont le nom est contenu dans le titre
         for (const category of categories) {
             if (titleLower.includes(category.name.toLowerCase())) {
@@ -1708,9 +1708,9 @@
 
     function createFolder(name, parentId = null) {
         const folders = getFolders();
-
+        
         // Vérifier si un dossier avec le même nom existe déjà au même niveau
-        const exists = folders.some(folder =>
+        const exists = folders.some(folder => 
             folder.name === name && folder.parentId === parentId
         );
 
@@ -1730,7 +1730,7 @@
 
     function deleteFolder(folderId) {
         let folders = getFolders();
-
+        
         // Récupérer tous les sous-dossiers récursivement
         const getAllSubfolders = (parentId) => {
             const subfolders = folders.filter(f => f.parentId === parentId);
@@ -1740,10 +1740,10 @@
             });
             return allSubs;
         };
-
+        
         const subfoldersToDelete = getAllSubfolders(folderId);
         const allFolderIds = [folderId, ...subfoldersToDelete.map(f => f.id)];
-
+        
         // Supprimer tous les dossiers et sous-dossiers
         folders = folders.filter(folder => !allFolderIds.includes(folder.id));
         saveFolders(folders);
@@ -1851,9 +1851,517 @@
         }
     }
 
-    // Fonctions d'import/export JSON
-    const AUTO_EXPORT_DAYS = 7;
-    const AUTO_EXPORT_KEY = 'docmat_last_auto_export';
+    // ========================================
+    // AUTO-EXPORT LOCAL AUTOMATIQUE TOUTES LES 3H
+    // ========================================
+
+    // Config auto-export (persistée dans localStorage)
+    let autoExportFileName = localStorage.getItem('docmat_autoExportFileName') || 'DocMatExport';
+    let autoExportEnabled = localStorage.getItem('docmat_autoExportEnabled') !== 'false'; // true par défaut
+    let autoExportIntervalId = null;
+    let lastAutoExportTime = localStorage.getItem('docmat_lastAutoExportTime') || null;
+    let autoExportDirHandle = null;
+    let autoExportDirName = localStorage.getItem('docmat_autoExportDirName') || '';
+
+    const AUTO_EXPORT_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3H
+
+    function downloadJsonFileAuto(data, fileName) {
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function performAutoExport() {
+        if (!autoExportEnabled) return;
+
+        const payload = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            favorites: getFavorites(),
+            folders: getFolders(),
+            categories: getDocumentCategories(),
+            customTerms: getCustomTerms()
+        };
+
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        const timeStamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+        const fileName = `${autoExportFileName}_${dateStamp}_${timeStamp}.json`;
+        const jsonData = JSON.stringify(payload, null, 2);
+
+        if (autoExportDirHandle) {
+            autoExportDirHandle.getFileHandle(fileName, { create: true })
+                .then(fileHandle => fileHandle.createWritable())
+                .then(writable => {
+                    return writable.write(jsonData).then(() => writable.close());
+                })
+                .then(() => {
+                    lastAutoExportTime = new Date().toISOString();
+                    localStorage.setItem('docmat_lastAutoExportTime', lastAutoExportTime);
+                    console.log('✅ Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
+                    showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
+                })
+                .catch(err => {
+                    console.warn('⚠️ Écriture directe échouée, fallback téléchargement:', err);
+                    downloadJsonFileAuto(payload, fileName);
+                    lastAutoExportTime = new Date().toISOString();
+                    localStorage.setItem('docmat_lastAutoExportTime', lastAutoExportTime);
+                    showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName, lastAutoExportTime);
+                });
+        } else {
+            downloadJsonFileAuto(payload, fileName);
+            lastAutoExportTime = new Date().toISOString();
+            localStorage.setItem('docmat_lastAutoExportTime', lastAutoExportTime);
+            console.log('✅ Auto-export téléchargé → ' + fileName);
+            showExportPanel('✅ Export réussi !', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
+        }
+    }
+
+    // Panel persistant après un export (reste affiché jusqu'au clic sur la croix)
+    function showExportPanel(title, detail, timestamp) {
+        const existing = document.getElementById('docmat-export-success-panel');
+        if (existing) existing.remove();
+
+        const timeStr = new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = new Date(timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const panel = document.createElement('div');
+        panel.id = 'docmat-export-success-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100001;
+            background: linear-gradient(135deg, #1a2a1a, #1e2e1e);
+            color: #e0e0e0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            min-width: 320px;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(74, 222, 128, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            font-family: 'Segoe UI', sans-serif;
+            animation: slideInExportPanelDocmat 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        `;
+
+        panel.innerHTML = `
+            <style>
+                @keyframes slideInExportPanelDocmat {
+                    from { transform: translateX(100px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutExportPanelDocmat {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100px); opacity: 0; }
+                }
+                #docmat-export-success-panel .panel-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                #docmat-export-success-panel .panel-title {
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #4ade80;
+                }
+                #docmat-export-success-panel .panel-close {
+                    background: none;
+                    border: none;
+                    color: #888;
+                    font-size: 20px;
+                    cursor: pointer;
+                    padding: 2px 6px;
+                    border-radius: 6px;
+                    transition: all 0.2s;
+                    line-height: 1;
+                }
+                #docmat-export-success-panel .panel-close:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                }
+                #docmat-export-success-panel .panel-detail {
+                    font-size: 13px;
+                    color: #b0d0b0;
+                    word-break: break-all;
+                }
+                #docmat-export-success-panel .panel-time {
+                    font-size: 11px;
+                    color: #667;
+                    margin-top: 2px;
+                }
+                #docmat-export-success-panel .panel-bar {
+                    height: 3px;
+                    background: rgba(74, 222, 128, 0.3);
+                    border-radius: 3px;
+                    margin-top: 6px;
+                    overflow: hidden;
+                }
+                #docmat-export-success-panel .panel-bar-fill {
+                    height: 100%;
+                    background: #4ade80;
+                    border-radius: 3px;
+                    width: 100%;
+                }
+            </style>
+            <div class="panel-header">
+                <span class="panel-title">${title}</span>
+                <button class="panel-close" id="docmat-export-panel-close-btn" title="Fermer">✕</button>
+            </div>
+            <div class="panel-detail">${detail}</div>
+            <div class="panel-time">🕐 ${dateStr} à ${timeStr}</div>
+            <div class="panel-bar"><div class="panel-bar-fill"></div></div>
+        `;
+
+        document.body.appendChild(panel);
+
+        document.getElementById('docmat-export-panel-close-btn').addEventListener('click', () => {
+            panel.style.animation = 'slideOutExportPanelDocmat 0.25s ease forwards';
+            setTimeout(() => panel.remove(), 250);
+        });
+    }
+
+    function startAutoExportTimer() {
+        if (autoExportIntervalId) {
+            clearInterval(autoExportIntervalId);
+        }
+        if (autoExportEnabled) {
+            if (lastAutoExportTime) {
+                const elapsed = Date.now() - new Date(lastAutoExportTime).getTime();
+                if (elapsed >= AUTO_EXPORT_INTERVAL_MS) {
+                    performAutoExport();
+                }
+            }
+            autoExportIntervalId = setInterval(performAutoExport, AUTO_EXPORT_INTERVAL_MS);
+            console.log('⏱️ [DocMat] Auto-export local activé : toutes les 3 heures → fichier:', autoExportFileName);
+        }
+    }
+
+    function stopAutoExportTimer() {
+        if (autoExportIntervalId) {
+            clearInterval(autoExportIntervalId);
+            autoExportIntervalId = null;
+        }
+    }
+
+    // Modal de configuration auto-export (CTRL+ALT+R)
+    function openAutoExportConfig() {
+        const old = document.getElementById('modal-docmat-auto-export-config');
+        if (old) old.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-docmat-auto-export-config';
+        modal.style.cssText = `
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            animation: fadeInAutoExportDocmat 0.2s ease;
+        `;
+
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeInAutoExportDocmat { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUpAutoExportDocmat { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                #docmat-auto-export-config-box {
+                    background: #1e1e1e;
+                    border-radius: 16px;
+                    padding: 28px 32px;
+                    min-width: 440px;
+                    max-width: 520px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    animation: slideUpAutoExportDocmat 0.3s ease;
+                    font-family: 'Segoe UI', sans-serif;
+                    color: #e0e0e0;
+                }
+                #docmat-auto-export-config-box h2 {
+                    margin: 0 0 8px 0;
+                    font-size: 20px;
+                    color: #fff;
+                }
+                #docmat-auto-export-config-box .subtitle {
+                    font-size: 13px;
+                    color: #888;
+                    margin-bottom: 20px;
+                }
+                #docmat-auto-export-config-box label.field-label {
+                    display: block;
+                    font-size: 13px;
+                    margin-bottom: 6px;
+                    color: #bbb;
+                    font-weight: 600;
+                }
+                #docmat-export-filename-input {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255,255,255,0.15);
+                    background: #2a2a2a;
+                    color: #fff;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.2s;
+                    margin-bottom: 6px;
+                }
+                #docmat-export-filename-input:focus {
+                    border-color: #667eea;
+                }
+                #docmat-export-filename-input::placeholder {
+                    color: #666;
+                }
+                .docmat-auto-export-filename-preview {
+                    font-size: 11px;
+                    color: #777;
+                    margin-bottom: 18px;
+                    font-style: italic;
+                }
+                .docmat-auto-export-toggle-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                }
+                .docmat-auto-export-toggle-label {
+                    font-size: 14px;
+                    color: #ccc;
+                }
+                .docmat-auto-export-toggle {
+                    position: relative;
+                    width: 48px;
+                    height: 26px;
+                    cursor: pointer;
+                }
+                .docmat-auto-export-toggle input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+                .docmat-auto-export-toggle .slider {
+                    position: absolute;
+                    inset: 0;
+                    background: #444;
+                    border-radius: 26px;
+                    transition: background 0.3s;
+                }
+                .docmat-auto-export-toggle .slider:before {
+                    content: '';
+                    position: absolute;
+                    width: 20px;
+                    height: 20px;
+                    background: #fff;
+                    border-radius: 50%;
+                    left: 3px;
+                    top: 3px;
+                    transition: transform 0.3s;
+                }
+                .docmat-auto-export-toggle input:checked + .slider {
+                    background: #667eea;
+                }
+                .docmat-auto-export-toggle input:checked + .slider:before {
+                    transform: translateX(22px);
+                }
+                .docmat-auto-export-btn-row {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: space-between;
+                }
+                .docmat-auto-export-btn {
+                    padding: 10px 22px;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .docmat-auto-export-btn-save {
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: #fff;
+                }
+                .docmat-auto-export-btn-save:hover {
+                    filter: brightness(1.15);
+                    transform: translateY(-1px);
+                }
+                .docmat-auto-export-btn-cancel {
+                    background: #333;
+                    color: #ccc;
+                }
+                .docmat-auto-export-btn-cancel:hover {
+                    background: #444;
+                }
+                .docmat-auto-export-info {
+                    background: rgba(102, 126, 234, 0.1);
+                    border: 1px solid rgba(102, 126, 234, 0.2);
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    font-size: 12px;
+                    color: #a0b0e0;
+                    margin-bottom: 18px;
+                    line-height: 1.5;
+                }
+            </style>
+            <div id="docmat-auto-export-config-box">
+                <h2>📄 Configuration Auto-Export DocMat</h2>
+                <p class="subtitle">Exporte automatiquement vos favoris DocMat sur votre PC toutes les 3 heures</p>
+
+                <div class="docmat-auto-export-info">
+                    💡 Choisissez un <b>dossier de destination</b> et le fichier JSON y sera sauvegardé directement.<br>
+                    Un nouveau fichier sera créé automatiquement toutes les <b>3 heures</b>.<br>
+                    Raccourci : <b>Ctrl + Alt + R</b> pour rouvrir cette fenêtre.
+                </div>
+
+                <label class="field-label">📂 Dossier de destination</label>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                    <div id="docmat-auto-export-path-display" style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:#2a2a2a;color:#fff;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px;">${autoExportDirName ? '📁 ' + autoExportDirName : '<span style=&quot;color:#666;&quot;>Aucun dossier sélectionné</span>'}</div>
+                    <button id="docmat-auto-export-btn-browse" style="padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#3a3a5c;color:#c0c0ff;transition:all 0.2s;white-space:nowrap;">📁 Parcourir…</button>
+                </div>
+                <div id="docmat-auto-export-path-hint" style="font-size:11px;color:#666;margin-bottom:18px;font-style:italic;">
+                    ${autoExportDirName ? '✅ Les fichiers seront enregistrés dans ce dossier' : 'Cliquez sur Parcourir pour choisir le dossier, sinon → Téléchargements'}
+                </div>
+
+                <label class="field-label" for="docmat-export-filename-input">📄 Nom du fichier d'export</label>
+                <input type="text" id="docmat-export-filename-input" placeholder="DocMatExport" value="${autoExportFileName.replace(/"/g, '&quot;')}" />
+                <div class="docmat-auto-export-filename-preview" id="docmat-auto-export-filename-preview">
+                    Aperçu : ${autoExportFileName}_2026-03-19_14h30.json
+                </div>
+
+                <div class="docmat-auto-export-toggle-row">
+                    <span class="docmat-auto-export-toggle-label">⏱️ Activer l'auto-export toutes les 3H</span>
+                    <label class="docmat-auto-export-toggle">
+                        <input type="checkbox" id="docmat-auto-export-enabled-toggle" ${autoExportEnabled ? 'checked' : ''} />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.08);margin:8px 0 16px 0;padding-top:16px;">
+                    <label class="field-label" style="margin-bottom:10px;">📦 Import / Export Manuel</label>
+                    <div style="display:flex;gap:10px;margin-bottom:16px;">
+                        <button class="docmat-auto-export-btn" id="docmat-auto-export-btn-manual-export" style="flex:1;background:#1e3a5f;color:#7db8f0;">📤 Exporter JSON</button>
+                        <button class="docmat-auto-export-btn" id="docmat-auto-export-btn-manual-import" style="flex:1;background:#3a1e5f;color:#c0a0f0;">📥 Importer JSON</button>
+                    </div>
+                </div>
+
+                <div class="docmat-auto-export-btn-row">
+                    <button class="docmat-auto-export-btn docmat-auto-export-btn-cancel" id="docmat-auto-export-btn-cancel">Annuler</button>
+                    <button class="docmat-auto-export-btn docmat-auto-export-btn-save" id="docmat-auto-export-btn-save">💾 Sauvegarder</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Bouton Parcourir
+        document.getElementById('docmat-auto-export-btn-browse').addEventListener('click', async () => {
+            if (typeof window.showDirectoryPicker === 'function') {
+                try {
+                    autoExportDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    autoExportDirName = autoExportDirHandle.name;
+                    localStorage.setItem('docmat_autoExportDirName', autoExportDirName);
+                    document.getElementById('docmat-auto-export-path-display').textContent = '📁 ' + autoExportDirName;
+                    document.getElementById('docmat-auto-export-path-hint').textContent = '✅ Les fichiers seront enregistrés dans ce dossier';
+                    document.getElementById('docmat-auto-export-path-hint').style.color = '#4ade80';
+                    showNotification('📂 Dossier sélectionné : ' + autoExportDirName, 'success');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('❌ Erreur sélection dossier:', err);
+                        showNotification('❌ Erreur lors de la sélection du dossier', 'error');
+                    }
+                }
+            } else {
+                showNotification('⚠️ Votre navigateur ne supporte pas le choix de dossier. Les fichiers iront dans vos Téléchargements.', 'error');
+            }
+        });
+
+        // Preview dynamique du nom de fichier
+        const filenameInput = document.getElementById('docmat-export-filename-input');
+        const filenamePreview = document.getElementById('docmat-auto-export-filename-preview');
+        filenameInput.addEventListener('input', () => {
+            const name = filenameInput.value.trim() || 'DocMatExport';
+            filenamePreview.textContent = 'Aperçu : ' + name + '_2026-03-19_14h30.json';
+        });
+
+        // Fermer en cliquant en dehors
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        // Bouton Annuler
+        document.getElementById('docmat-auto-export-btn-cancel').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Bouton Sauvegarder
+        document.getElementById('docmat-auto-export-btn-save').addEventListener('click', () => {
+            const nameInput = document.getElementById('docmat-export-filename-input').value.trim();
+            const enabledToggle = document.getElementById('docmat-auto-export-enabled-toggle').checked;
+
+            autoExportFileName = nameInput || 'DocMatExport';
+            autoExportEnabled = enabledToggle;
+            localStorage.setItem('docmat_autoExportFileName', autoExportFileName);
+            localStorage.setItem('docmat_autoExportEnabled', String(autoExportEnabled));
+            localStorage.setItem('docmat_autoExportDirName', autoExportDirName);
+
+            if (autoExportEnabled) {
+                startAutoExportTimer();
+                const dest = autoExportDirName ? '📂 ' + autoExportDirName : '📥 Téléchargements';
+                showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain dans 3h.', 'success');
+            } else {
+                stopAutoExportTimer();
+                showNotification('⏸️ Auto-export désactivé.', 'info');
+            }
+
+            modal.remove();
+        });
+
+        // Bouton Export Manuel
+        document.getElementById('docmat-auto-export-btn-manual-export').addEventListener('click', () => {
+            exportToJSON();
+            modal.remove();
+        });
+
+        // Bouton Import Manuel
+        document.getElementById('docmat-auto-export-btn-manual-import').addEventListener('click', () => {
+            modal.remove();
+            importFromJSON();
+        });
+
+        // Fermer avec Escape
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
+
+    // Raccourci clavier CTRL + ALT + R
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R')) {
+            e.preventDefault();
+            e.stopPropagation();
+            openAutoExportConfig();
+        }
+    });
+
+    // Menu Tampermonkey
+    if (typeof GM_registerMenuCommand === 'function') {
+        GM_registerMenuCommand('Configuration Export/Import (Ctrl+Alt+R)', openAutoExportConfig);
+    }
 
     function exportToJSON() {
         try {
@@ -1884,28 +2392,11 @@
         }
     }
 
-    function autoExportIfDue() {
-        try {
-            const now = Date.now();
-            const last = parseInt(localStorage.getItem(AUTO_EXPORT_KEY) || '0', 10);
-            const intervalMs = AUTO_EXPORT_DAYS * 24 * 60 * 60 * 1000;
-
-            if (!Number.isNaN(last) && now - last < intervalMs) {
-                return;
-            }
-
-            localStorage.setItem(AUTO_EXPORT_KEY, String(now));
-            exportToJSON();
-        } catch (error) {
-            console.warn('⚠️ Export automatique échoué:', error);
-        }
-    }
-
     function importFromJSON() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
-
+        
         input.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -1923,7 +2414,7 @@
                 const confirmed = await showConfirm(
                     '⚠️ Confirmer l\'importation',
                     `Voulez-vous fusionner (Oui) ou remplacer (Non) les données actuelles ?
-
+                    
 📊 Fichier à importer :
 - ${data.favorites.length} favoris
 - ${data.folders.length} dossiers
@@ -1947,10 +2438,10 @@
                 console.log('🔄 Rafraîchissement de l\'affichage...');
                 console.log('📊 Favoris après import:', getFavorites().length);
                 console.log('📁 Dossiers après import:', getFolders().length);
-
+                
                 updateFavoritesList();
                 updateFavoritesCount();
-
+                
                 console.log('✅ Affichage mis à jour');
 
             } catch (error) {
@@ -1976,12 +2467,12 @@
         // Fusion des dossiers d'abord (pour créer le mapping des IDs)
         const currentFolders = getFolders();
         const folderIdMap = {}; // Pour mapper les anciens IDs aux nouveaux
-
+        
         data.folders.forEach(folder => {
-            const exists = currentFolders.find(cf =>
+            const exists = currentFolders.find(cf => 
                 cf.name === folder.name && cf.parentId === folder.parentId
             );
-
+            
             if (!exists) {
                 const newId = Date.now().toString() + Math.random();
                 folderIdMap[folder.id] = newId;
@@ -2001,13 +2492,13 @@
         // Fusion des favoris en gardant la mémoire de ceux déjà enregistrés
         const currentFavorites = getFavorites();
         const mergedFavorites = [...currentFavorites]; // On garde TOUS les favoris actuels
-
+        
         let addedCount = 0;
         let keptCount = 0;
 
         data.favorites.forEach(importedFav => {
             const existingFav = currentFavorites.find(cf => cf.number === importedFav.number);
-
+            
             if (existingFav) {
                 // Le favori existe déjà : on GARDE les données actuelles (priorité aux données locales)
                 keptCount++;
@@ -2025,10 +2516,10 @@
                 addedCount++;
             }
         });
-
+        
         console.log(`✅ Fusion terminée: ${keptCount} favoris conservés, ${addedCount} favoris ajoutés`);
         console.log(`📊 Total final: ${mergedFavorites.length} favoris`);
-
+        
         saveFavorites(mergedFavorites);
 
         // Fusion des catégories
@@ -2054,11 +2545,11 @@
         // Remplacement complet des données
         saveFavorites(data.favorites || []);
         saveFolders(data.folders || []);
-
+        
         if (data.categories) {
             saveDocumentCategories(data.categories);
         }
-
+        
         if (data.customTerms) {
             saveCustomTerms(data.customTerms);
         }
@@ -2106,7 +2597,7 @@
                 z-index: 100001;
                 backdrop-filter: blur(10px);
             `;
-
+            
             modal.innerHTML = `
                 <div style="
                     background: #1e293b;
@@ -2160,24 +2651,24 @@
                     </div>
                 </div>
             `;
-
+            
             document.body.appendChild(modal);
-
+            
             modal.querySelector('.confirm-yes').addEventListener('click', () => {
                 modal.remove();
                 resolve(true);
             });
-
+            
             modal.querySelector('.confirm-no').addEventListener('click', () => {
                 modal.remove();
                 resolve(false);
             });
-
+            
             modal.querySelector('.confirm-cancel').addEventListener('click', () => {
                 modal.remove();
                 resolve(null);
             });
-
+            
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.remove();
@@ -2327,7 +2818,7 @@
         const buildFolderTree = (parentId = null, level = 0) => {
             let html = '';
             const childFolders = folders.filter(f => f.parentId === parentId);
-
+            
             // Filtrer selon la recherche
             const filteredChildFolders = folderSearchQuery
                 ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase()))
@@ -2336,10 +2827,10 @@
             filteredChildFolders.forEach(folder => {
                 const hasChildren = folders.some(f => f.parentId === folder.id);
                 const folderCount = countFavoritesInFolder(folder.id);
-
+                
                 html += `<div class="folder-section">`;
                 html += `<div class="folder-header ${folder.collapsed ? 'collapsed' : ''} ${currentFolderId === folder.id ? 'active' : ''}" data-folder-id="${folder.id}">`;
-
+                
                 // Icône d'expansion si le dossier a des enfants
                 if (hasChildren) {
                     html += `<span class="folder-icon expandable" data-folder-id="${folder.id}">🔽</span>`;
@@ -2360,14 +2851,14 @@
                 html += `<button class="rename-folder" data-folder-id="${folder.id}" title="Renommer">✏️</button>`;
                 html += `<button class="delete-folder" data-folder-id="${folder.id}" title="Supprimer">🗑️</button>`;
                 html += '</div></div>';
-
+                
                 // Sous-dossiers
                 if (hasChildren) {
                     html += `<div class="folder-children ${folder.collapsed ? 'hidden' : ''}" data-parent-id="${folder.id}">`;
                     html += buildFolderTree(folder.id, level + 1);
                     html += '</div>';
                 }
-
+                
                 html += '</div>';
             });
 
@@ -2471,7 +2962,7 @@
                 const folderId = e.target.getAttribute('data-folder-id');
                 const folders = getFolders();
                 const hasSubfolders = folders.some(f => f.parentId === folderId);
-                const message = hasSubfolders
+                const message = hasSubfolders 
                     ? 'Supprimer ce dossier et tous ses sous-dossiers ?\n(Les favoris seront déplacés dans "Sans dossier")'
                     : 'Supprimer ce dossier ?\n(Les favoris seront déplacés dans "Sans dossier")';
                 const confirmed = await customConfirm(message, '🗑️');
@@ -2567,22 +3058,22 @@
             const folders = getFolders();
             const categories = getDocumentCategories();
             let html = '';
-
+            
             // Trier les favoris par niveau d'indentation (du plus élevé au plus bas)
             const sortedFavorites = [...favorites].sort((a, b) => {
                 const aCat = getCategoryForTitle(a.title);
                 const bCat = getCategoryForTitle(b.title);
-
+                
                 const aLevel = aCat ? aCat.indentLevel : -1;
                 const bLevel = bCat ? bCat.indentLevel : -1;
-
+                
                 // Trier par niveau d'indentation décroissant (2, 1, 0, puis -1)
                 return bLevel - aLevel;
             });
-
+            
             // Zone de drop au début
             html += '<div class="drop-zone" data-index="0"></div>';
-
+            
             sortedFavorites.forEach((fav, index) => {
                 // Highlight le texte recherché
                 let titleHtml = fav.title;
@@ -2610,11 +3101,11 @@
                 let categoryAttr = '';
                 let indentClass = '';
                 let styleAttr = '';
-
+                
                 if (category) {
                     categoryAttr = ` data-category="${category.id}"`;
                     styleAttr = ` style="border-color: ${category.color}; background: ${category.color}15;"`;
-
+                    
                     if (category.indentLevel === 1) {
                         indentClass = ' indent-level-1';
                     } else if (category.indentLevel === 2) {
@@ -2640,11 +3131,11 @@
                         </div>
                     </div>
                 `;
-
+                
                 // Zone de drop après chaque élément
                 html += `<div class="drop-zone" data-index="${index + 1}"></div>`;
             });
-
+            
             return html;
         } catch (error) {
             console.error('Erreur dans renderFavorites:', error);
@@ -2670,7 +3161,7 @@
                 fillSearchField(number);
                 closeFavoritesModal();
             });
-
+            
             // Garder le curseur pointer sur toute la zone sauf drag handle et boutons
             item.style.cursor = 'pointer';
         });
@@ -2703,7 +3194,7 @@
             handle.addEventListener('mouseup', () => {
                 handle.style.cursor = 'grab';
             });
-
+            
             // Attacher les événements de drag au handle
             handle.addEventListener('dragstart', handleDragStart);
             handle.addEventListener('dragend', handleDragEnd);
@@ -2726,13 +3217,13 @@
     function handleDragStart(e) {
         const handle = e.target;
         draggedElement = handle.closest('.favorite-item');
-
+        
         if (!draggedElement) return;
-
+        
         draggedFavoriteNumber = draggedElement.getAttribute('data-number');
         draggedIndex = parseInt(draggedElement.getAttribute('data-index'));
         draggedElement.classList.add('dragging');
-
+        
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', draggedFavoriteNumber);
     }
@@ -2741,7 +3232,7 @@
         if (draggedElement) {
             draggedElement.classList.remove('dragging');
         }
-
+        
         // Retirer toutes les classes
         document.querySelectorAll('.favorites-modal .drop-zone').forEach(zone => {
             zone.classList.remove('active');
@@ -2749,7 +3240,7 @@
         document.querySelectorAll('.favorites-modal .favorite-item').forEach(item => {
             item.classList.remove('shift-up', 'shift-down');
         });
-
+        
         draggedElement = null;
         draggedFavoriteNumber = null;
         draggedIndex = -1;
@@ -2765,10 +3256,10 @@
 
     function handleDropZoneDragEnter(e) {
         if (!draggedElement) return;
-
+        
         const zone = e.currentTarget;
         const targetIndex = parseInt(zone.getAttribute('data-index'));
-
+        
         // Retirer toutes les classes actives
         document.querySelectorAll('.favorites-modal .drop-zone').forEach(z => {
             z.classList.remove('active');
@@ -2776,10 +3267,10 @@
         document.querySelectorAll('.favorites-modal .favorite-item').forEach(item => {
             item.classList.remove('shift-up', 'shift-down');
         });
-
+        
         // Activer cette zone
         zone.classList.add('active');
-
+        
         // Déplacer les éléments pour montrer où ça va atterrir
         updateItemsShift(targetIndex);
     }
@@ -2790,13 +3281,13 @@
 
     function updateItemsShift(targetIndex) {
         const allItems = Array.from(document.querySelectorAll('.favorites-modal .favorite-item'));
-
+        
         allItems.forEach((item, index) => {
             item.classList.remove('shift-up', 'shift-down');
-
+            
             // Ne pas bouger l'élément dragué
             if (index === draggedIndex) return;
-
+            
             // Si on insère avant l'élément dragué
             if (targetIndex <= draggedIndex) {
                 // Les éléments entre targetIndex et draggedIndex descendent
@@ -2821,7 +3312,7 @@
 
         const zone = e.currentTarget;
         const targetIndex = parseInt(zone.getAttribute('data-index'));
-
+        
         // Retirer toutes les classes
         document.querySelectorAll('.favorites-modal .drop-zone').forEach(z => {
             z.classList.remove('active');
@@ -2833,23 +3324,23 @@
         if (!draggedElement || draggedIndex === -1) {
             return false;
         }
-
+        
         // Calculer le nouvel index après le retrait de l'élément
         let newIndex = targetIndex;
         if (targetIndex > draggedIndex) {
             newIndex = targetIndex - 1;
         }
-
+        
         // Si c'est la même position, ne rien faire
         if (newIndex === draggedIndex) {
             return false;
         }
-
+        
         // Récupérer les favoris
         const favorites = getFavorites();
         const folders = getFolders();
         const currentFolder = currentFolderId;
-
+        
         // Fonction pour récupérer tous les IDs de sous-dossiers récursivement
         const getAllSubfolderIds = (folderId) => {
             let ids = [folderId];
@@ -2859,7 +3350,7 @@
             });
             return ids;
         };
-
+        
         // Filtrer les favoris du dossier actuel (incluant sous-dossiers)
         let folderFavorites;
         if (currentFolder === 'all') {
@@ -2870,11 +3361,11 @@
             const folderIds = getAllSubfolderIds(currentFolder);
             folderFavorites = favorites.filter(f => folderIds.includes(f.folderId));
         }
-
+        
         // Réorganiser les favoris du dossier
         const [movedFavorite] = folderFavorites.splice(draggedIndex, 1);
         folderFavorites.splice(newIndex, 0, movedFavorite);
-
+        
         // Obtenir les autres favoris (qui ne sont pas dans le dossier actuel)
         let otherFavorites;
         if (currentFolder === 'all') {
@@ -2885,18 +3376,18 @@
             const folderIds = getAllSubfolderIds(currentFolder);
             otherFavorites = favorites.filter(f => !folderIds.includes(f.folderId));
         }
-
+        
         // Fusionner les favoris réorganisés avec les autres
         const newFavorites = [...folderFavorites, ...otherFavorites];
-
+        
         // Sauvegarder
         saveFavorites(newFavorites);
-
+        
         // Rafraîchir l'affichage
         updateFavoritesList();
-
+        
         showNotification('✅ Ordre des favoris mis à jour');
-
+        
         return false;
     }
 
@@ -2906,20 +3397,20 @@
             e.preventDefault();
         }
         if (!draggedElement) return false;
-
+        
         e.dataTransfer.dropEffect = 'move';
         return false;
     }
 
     function handleFolderDragEnter(e) {
         if (!draggedElement) return;
-
+        
         const header = e.currentTarget;
         const folderId = header.getAttribute('data-folder-id');
-
+        
         // Ne pas permettre de glisser vers "Tous les favoris"
         if (folderId === 'all') return;
-
+        
         header.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
         header.style.borderLeft = '4px solid var(--primary-color)';
     }
@@ -2938,7 +3429,7 @@
 
         const header = e.currentTarget;
         const folderId = header.getAttribute('data-folder-id');
-
+        
         // Retirer le style
         header.style.backgroundColor = '';
         header.style.borderLeft = '';
@@ -2955,7 +3446,7 @@
         // Déplacer le favori vers le dossier cible
         const favorites = getFavorites();
         const favorite = favorites.find(f => f.number === draggedFavoriteNumber);
-
+        
         if (favorite) {
             // Si c'est "Sans dossier", mettre folderId à null
             if (folderId === '' || !folderId) {
@@ -2967,7 +3458,7 @@
                 const folder = folders.find(f => f.id === folderId);
                 showNotification(`📁 Déplacé vers "${folder ? folder.name : 'dossier'}"`);
             }
-
+            
             saveFavorites(favorites);
             updateFavoritesList();
         }
@@ -3039,7 +3530,7 @@
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchInput.dispatchEvent(new Event('change', { bubbles: true }));
             searchInput.focus();
-
+            
             // Attendre un court instant puis cliquer sur le bouton Rechercher
             setTimeout(() => {
                 const searchButton = document.querySelector('button.btn.btn-primary.float-right.mt-4');
@@ -3111,7 +3602,7 @@
                     <h3>🏷️ Personnaliser le nom du document</h3>
                     <button class="close-modal">&times;</button>
                 </div>
-
+                
                 <div class="custom-terms-body">
                     <div class="left-panel">
                         <div class="terms-section">
@@ -3119,7 +3610,7 @@
                             <input type="text" class="folder-search" id="folder-search-modal" placeholder="🔍 Rechercher...">
                             <div class="folder-selector" id="folder-selector-list"></div>
                         </div>
-
+                        
                         <div class="create-folder-section">
                             <h4>➕ Créer un nouveau dossier :</h4>
                             <div class="create-folder-inputs">
@@ -3194,10 +3685,10 @@
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-
+        
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '🏷️ Personnaliser le nom du document';
-
+        
         updateTermsList();
         updateFolderSelector();
         updatePreview();
@@ -3235,7 +3726,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-
+        
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -3267,7 +3758,7 @@
         const populateParentFolderSelect = () => {
             const folders = getFolders();
             parentFolderSelect.innerHTML = '<option value="">📂 Dossier racine (aucun parent)</option>';
-
+            
             // Fonction récursive pour construire la liste avec indentation
             const buildFolderOptions = (parentId = null, level = 0) => {
                 const childFolders = folders.filter(f => f.parentId === parentId);
@@ -3277,12 +3768,12 @@
                     option.value = folder.id;
                     option.innerHTML = `${indent}📁 ${folder.name}`;
                     parentFolderSelect.appendChild(option);
-
+                    
                     // Ajouter récursivement les sous-dossiers
                     buildFolderOptions(folder.id, level + 1);
                 });
             };
-
+            
             buildFolderOptions(null, 0);
         };
 
@@ -3293,10 +3784,10 @@
         const validateSymbol = () => {
             const symbol = newFolderSymbol.value.trim();
             const designation = newFolderDesignation.value.trim();
-
+            
             // Vérifier que le symbole contient exactement 8 chiffres
             const isValid = /^\d{8}$/.test(symbol);
-
+            
             if (symbol.length > 0 && !isValid) {
                 newFolderSymbol.classList.add('error');
                 symbolHint.classList.add('error');
@@ -3306,7 +3797,7 @@
                 symbolHint.classList.remove('error');
                 symbolHint.textContent = 'Format: 12345678';
             }
-
+            
             // Activer le bouton seulement si les deux champs sont valides
             createFolderBtn.disabled = !(designation.length > 0 && isValid);
         };
@@ -3324,23 +3815,23 @@
             const designation = newFolderDesignation.value.trim();
             const symbol = newFolderSymbol.value.trim();
             const parentId = parentFolderSelect.value || null; // Récupérer le dossier parent sélectionné
-
+            
             if (designation && symbol && /^\d{8}$/.test(symbol)) {
                 const folderName = `${designation} - ${symbol}`;
-
+                
                 if (createFolder(folderName, parentId)) { // Passer le parentId à createFolder
                     showNotification('✅ Dossier créé avec succès !');
-
+                    
                     // Réinitialiser les champs
                     newFolderDesignation.value = '';
                     newFolderSymbol.value = '';
                     parentFolderSelect.value = '';
                     validateSymbol();
-
+                    
                     // Mettre à jour la liste des dossiers
                     updateFolderSelector();
                     populateParentFolderSelect(); // Mettre à jour aussi le sélecteur de parents
-
+                    
                     // Sélectionner automatiquement le nouveau dossier
                     const folders = getFolders();
                     const newFolder = folders.find(f => f.name === folderName);
@@ -3360,7 +3851,7 @@
                 createFolderBtn.click();
             }
         });
-
+        
         newFolderSymbol.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !createFolderBtn.disabled) {
                 createFolderBtn.click();
@@ -3392,20 +3883,20 @@
 
         createCustomTermsModal();
         const modal = document.querySelector('.custom-terms-modal');
-
+        
         // Changer le titre
         modal.querySelector('.custom-terms-header h3').textContent = '✏️ Modifier le nom du document';
-
+        
         // Pré-remplir le champ de nom personnalisé AVANT updateTermsList
         const customNameInput = modal.querySelector('#custom-doc-name');
         if (customNameInput) {
             customNameInput.value = customDocName;
             console.log('Valeur assignée au champ:', customNameInput.value);
-
+            
             // Retirer les anciens listeners
             const newInput = customNameInput.cloneNode(true);
             customNameInput.parentNode.replaceChild(newInput, customNameInput);
-
+            
             // Ajouter le nouveau listener
             newInput.addEventListener('input', (e) => {
                 customDocName = e.target.value.trim();
@@ -3414,7 +3905,7 @@
         } else {
             console.error('Champ #custom-doc-name non trouvé !');
         }
-
+        
         updateTermsList();
         updateFolderSelector();
         updatePreview();
@@ -3422,11 +3913,11 @@
         // Gérer la recherche de dossiers
         const folderSearchInput = modal.querySelector('#folder-search-modal');
         folderSearchInput.value = ''; // Reset search
-
+        
         // Retirer les anciens listeners
         const newFolderSearch = folderSearchInput.cloneNode(true);
         folderSearchInput.parentNode.replaceChild(newFolderSearch, folderSearchInput);
-
+        
         newFolderSearch.addEventListener('input', (e) => {
             folderSearchQueryModal = e.target.value.trim();
             updateFolderSelector();
@@ -3451,7 +3942,7 @@
         // Ajouter un nouveau terme
         const addTermBtn = modal.querySelector('#add-term-btn');
         const newTermInput = modal.querySelector('#new-term-input');
-
+        
         addTermBtn.onclick = () => {
             const term = newTermInput.value.trim();
             if (term !== '') {
@@ -3483,7 +3974,7 @@
         const populateParentFolderSelect = () => {
             const folders = getFolders();
             parentFolderSelect.innerHTML = '<option value="">📂 Dossier racine (aucun parent)</option>';
-
+            
             // Fonction récursive pour construire la liste avec indentation
             const buildFolderOptions = (parentId = null, level = 0) => {
                 const childFolders = folders.filter(f => f.parentId === parentId);
@@ -3493,12 +3984,12 @@
                     option.value = folder.id;
                     option.innerHTML = `${indent}📁 ${folder.name}`;
                     parentFolderSelect.appendChild(option);
-
+                    
                     // Ajouter récursivement les sous-dossiers
                     buildFolderOptions(folder.id, level + 1);
                 });
             };
-
+            
             buildFolderOptions(null, 0);
         };
 
@@ -3509,10 +4000,10 @@
         const validateSymbol = () => {
             const symbol = newFolderSymbol.value.trim();
             const designation = newFolderDesignation.value.trim();
-
+            
             // Vérifier que le symbole contient exactement 8 chiffres
             const isValid = /^\d{8}$/.test(symbol);
-
+            
             if (symbol.length > 0 && !isValid) {
                 newFolderSymbol.classList.add('error');
                 symbolHint.classList.add('error');
@@ -3522,7 +4013,7 @@
                 symbolHint.classList.remove('error');
                 symbolHint.textContent = 'Format: 12345678';
             }
-
+            
             // Activer le bouton seulement si les deux champs sont valides
             createFolderBtn.disabled = !(designation.length > 0 && isValid);
         };
@@ -3540,23 +4031,23 @@
             const designation = newFolderDesignation.value.trim();
             const symbol = newFolderSymbol.value.trim();
             const parentId = parentFolderSelect.value || null; // Récupérer le dossier parent sélectionné
-
+            
             if (designation && symbol && /^\d{8}$/.test(symbol)) {
                 const folderName = `${designation} - ${symbol}`;
-
+                
                 if (createFolder(folderName, parentId)) { // Passer le parentId à createFolder
                     showNotification('✅ Dossier créé avec succès !');
-
+                    
                     // Réinitialiser les champs
                     newFolderDesignation.value = '';
                     newFolderSymbol.value = '';
                     parentFolderSelect.value = '';
                     validateSymbol();
-
+                    
                     // Mettre à jour la liste des dossiers
                     updateFolderSelector();
                     populateParentFolderSelect(); // Mettre à jour aussi le sélecteur de parents
-
+                    
                     // Sélectionner automatiquement le nouveau dossier
                     const folders = getFolders();
                     const newFolder = folders.find(f => f.name === folderName);
@@ -3576,7 +4067,7 @@
                 createFolderBtn.click();
             }
         });
-
+        
         newFolderSymbol.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !createFolderBtn.disabled) {
                 createFolderBtn.click();
@@ -3596,22 +4087,22 @@
         const customTermsList = getCustomTerms();
         const terms = [];
         let customName = '';
-
+        
         // Vérifier si le titre contient " + " (séparateur de termes)
         if (title.includes(' + ')) {
             // Séparer par " - " pour isoler les termes du nom personnalisé
             const dashParts = title.split(' - ');
-
+            
             // Traiter la partie termes (avant le " - " si présent)
             const termsString = dashParts[0];
             const termsParts = termsString.split(' + ').map(t => t.trim()).filter(t => t !== '');
-
+            
             termsParts.forEach(part => {
                 if (customTermsList.includes(part)) {
                     terms.push(part);
                 }
             });
-
+            
             // Le nom personnalisé est tout ce qui vient après les termes reconnus
             if (dashParts.length > 1) {
                 customName = dashParts.slice(1).join(' - ').trim();
@@ -3621,7 +4112,7 @@
             // Tout le titre est considéré comme nom personnalisé
             customName = title;
         }
-
+        
         return {
             terms: terms,
             customName: customName
@@ -3657,7 +4148,7 @@
         // Fonction récursive pour construire l'arborescence HTML
         const buildFolderTree = (parentId = null) => {
             const childFolders = folders.filter(f => f.parentId === parentId);
-
+            
             // Filtrer selon la recherche
             let filteredFolders = folderSearchQueryModal
                 ? childFolders.filter(f => f.name.toLowerCase().includes(folderSearchQueryModal.toLowerCase()))
@@ -3670,7 +4161,7 @@
                 const hasChildren = folders.some(f => f.parentId === folder.id);
                 const isSelected = selectedFolderId === folder.id;
                 const isExpanded = expandedFolders.has(folder.id);
-
+                
                 html += `
                     <div class="folder-tree-item" data-folder-id="${folder.id}">
                         <div class="folder-item-header ${isSelected ? 'selected' : ''}" data-folder-id="${folder.id}">
@@ -3714,7 +4205,7 @@
                 const folderId = icon.getAttribute('data-folder-id');
                 const treeItem = icon.closest('.folder-tree-item');
                 const childrenDiv = treeItem.querySelector('.folder-children');
-
+                
                 if (childrenDiv) {
                     childrenDiv.classList.toggle('expanded');
                     icon.classList.toggle('collapsed');
@@ -3729,10 +4220,10 @@
                 if (e.target.classList.contains('folder-expand-icon')) {
                     return;
                 }
-
+                
                 const folderId = header.getAttribute('data-folder-id');
                 const checkbox = header.querySelector('input[type="checkbox"]');
-
+                
                 // Toggle la sélection
                 if (selectedFolderId === folderId) {
                     selectedFolderId = null;
@@ -3741,7 +4232,7 @@
                     selectedFolderId = folderId;
                     checkbox.checked = true;
                 }
-
+                
                 updateFolderSelector();
             });
 
@@ -3750,13 +4241,13 @@
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const folderId = header.getAttribute('data-folder-id');
-
+                
                 if (e.target.checked) {
                     selectedFolderId = folderId;
                 } else {
                     selectedFolderId = null;
                 }
-
+                
                 updateFolderSelector();
             });
         });
@@ -3767,7 +4258,7 @@
         if (!termsList) return;
 
         const terms = getCustomTerms();
-
+        
         if (terms.length === 0) {
             termsList.innerHTML = '<p style="color: #999; font-style: italic;">Aucun terme personnalisé. Ajoutez-en un ci-dessous.</p>';
             return;
@@ -3788,7 +4279,7 @@
         termsList.querySelectorAll('.term-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 // Ne pas déclencher si c'est un clic sur la suppression ou sur le drag handle
-                if (e.target.classList.contains('remove-term') ||
+                if (e.target.classList.contains('remove-term') || 
                     e.target.classList.contains('term-drag-handle')) {
                     return;
                 }
@@ -3818,13 +4309,13 @@
                         if (!terms.includes(newTerm.trim())) {
                             terms[index] = newTerm.trim();
                             saveCustomTerms(terms);
-
+                            
                             // Mettre à jour selectedTerms si nécessaire
                             const selectedIndex = selectedTerms.indexOf(oldTerm);
                             if (selectedIndex !== -1) {
                                 selectedTerms[selectedIndex] = newTerm.trim();
                             }
-
+                            
                             updateTermsList();
                             updatePreview();
                             showNotification('✅ Terme modifié !');
@@ -3856,7 +4347,7 @@
         // Drag & Drop pour réordonner les termes (uniquement via le handle ☰)
         let draggedElement = null;
         let draggedIndex = null;
-
+        
         termsList.querySelectorAll('.term-drag-handle').forEach(handle => {
             handle.addEventListener('dragstart', (e) => {
                 draggedElement = e.target.closest('.term-button');
@@ -3864,7 +4355,7 @@
                 draggedElement.style.opacity = '0.5';
                 e.dataTransfer.effectAllowed = 'move';
             });
-
+            
             handle.addEventListener('dragend', (e) => {
                 if (draggedElement) {
                     draggedElement.style.opacity = '1';
@@ -3872,7 +4363,7 @@
                 }
             });
         });
-
+        
         termsList.querySelectorAll('.term-button').forEach(item => {
             item.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -3881,26 +4372,26 @@
                     e.target.closest('.term-button').style.borderColor = 'var(--primary-color)';
                 }
             });
-
+            
             item.addEventListener('dragleave', (e) => {
                 if (e.target.closest('.term-button')) {
                     e.target.closest('.term-button').style.borderColor = '';
                 }
             });
-
+            
             item.addEventListener('drop', (e) => {
                 e.preventDefault();
                 const dropTarget = e.target.closest('.term-button');
                 if (dropTarget && dropTarget !== draggedElement) {
                     dropTarget.style.borderColor = '';
                     const dropIndex = parseInt(dropTarget.dataset.termIndex);
-
+                    
                     // Réorganiser les termes
                     const terms = getCustomTerms();
                     const [movedItem] = terms.splice(draggedIndex, 1);
                     terms.splice(dropIndex, 0, movedItem);
                     saveCustomTerms(terms);
-
+                    
                     // Rafraîchir l'affichage
                     updateTermsList();
                     showNotification('✅ Termes réordonnés !');
@@ -3915,19 +4406,19 @@
         } else {
             selectedTerms.push(term);
         }
-
+        
         updateTermsList();
         updatePreview();
     }
 
     function buildFinalTitle() {
         let result = '';
-
+        
         // Ajouter les termes prédéfinis en premier (séparés par +)
         if (selectedTerms.length > 0) {
             result = selectedTerms.join(' + ');
         }
-
+        
         // Ajouter le nom personnalisé à droite (séparé par -)
         if (customDocName && customDocName.trim() !== '') {
             if (result !== '') {
@@ -3936,12 +4427,12 @@
                 result = customDocName;
             }
         }
-
+        
         // Si on a un résultat, le retourner, sinon juste le numéro
         if (result !== '') {
             return result;
         }
-
+        
         return currentDocNumber;
     }
 
@@ -3986,56 +4477,56 @@
     // Modal de gestion des catégories
     function openCategoriesModal() {
         const categories = getDocumentCategories();
-
+        
         const modal = document.createElement('div');
         modal.className = 'custom-dialog-modal categories-management-modal';
         modal.style.zIndex = '10003';
-
+        
         const renderCategoriesList = () => {
             const categories = getDocumentCategories();
             return categories.map((cat, index) => `
                 <div class="category-item" draggable="true" data-cat-id="${cat.id}" data-cat-index="${index}"
                      style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 10px; cursor: move; transition: all 0.3s ease; border: 2px solid transparent;">
                     <span style="font-size: 18px; cursor: grab;">☰</span>
-                    <input type="color" value="${cat.color}" data-cat-id="${cat.id}" class="cat-color-input"
+                    <input type="color" value="${cat.color}" data-cat-id="${cat.id}" class="cat-color-input" 
                            style="width: 50px; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
                     <div style="flex: 1;">
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; cursor: pointer;"
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; cursor: pointer;" 
                              class="cat-name-editable" data-cat-id="${cat.id}" title="Double-cliquez pour modifier">${cat.name}</div>
-                        <select data-cat-id="${cat.id}" class="cat-indent-select"
+                        <select data-cat-id="${cat.id}" class="cat-indent-select" 
                                 style="padding: 4px 8px; background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
                             <option value="0" ${cat.indentLevel === 0 ? 'selected' : ''}>Normal</option>
                             <option value="1" ${cat.indentLevel === 1 ? 'selected' : ''}>Décalé -15px</option>
                             <option value="2" ${cat.indentLevel === 2 ? 'selected' : ''}>Décalé -30px</option>
                         </select>
                     </div>
-                    <button class="delete-cat-btn" data-cat-id="${cat.id}"
+                    <button class="delete-cat-btn" data-cat-id="${cat.id}" 
                             style="background: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                         🗑️
                     </button>
                 </div>
             `).join('');
         };
-
+        
         modal.innerHTML = `
             <div class="dialog-content" style="max-width: 600px;">
                 <div style="font-size: 32px; text-align: center; margin-bottom: 16px;">🎨</div>
                 <div style="font-size: 20px; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 24px;">
                     Gérer les Catégories de Documents
                 </div>
-
+                
                 <div id="categories-list-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
                     ${renderCategoriesList()}
                 </div>
-
+                
                 <div style="border-top: 2px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">Ajouter une nouvelle catégorie :</div>
                     <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                        <input type="text" id="new-cat-name" placeholder="Nom de la catégorie..."
+                        <input type="text" id="new-cat-name" placeholder="Nom de la catégorie..." 
                                style="flex: 1; padding: 10px; background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px;">
-                        <input type="color" id="new-cat-color" value="#8b5cf6"
+                        <input type="color" id="new-cat-color" value="#8b5cf6" 
                                style="width: 60px; height: 42px; border: none; border-radius: 8px; cursor: pointer;">
-                        <select id="new-cat-indent"
+                        <select id="new-cat-indent" 
                                 style="padding: 10px; background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px;">
                             <option value="0">Normal</option>
                             <option value="1">Décalé -15px</option>
@@ -4046,16 +4537,16 @@
                         </button>
                     </div>
                 </div>
-
+                
                 <div class="dialog-actions">
                     <button class="dialog-btn dialog-btn-primary close-categories-modal">✅ Enregistrer et Fermer</button>
                 </div>
             </div>
         `;
-
+        
         document.body.appendChild(modal);
         modal.classList.add('show');
-
+        
         // Fonction pour réattacher les événements après mise à jour de la liste
         const attachEventListeners = () => {
             // Gérer les changements de couleur
@@ -4070,7 +4561,7 @@
                     }
                 });
             });
-
+            
             // Gérer les changements d'indentation
             modal.querySelectorAll('.cat-indent-select').forEach(select => {
                 select.addEventListener('change', (e) => {
@@ -4083,7 +4574,7 @@
                     }
                 });
             });
-
+            
             // Gérer l'édition du nom (double-clic)
             modal.querySelectorAll('.cat-name-editable').forEach(nameDiv => {
                 nameDiv.addEventListener('dblclick', async (e) => {
@@ -4103,7 +4594,7 @@
                     }
                 });
             });
-
+            
             // Gérer la suppression
             modal.querySelectorAll('.delete-cat-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
@@ -4119,11 +4610,11 @@
                     }
                 });
             });
-
+            
             // Drag & Drop pour réordonner les catégories
             let draggedElement = null;
             let draggedIndex = null;
-
+            
             modal.querySelectorAll('.category-item').forEach(item => {
                 item.addEventListener('dragstart', (e) => {
                     draggedElement = e.target;
@@ -4131,12 +4622,12 @@
                     e.target.style.opacity = '0.5';
                     e.dataTransfer.effectAllowed = 'move';
                 });
-
+                
                 item.addEventListener('dragend', (e) => {
                     e.target.style.opacity = '1';
                     e.target.style.borderColor = 'transparent';
                 });
-
+                
                 item.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
@@ -4144,26 +4635,26 @@
                         e.target.closest('.category-item').style.borderColor = 'var(--primary-color)';
                     }
                 });
-
+                
                 item.addEventListener('dragleave', (e) => {
                     if (e.target.closest('.category-item')) {
                         e.target.closest('.category-item').style.borderColor = 'transparent';
                     }
                 });
-
+                
                 item.addEventListener('drop', (e) => {
                     e.preventDefault();
                     const dropTarget = e.target.closest('.category-item');
                     if (dropTarget && dropTarget !== draggedElement) {
                         dropTarget.style.borderColor = 'transparent';
                         const dropIndex = parseInt(dropTarget.dataset.catIndex);
-
+                        
                         // Réorganiser les catégories
                         const categories = getDocumentCategories();
                         const [movedItem] = categories.splice(draggedIndex, 1);
                         categories.splice(dropIndex, 0, movedItem);
                         saveDocumentCategories(categories);
-
+                        
                         // Rafraîchir l'affichage
                         const listContainer = modal.querySelector('#categories-list-container');
                         listContainer.innerHTML = renderCategoriesList();
@@ -4173,49 +4664,49 @@
                 });
             });
         };
-
+        
         // Attacher les événements initiaux
         attachEventListeners();
-
+        
         // Ajouter une nouvelle catégorie
         modal.querySelector('#add-cat-btn').addEventListener('click', () => {
             const name = modal.querySelector('#new-cat-name').value.trim();
             const color = modal.querySelector('#new-cat-color').value;
             const indent = parseInt(modal.querySelector('#new-cat-indent').value);
-
+            
             if (name) {
                 if (addDocumentCategory(name, color, indent)) {
                     // Mettre à jour uniquement la liste sans réouvrir
                     const listContainer = modal.querySelector('#categories-list-container');
                     listContainer.innerHTML = renderCategoriesList();
                     attachEventListeners(); // Réattacher les événements
-
+                    
                     // Réinitialiser les champs
                     modal.querySelector('#new-cat-name').value = '';
                     modal.querySelector('#new-cat-color').value = '#8b5cf6';
                     modal.querySelector('#new-cat-indent').value = '0';
-
+                    
                     showNotification('✅ Catégorie ajoutée !');
                 } else {
                     customAlert('Cette catégorie existe déjà !', '⚠️');
                 }
             }
         });
-
+        
         // Permettre d'ajouter avec Enter
         modal.querySelector('#new-cat-name').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 modal.querySelector('#add-cat-btn').click();
             }
         });
-
+        
         // Fermer et rafraîchir
         modal.querySelector('.close-categories-modal').addEventListener('click', () => {
             modal.classList.remove('show');
             setTimeout(() => modal.remove(), 300);
             updateFavoritesList(); // Rafraîchir l'affichage des favoris
         });
-
+        
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('show');
@@ -4227,7 +4718,10 @@
 
     // Initialisation et observation
     function init() {
-        autoExportIfDue();
+        // Démarrer le timer d'auto-export si activé
+        if (autoExportEnabled) {
+            setTimeout(() => startAutoExportTimer(), 2000);
+        }
         createFavoritesButton();
         createAddFavoriteButton();
 
