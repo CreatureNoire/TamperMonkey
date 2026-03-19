@@ -1181,22 +1181,20 @@
         }
 
         // Raccourci clavier CTRL + ALT + R
-        if (!isInIframe) {
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openAutoExportConfig();
-                }
-            });
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R')) {
+                e.preventDefault();
+                e.stopPropagation();
+                openAutoExportConfig();
+            }
+        });
 
-            // Démarrer le timer si activé
-            setTimeout(() => {
-                if (autoExportEnabled) {
-                    startAutoExportTimer();
-                }
-            }, 2000);
-        }
+        // Démarrer le timer si activé
+        setTimeout(() => {
+            if (autoExportEnabled) {
+                startAutoExportTimer();
+            }
+        }, 2000);
 
         // Styles CSS pour le modal et les boutons - Interface moderne from Uiverse.io
         const styles = `
