@@ -429,8 +429,18 @@
                             const pattern = /([A-Z]{2})\s*--\s*(\d{2}\/\d{2}\/\d{4})\s*--\s*(.+)/;
                             const matchPattern = causeRebutText.match(pattern);
                             if (matchPattern && matchPattern[3]) {
-                                newCauseRebut = matchPattern[3].trim();
-                                console.log('[DEBUG] Extraction causeRebut depuis Info Agent (après pattern):', newCauseRebut);
+                                let extractedText = matchPattern[3].trim();
+                                console.log('[DEBUG] Extraction depuis Info Agent (après pattern):', extractedText);
+
+                                // Si le texte contient "Rebut cause : ", on récupère uniquement ce qui suit
+                                const rebutCauseMatch = extractedText.match(/Rebut cause\s*:\s*(.+)/i);
+                                if (rebutCauseMatch && rebutCauseMatch[1]) {
+                                    newCauseRebut = rebutCauseMatch[1].trim();
+                                    console.log('[DEBUG] Extraction causeRebut après "Rebut cause :" :', newCauseRebut);
+                                } else {
+                                    newCauseRebut = extractedText;
+                                    console.log('[DEBUG] Extraction causeRebut brute (pas de "Rebut cause :") :', newCauseRebut);
+                                }
                             } else {
                                 // Si le pattern n'est pas trouvé, laisser vide
                                 newCauseRebut = "";
