@@ -9,7 +9,6 @@
 // @match        planner.cloud.microsoft/webui/mytasks/*
 // @match        planner.cloud.microsoft/webui/myplans/*
 // @match        planner.cloud.microsoft/webui/plan/*
-//
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/BoutonModifiableCollectorInfo.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/OuvertureCommandeComposantViaCollector.js
 // @require      https://raw.githubusercontent.com/CreatureNoire/TamperMonkey/refs/heads/master/tampermonkey/Extention/Copie_Colle_REX.js
@@ -35,6 +34,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
 // ==/UserScript==
 
 (function () {
@@ -59,7 +59,8 @@
     let lastAutoExportTime = GM_getValue('collectorLastAutoExportTime', null);
     let autoExportDirHandle = null;
     let autoExportDirName = GM_getValue('collectorAutoExportDirName', '');
-    const AUTO_EXPORT_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3H
+    const AUTO_EXPORT_TARGET_HOUR = 9; // Heure cible : 9H du matin
+    const AUTO_EXPORT_CHECK_INTERVAL_MS = 60 * 1000; // Vérification toutes les 60 secondes
 
     // ── IndexedDB : persister le FileSystemDirectoryHandle ──
     const COL_IDB_NAME = 'CollectorAutoExportDB';
@@ -68,7 +69,8 @@
 
     function openColIDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(COL_IDB_NAME, 1);
+            const idb = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window).indexedDB;
+            const request = idb.open(COL_IDB_NAME, 1);
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains(COL_IDB_STORE)) {
@@ -99,6 +101,7 @@
     async function loadDirHandleFromIDB() {
         try {
             const db = await openColIDB();
+            console.log('🔄 [Collector] IDB ouverte, db.name:', db.name, 'objectStoreNames:', [...db.objectStoreNames]);
             const tx = db.transaction(COL_IDB_STORE, 'readonly');
             const store = tx.objectStore(COL_IDB_STORE);
             const request = store.get(COL_IDB_KEY);
@@ -107,6 +110,7 @@
                 request.onerror = () => reject(request.error);
             });
             db.close();
+            console.log('🔄 [Collector] Handle lu depuis IDB:', handle ? '✅ trouvé (' + handle.name + ')' : '❌ null/undefined');
             return handle || null;
         } catch (err) {
             console.warn('⚠️ [Collector] Impossible de charger le DirHandle depuis IDB:', err);
@@ -340,22 +344,31 @@
     }
 
     // ========================================
-    // AUTO-EXPORT AUTOMATIQUE (TOUTES LES 3H)
+    // AUTO-EXPORT AUTOMATIQUE (1x/jour à 9H)
     // ========================================
     async function performAutoExport() {
         if (!autoExportEnabled) return;
 
+        console.log('🔄 [Collector] Début performAutoExport…');
+        console.log('🔄 [Collector] autoExportDirHandle:', autoExportDirHandle ? '✅ présent (' + autoExportDirHandle.name + ')' : '❌ null');
+        console.log('🔄 [Collector] autoExportDirName:', autoExportDirName || '(vide)');
+
         // Tenter de restaurer le handle depuis IndexedDB si absent
         if (!autoExportDirHandle && autoExportDirName) {
+            console.log('🔄 [Collector] Tentative de restauration du handle depuis IndexedDB…');
             await restoreDirHandle();
+            console.log('🔄 [Collector] Après restauration, handle:', autoExportDirHandle ? '✅ présent' : '❌ toujours null');
         }
 
         // Si le handle est restauré, tenter de demander la permission
         if (autoExportDirHandle) {
             try {
                 const perm = await autoExportDirHandle.queryPermission({ mode: 'readwrite' });
+                console.log('🔄 [Collector] Permission actuelle:', perm);
                 if (perm !== 'granted') {
+                    console.log('🔄 [Collector] Demande de permission readwrite…');
                     const req = await autoExportDirHandle.requestPermission({ mode: 'readwrite' });
+                    console.log('🔄 [Collector] Résultat demande permission:', req);
                     if (req !== 'granted') {
                         console.warn('⚠️ [Collector] Permission refusée pour le dossier, fallback téléchargement');
                         autoExportDirHandle = null;
@@ -387,28 +400,30 @@
         const jsonData = JSON.stringify(payload, null, 2);
 
         if (autoExportDirHandle) {
-            autoExportDirHandle.getFileHandle(fileName, { create: true })
-                .then(fileHandle => fileHandle.createWritable())
-                .then(writable => writable.write(jsonData).then(() => writable.close()))
-                .then(() => {
-                    lastAutoExportTime = new Date().toISOString();
-                    GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
-                    console.log('✅ [Collector] Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
-                    showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
-                })
-                .catch(err => {
-                    console.warn('⚠️ [Collector] Écriture directe échouée, fallback téléchargement:', err);
-                    downloadJsonFile(payload, fileName);
-                    lastAutoExportTime = new Date().toISOString();
-                    GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
-                    showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName, lastAutoExportTime);
-                });
+            try {
+                console.log('🔄 [Collector] Écriture dans le dossier:', autoExportDirHandle.name, '→', fileName);
+                const fileHandle = await autoExportDirHandle.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(jsonData);
+                await writable.close();
+                lastAutoExportTime = new Date().toISOString();
+                GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
+                console.log('✅ [Collector] Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
+                showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
+            } catch (err) {
+                console.warn('⚠️ [Collector] Écriture directe échouée, fallback téléchargement:', err);
+                downloadJsonFile(payload, fileName);
+                lastAutoExportTime = new Date().toISOString();
+                GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
+                showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName + '\n❌ Erreur: ' + err.message, lastAutoExportTime);
+            }
         } else {
+            console.log('⚠️ [Collector] Pas de handle de dossier → téléchargement classique');
             downloadJsonFile(payload, fileName);
             lastAutoExportTime = new Date().toISOString();
             GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
             console.log('✅ [Collector] Auto-export téléchargé → ' + fileName);
-            showExportPanel('✅ Export réussi !', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
+            showExportPanel('⚠️ Pas de dossier configuré — téléchargé', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
         }
     }
 
@@ -497,23 +512,38 @@
         });
     }
 
-    // Démarrer / Arrêter le timer d'auto-export
+    // Vérifie si un export est nécessaire (1x/jour à 9H)
+    function shouldAutoExportNow() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const todayDateStr = now.toISOString().slice(0, 10);
+
+        // On vérifie si on est passé 9H et qu'on n'a pas encore exporté aujourd'hui
+        if (currentHour < AUTO_EXPORT_TARGET_HOUR) return false;
+
+        if (lastAutoExportTime) {
+            const lastExportDateStr = new Date(lastAutoExportTime).toISOString().slice(0, 10);
+            if (lastExportDateStr === todayDateStr) return false; // Déjà exporté aujourd'hui
+        }
+
+        return true;
+    }
+
     function startAutoExportTimer() {
         if (autoExportIntervalId) clearInterval(autoExportIntervalId);
         if (autoExportEnabled) {
-            // Si jamais aucun export n'a eu lieu, initialiser le point de départ à maintenant
-            if (!lastAutoExportTime) {
-                lastAutoExportTime = new Date().toISOString();
-                GM_setValue('collectorLastAutoExportTime', lastAutoExportTime);
-            }
-
-            const elapsed = Date.now() - new Date(lastAutoExportTime).getTime();
-            if (elapsed >= AUTO_EXPORT_INTERVAL_MS) {
+            // Vérifier immédiatement si un export est nécessaire
+            if (shouldAutoExportNow()) {
                 performAutoExport();
             }
 
-            autoExportIntervalId = setInterval(performAutoExport, AUTO_EXPORT_INTERVAL_MS);
-            console.log('⏱️ [Collector] Auto-export activé : toutes les 3h → fichier:', autoExportFileName);
+            // Vérifier toutes les 60 secondes si l'heure cible est atteinte
+            autoExportIntervalId = setInterval(() => {
+                if (shouldAutoExportNow()) {
+                    performAutoExport();
+                }
+            }, AUTO_EXPORT_CHECK_INTERVAL_MS);
+            console.log('⏱️ [Collector] Auto-export activé : 1x/jour à 9H → fichier:', autoExportFileName);
         }
     }
 
@@ -846,14 +876,14 @@
                 <!-- ═══════ Section Auto-Export ═══════ -->
                 <div class="cei-section open" data-section="auto-export">
                     <div class="cei-section-header">
-                        <span class="cei-section-title">⏱️ Auto-Export Local (3H)</span>
+                        <span class="cei-section-title">⏱️ Auto-Export Local</span>
                         <span id="cei-auto-timer" class="cei-timer">${autoExportEnabled ? '⏳ …' : '⏸️ OFF'}</span>
                         <span class="cei-section-arrow">▼</span>
                     </div>
                     <div class="cei-section-body">
                         <div class="cei-auto-info">
-                            💾 Exporte automatiquement <b>Boutons + REX</b> sur votre PC toutes les 3 heures.<br>
-                            ⚠️ Le timer ne tourne <b>que quand la page Collector est ouverte</b>. Si la page est fermée puis réouverte, un export se fera immédiatement si plus de 3h se sont écoulées.
+                            💾 Exporte automatiquement <b>Boutons + REX</b> sur votre PC <b>1 fois par jour à 9H</b>.<br>
+                            ⚠️ Le timer ne tourne <b>que quand la page Collector est ouverte</b>. Si la page est ouverte après 9H et qu'aucun export n'a eu lieu aujourd'hui, l'export se fera immédiatement.
                         </div>
 
                         <div id="cei-auto-last-export" class="cei-hint" style="margin-bottom:14px;color:#888;">
@@ -874,11 +904,11 @@
                         <label class="cei-field-label" for="cei-auto-filename-input">📄 Nom du fichier d'export</label>
                         <input type="text" class="cei-input" id="cei-auto-filename-input" placeholder="CollectorExport" value="${autoExportFileName.replace(/"/g, '&quot;')}" />
                         <div class="cei-preview" id="cei-auto-filename-preview">
-                            Aperçu : ${autoExportFileName}_${new Date().toISOString().slice(0, 10)}_14h30.json
+                            Aperçu : ${autoExportFileName}_${new Date().toISOString().slice(0, 10)}_09h00.json
                         </div>
 
                         <div class="cei-toggle-row">
-                            <span class="cei-toggle-label">⏱️ Activer l'auto-export toutes les 3H</span>
+                            <span class="cei-toggle-label">⏱️ Activer l'auto-export quotidien à 9H</span>
                             <label class="cei-toggle">
                                 <input type="checkbox" id="cei-auto-enabled-toggle" ${autoExportEnabled ? 'checked' : ''} />
                                 <span class="cei-toggle-slider"></span>
@@ -886,6 +916,7 @@
                         </div>
 
                         <button class="cei-btn cei-btn-save" id="cei-auto-btn-save">💾 Sauvegarder la configuration</button>
+                        <button class="cei-btn" id="cei-auto-btn-test" style="background:linear-gradient(135deg,#1e5f3a,#2a8050);color:#7df0b8;margin-top:8px;">🧪 Tester l'export maintenant</button>
                     </div>
                 </div>
 
@@ -923,23 +954,47 @@
             timerEl.classList.remove('off');
 
             if (!lastAutoExportTime) {
-                timerEl.textContent = '⏳ 03:00:00';
+                timerEl.textContent = '⏳ Prochain : 9H';
                 return;
             }
 
-            const elapsed = Date.now() - new Date(lastAutoExportTime).getTime();
-            const remaining = AUTO_EXPORT_INTERVAL_MS - elapsed;
+            // Calculer le prochain export à 9H
+            const now = new Date();
+            const todayDateStr = now.toISOString().slice(0, 10);
+            const lastExportDateStr = new Date(lastAutoExportTime).toISOString().slice(0, 10);
 
-            if (remaining <= 0) {
-                timerEl.textContent = '🔄 Imminent';
-                return;
+            if (lastExportDateStr === todayDateStr) {
+                // Déjà exporté aujourd'hui → prochain demain à 9H
+                const tomorrow9H = new Date(now);
+                tomorrow9H.setDate(tomorrow9H.getDate() + 1);
+                tomorrow9H.setHours(AUTO_EXPORT_TARGET_HOUR, 0, 0, 0);
+                const remaining = tomorrow9H.getTime() - now.getTime();
+
+                if (remaining <= 0) {
+                    timerEl.textContent = '🔄 Imminent';
+                    return;
+                }
+
+                const totalSec = Math.floor(remaining / 1000);
+                const h = Math.floor(totalSec / 3600);
+                const m = Math.floor((totalSec % 3600) / 60);
+                const s = totalSec % 60;
+                timerEl.textContent = '⏳ ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            } else {
+                // Pas encore exporté aujourd'hui
+                if (now.getHours() >= AUTO_EXPORT_TARGET_HOUR) {
+                    timerEl.textContent = '🔄 Imminent';
+                } else {
+                    const today9H = new Date(now);
+                    today9H.setHours(AUTO_EXPORT_TARGET_HOUR, 0, 0, 0);
+                    const remaining = today9H.getTime() - now.getTime();
+                    const totalSec = Math.floor(remaining / 1000);
+                    const h = Math.floor(totalSec / 3600);
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const s = totalSec % 60;
+                    timerEl.textContent = '⏳ ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                }
             }
-
-            const totalSec = Math.floor(remaining / 1000);
-            const h = Math.floor(totalSec / 3600);
-            const m = Math.floor((totalSec % 3600) / 60);
-            const s = totalSec % 60;
-            timerEl.textContent = '⏳ ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
         }
 
         updateTimerDisplay();
@@ -961,9 +1016,10 @@
 
         // ── Auto-Export : Bouton Parcourir ──
         document.getElementById('cei-auto-btn-browse').addEventListener('click', async () => {
-            if (typeof window.showDirectoryPicker === 'function') {
+            const win = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window);
+            if (typeof win.showDirectoryPicker === 'function') {
                 try {
-                    autoExportDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    autoExportDirHandle = await win.showDirectoryPicker({ mode: 'readwrite' });
                     autoExportDirName = autoExportDirHandle.name;
                     GM_setValue('collectorAutoExportDirName', autoExportDirName);
                     await saveDirHandleToIDB(autoExportDirHandle);
@@ -987,7 +1043,7 @@
         const filenamePreview = document.getElementById('cei-auto-filename-preview');
         filenameInput.addEventListener('input', () => {
             const name = filenameInput.value.trim() || 'CollectorExport';
-            filenamePreview.textContent = 'Aperçu : ' + name + '_' + new Date().toISOString().slice(0, 10) + '_14h30.json';
+            filenamePreview.textContent = 'Aperçu : ' + name + '_' + new Date().toISOString().slice(0, 10) + '_09h00.json';
         });
 
         // ── Auto-Export : Bouton Sauvegarder ──
@@ -1004,7 +1060,7 @@
             if (autoExportEnabled) {
                 startAutoExportTimer();
                 const dest = autoExportDirName ? '📂 ' + autoExportDirName : '📥 Téléchargements';
-                showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain dans 3h.');
+                showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain export à 9H.');
                 updateTimerDisplay();
             } else {
                 stopAutoExportTimer();
@@ -1012,6 +1068,17 @@
                 updateTimerDisplay();
             }
 
+            modal.remove();
+        });
+
+        // ── Auto-Export : Bouton Tester l'export ──
+        document.getElementById('cei-auto-btn-test').addEventListener('click', async () => {
+            showNotification('🧪 Test d\'export en cours…');
+            // Forcer l'export même si auto-export désactivé (c'est un test manuel)
+            const wasEnabled = autoExportEnabled;
+            autoExportEnabled = true;
+            await performAutoExport();
+            autoExportEnabled = wasEnabled;
             modal.remove();
         });
 
