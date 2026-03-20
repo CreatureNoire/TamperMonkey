@@ -691,12 +691,118 @@
         let autoExportDirHandle = null; // Handle du dossier choisi (File System Access API)
         let autoExportDirName = GM_getValue('autoExportDirName', ''); // Nom du dossier pour affichage
 
-        // Durée entre chaque auto-export : 3 heures en millisecondes
-        const AUTO_EXPORT_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3H
+        // Durée entre chaque vérification + heure cible d'export quotidien
+        const AUTO_EXPORT_TARGET_HOUR = 9; // Heure cible : 9H du matin
+        const AUTO_EXPORT_CHECK_INTERVAL_MS = 60 * 1000; // Vérification toutes les 60 secondes
+
+        // ── IndexedDB : persister le FileSystemDirectoryHandle ──
+        const PA_IDB_NAME = 'PowerAppAutoExportDB';
+        const PA_IDB_STORE = 'dirHandles';
+        const PA_IDB_KEY = 'autoExportDirHandle';
+
+        function openPaIDB() {
+            return new Promise((resolve, reject) => {
+                const idb = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window).indexedDB;
+                const request = idb.open(PA_IDB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(PA_IDB_STORE)) {
+                        db.createObjectStore(PA_IDB_STORE);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveDirHandleToIDB(handle) {
+            try {
+                const db = await openPaIDB();
+                const tx = db.transaction(PA_IDB_STORE, 'readwrite');
+                tx.objectStore(PA_IDB_STORE).put(handle, PA_IDB_KEY);
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                db.close();
+                console.log('💾 [PowerApp] DirHandle sauvegardé dans IndexedDB');
+            } catch (err) {
+                console.warn('⚠️ [PowerApp] Impossible de sauvegarder le DirHandle dans IDB:', err);
+            }
+        }
+
+        async function loadDirHandleFromIDB() {
+            try {
+                const db = await openPaIDB();
+                console.log('🔄 [PowerApp] IDB ouverte, db.name:', db.name, 'objectStoreNames:', [...db.objectStoreNames]);
+                const tx = db.transaction(PA_IDB_STORE, 'readonly');
+                const store = tx.objectStore(PA_IDB_STORE);
+                const request = store.get(PA_IDB_KEY);
+                const handle = await new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                db.close();
+                console.log('🔄 [PowerApp] Handle lu depuis IDB:', handle ? '✅ trouvé (' + handle.name + ')' : '❌ null/undefined');
+                return handle || null;
+            } catch (err) {
+                console.warn('⚠️ [PowerApp] Impossible de charger le DirHandle depuis IDB:', err);
+                return null;
+            }
+        }
+
+        async function restoreDirHandle() {
+            if (autoExportDirHandle) return; // déjà en mémoire
+            const handle = await loadDirHandleFromIDB();
+            if (!handle) return;
+            try {
+                const perm = await handle.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    autoExportDirHandle = handle;
+                    console.log('✅ [PowerApp] DirHandle restauré depuis IDB → ' + handle.name);
+                } else if (perm === 'prompt') {
+                    autoExportDirHandle = handle;
+                    console.log('⏳ [PowerApp] DirHandle restauré (permission en attente) → ' + handle.name);
+                }
+            } catch (err) {
+                console.warn('⚠️ [PowerApp] DirHandle invalide, ignoré:', err);
+            }
+        }
 
         // Fonction d'auto-export : sauve le fichier JSON directement dans le dossier choisi ou télécharge
-        function performAutoExport() {
+        async function performAutoExport() {
             if (!autoExportEnabled) return;
+
+            console.log('🔄 [PowerApp] Début performAutoExport…');
+            console.log('🔄 [PowerApp] autoExportDirHandle:', autoExportDirHandle ? '✅ présent (' + autoExportDirHandle.name + ')' : '❌ null');
+            console.log('🔄 [PowerApp] autoExportDirName:', autoExportDirName || '(vide)');
+
+            // Tenter de restaurer le handle depuis IndexedDB si absent
+            if (!autoExportDirHandle && autoExportDirName) {
+                console.log('🔄 [PowerApp] Tentative de restauration du handle depuis IndexedDB…');
+                await restoreDirHandle();
+                console.log('🔄 [PowerApp] Après restauration, handle:', autoExportDirHandle ? '✅ présent' : '❌ toujours null');
+            }
+
+            // Si le handle est restauré, tenter de demander la permission
+            if (autoExportDirHandle) {
+                try {
+                    const perm = await autoExportDirHandle.queryPermission({ mode: 'readwrite' });
+                    console.log('🔄 [PowerApp] Permission actuelle:', perm);
+                    if (perm !== 'granted') {
+                        console.log('🔄 [PowerApp] Demande de permission readwrite…');
+                        const req = await autoExportDirHandle.requestPermission({ mode: 'readwrite' });
+                        console.log('🔄 [PowerApp] Résultat demande permission:', req);
+                        if (req !== 'granted') {
+                            console.warn('⚠️ [PowerApp] Permission refusée pour le dossier, fallback téléchargement');
+                            autoExportDirHandle = null;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('⚠️ [PowerApp] Erreur de permission, fallback téléchargement:', err);
+                    autoExportDirHandle = null;
+                }
+            }
 
             const payload = {
                 version: 1,
@@ -712,30 +818,30 @@
 
             // Si on a un handle de dossier (File System Access API), écrire directement dedans
             if (autoExportDirHandle) {
-                autoExportDirHandle.getFileHandle(fileName, { create: true })
-                    .then(fileHandle => fileHandle.createWritable())
-                    .then(writable => {
-                        return writable.write(jsonData).then(() => writable.close());
-                    })
-                    .then(() => {
-                        lastAutoExportTime = new Date().toISOString();
-                        GM_setValue('lastAutoExportTime', lastAutoExportTime);
-                        console.log('✅ Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
-                        showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
-                    })
-                    .catch(err => {
-                        console.warn('⚠️ Écriture directe échouée, fallback téléchargement:', err);
-                        downloadJsonFile(payload, fileName);
-                        lastAutoExportTime = new Date().toISOString();
-                        GM_setValue('lastAutoExportTime', lastAutoExportTime);
-                        showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName, lastAutoExportTime);
-                    });
+                try {
+                    console.log('🔄 [PowerApp] Écriture dans le dossier:', autoExportDirHandle.name, '→', fileName);
+                    const fileHandle = await autoExportDirHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(jsonData);
+                    await writable.close();
+                    lastAutoExportTime = new Date().toISOString();
+                    GM_setValue('lastAutoExportTime', lastAutoExportTime);
+                    console.log('✅ [PowerApp] Auto-export direct réussi → ' + autoExportDirName + '/' + fileName);
+                    showExportPanel('✅ Export réussi !', '📂 ' + autoExportDirName + ' → ' + fileName, lastAutoExportTime);
+                } catch (err) {
+                    console.warn('⚠️ [PowerApp] Écriture directe échouée, fallback téléchargement:', err);
+                    downloadJsonFile(payload, fileName);
+                    lastAutoExportTime = new Date().toISOString();
+                    GM_setValue('lastAutoExportTime', lastAutoExportTime);
+                    showExportPanel('⚠️ Dossier inaccessible — téléchargé', '📥 ' + fileName + '\n❌ Erreur: ' + err.message, lastAutoExportTime);
+                }
             } else {
+                console.log('⚠️ [PowerApp] Pas de handle de dossier → téléchargement classique');
                 downloadJsonFile(payload, fileName);
                 lastAutoExportTime = new Date().toISOString();
                 GM_setValue('lastAutoExportTime', lastAutoExportTime);
-                console.log('✅ Auto-export téléchargé → ' + fileName);
-                showExportPanel('✅ Export réussi !', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
+                console.log('✅ [PowerApp] Auto-export téléchargé → ' + fileName);
+                showExportPanel('⚠️ Pas de dossier configuré — téléchargé', '📥 Téléchargé → ' + fileName, lastAutoExportTime);
             }
         }
 
@@ -847,21 +953,40 @@
             });
         }
 
+        // Vérifie si un export est nécessaire (1x/jour à 9H)
+        function shouldAutoExportNow() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const todayDateStr = now.toISOString().slice(0, 10);
+
+            // On vérifie si on est passé 9H et qu'on n'a pas encore exporté aujourd'hui
+            if (currentHour < AUTO_EXPORT_TARGET_HOUR) return false;
+
+            if (lastAutoExportTime) {
+                const lastExportDateStr = new Date(lastAutoExportTime).toISOString().slice(0, 10);
+                if (lastExportDateStr === todayDateStr) return false; // Déjà exporté aujourd'hui
+            }
+
+            return true;
+        }
+
         // Démarrer/Arrêter le timer d'auto-export
         function startAutoExportTimer() {
             if (autoExportIntervalId) {
                 clearInterval(autoExportIntervalId);
             }
             if (autoExportEnabled) {
-                // Premier export immédiat si le dernier date de plus de 3H
-                if (lastAutoExportTime) {
-                    const elapsed = Date.now() - new Date(lastAutoExportTime).getTime();
-                    if (elapsed >= AUTO_EXPORT_INTERVAL_MS) {
+                // Vérifier immédiatement si un export est nécessaire
+                if (shouldAutoExportNow()) {
+                    performAutoExport();
+                }
+                // Vérifier toutes les 60 secondes si l'heure cible est atteinte
+                autoExportIntervalId = setInterval(() => {
+                    if (shouldAutoExportNow()) {
                         performAutoExport();
                     }
-                }
-                autoExportIntervalId = setInterval(performAutoExport, AUTO_EXPORT_INTERVAL_MS);
-                console.log('⏱️ Auto-export local activé : toutes les 3 heures → fichier:', autoExportFileName);
+                }, AUTO_EXPORT_CHECK_INTERVAL_MS);
+                console.log('⏱️ Auto-export local activé : 1x/jour à 9H → fichier:', autoExportFileName);
             }
         }
 
@@ -1044,14 +1169,43 @@
                         margin-bottom: 18px;
                         line-height: 1.5;
                     }
+                    .auto-export-timer {
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #4ade80;
+                        background: rgba(74, 222, 128, 0.1);
+                        border: 1px solid rgba(74, 222, 128, 0.2);
+                        padding: 3px 8px;
+                        border-radius: 6px;
+                        margin-left: 12px;
+                        white-space: nowrap;
+                        font-family: 'Consolas', 'Courier New', monospace;
+                        letter-spacing: 0.5px;
+                        min-width: 70px;
+                        text-align: center;
+                        display: inline-block;
+                        vertical-align: middle;
+                    }
+                    .auto-export-timer.off {
+                        color: #888;
+                        background: rgba(255, 255, 255, 0.05);
+                        border-color: rgba(255, 255, 255, 0.1);
+                    }
                 </style>
                 <div id="auto-export-config-box">
-                    <h2>💾 Configuration Auto-Export Local</h2>
-                    <p class="subtitle">Exporte automatiquement vos favoris sur votre PC toutes les 3 heures</p>
+                    <h2>💾 Configuration Auto-Export Local <span id="auto-export-timer" class="auto-export-timer">${autoExportEnabled ? '⏳ …' : '⏸️ OFF'}</span></h2>
+                    <p class="subtitle">Exporte automatiquement vos favoris sur votre PC 1 fois par jour à 9H</p>
+
+                    <div id="auto-export-last-info" style="font-size:12px;color:#888;margin-bottom:12px;">
+                        ${lastAutoExportTime
+                            ? '📅 Dernier export : ' + new Date(lastAutoExportTime).toLocaleDateString('fr-FR') + ' à ' + new Date(lastAutoExportTime).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})
+                            : '📅 Aucun export effectué pour le moment'}
+                    </div>
 
                     <div class="auto-export-info">
                         💡 Choisissez un <b>dossier de destination</b> et le fichier JSON y sera sauvegardé directement.<br>
-                        Un nouveau fichier sera créé automatiquement toutes les <b>3 heures</b>.<br>
+                        Un nouveau fichier sera créé automatiquement <b>1 fois par jour à 9H</b>.<br>
+                        ⚠️ Le timer ne tourne <b>que quand la page est ouverte</b>. Si la page est ouverte après 9H et qu'aucun export n'a eu lieu aujourd'hui, l'export se fera immédiatement.<br>
                         Raccourci : <b>Ctrl + Alt + R</b> pour rouvrir cette fenêtre.
                     </div>
 
@@ -1067,11 +1221,11 @@
                     <label class="field-label" for="auto-export-filename-input">📄 Nom du fichier d\'export</label>
                     <input type="text" id="auto-export-filename-input" placeholder="ComposantExport" value="${autoExportFileName.replace(/"/g, '&quot;')}" />
                     <div class="auto-export-filename-preview" id="auto-export-filename-preview">
-                        Aperçu : ${autoExportFileName}_2026-03-19_14h30.json
+                        Aperçu : ${autoExportFileName}_2026-03-20_09h00.json
                     </div>
 
                     <div class="auto-export-toggle-row">
-                        <span class="auto-export-toggle-label">⏱️ Activer l'auto-export toutes les 3H</span>
+                        <span class="auto-export-toggle-label">⏱️ Activer l'auto-export quotidien à 9H</span>
                         <label class="auto-export-toggle">
                             <input type="checkbox" id="auto-export-enabled-toggle" ${autoExportEnabled ? 'checked' : ''} />
                             <span class="slider"></span>
@@ -1090,18 +1244,87 @@
                         <button class="auto-export-btn auto-export-btn-cancel" id="auto-export-btn-cancel">Annuler</button>
                         <button class="auto-export-btn auto-export-btn-save" id="auto-export-btn-save">💾 Sauvegarder</button>
                     </div>
+                    <button class="auto-export-btn" id="auto-export-btn-test" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#1e5f3a,#2a8050);color:#7df0b8;">🧪 Tester l'export maintenant</button>
                 </div>
             `;
 
             document.body.appendChild(modal);
 
+            // ── Timer countdown dans le header ──
+            const timerEl = document.getElementById('auto-export-timer');
+            let timerInterval = null;
+
+            function updateTimerDisplay() {
+                if (!autoExportEnabled) {
+                    timerEl.textContent = '⏸️ OFF';
+                    timerEl.classList.add('off');
+                    return;
+                }
+                timerEl.classList.remove('off');
+
+                if (!lastAutoExportTime) {
+                    timerEl.textContent = '⏳ Prochain : 9H';
+                    return;
+                }
+
+                // Calculer le prochain export à 9H
+                const now = new Date();
+                const todayDateStr = now.toISOString().slice(0, 10);
+                const lastExportDateStr = new Date(lastAutoExportTime).toISOString().slice(0, 10);
+
+                if (lastExportDateStr === todayDateStr) {
+                    // Déjà exporté aujourd'hui → prochain demain à 9H
+                    const tomorrow9H = new Date(now);
+                    tomorrow9H.setDate(tomorrow9H.getDate() + 1);
+                    tomorrow9H.setHours(AUTO_EXPORT_TARGET_HOUR, 0, 0, 0);
+                    const remaining = tomorrow9H.getTime() - now.getTime();
+
+                    if (remaining <= 0) {
+                        timerEl.textContent = '🔄 Imminent';
+                        return;
+                    }
+
+                    const totalSec = Math.floor(remaining / 1000);
+                    const h = Math.floor(totalSec / 3600);
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const s = totalSec % 60;
+                    timerEl.textContent = '⏳ ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                } else {
+                    // Pas encore exporté aujourd'hui
+                    if (now.getHours() >= AUTO_EXPORT_TARGET_HOUR) {
+                        timerEl.textContent = '🔄 Imminent';
+                    } else {
+                        const today9H = new Date(now);
+                        today9H.setHours(AUTO_EXPORT_TARGET_HOUR, 0, 0, 0);
+                        const remaining = today9H.getTime() - now.getTime();
+                        const totalSec = Math.floor(remaining / 1000);
+                        const h = Math.floor(totalSec / 3600);
+                        const m = Math.floor((totalSec % 3600) / 60);
+                        const s = totalSec % 60;
+                        timerEl.textContent = '⏳ ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                    }
+                }
+            }
+
+            updateTimerDisplay();
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+
+            // Nettoyer l'interval quand le modal est fermé
+            const originalRemove = modal.remove.bind(modal);
+            modal.remove = () => {
+                if (timerInterval) clearInterval(timerInterval);
+                originalRemove();
+            };
+
             // Bouton Parcourir - ouvre le sélecteur de dossier natif (File System Access API)
             document.getElementById('auto-export-btn-browse').addEventListener('click', async () => {
-                if (typeof window.showDirectoryPicker === 'function') {
+                const win = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window);
+                if (typeof win.showDirectoryPicker === 'function') {
                     try {
-                        autoExportDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                        autoExportDirHandle = await win.showDirectoryPicker({ mode: 'readwrite' });
                         autoExportDirName = autoExportDirHandle.name;
                         GM_setValue('autoExportDirName', autoExportDirName);
+                        await saveDirHandleToIDB(autoExportDirHandle);
                         document.getElementById('auto-export-path-display').textContent = '📁 ' + autoExportDirName;
                         document.getElementById('auto-export-path-hint').textContent = '✅ Les fichiers seront enregistrés dans ce dossier';
                         document.getElementById('auto-export-path-hint').style.color = '#4ade80';
@@ -1122,7 +1345,7 @@
             const filenamePreview = document.getElementById('auto-export-filename-preview');
             filenameInput.addEventListener('input', () => {
                 const name = filenameInput.value.trim() || 'ComposantExport';
-                filenamePreview.textContent = 'Aperçu : ' + name + '_2026-03-19_14h30.json';
+                filenamePreview.textContent = 'Aperçu : ' + name + '_2026-03-20_09h00.json';
             });
 
             // Fermer en cliquant en dehors
@@ -1149,12 +1372,25 @@
                 if (autoExportEnabled) {
                     startAutoExportTimer();
                     const dest = autoExportDirName ? '📂 ' + autoExportDirName : '📥 Téléchargements';
-                    showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain dans 3h.');
+                    showNotification('✅ Auto-export activé ! → ' + dest + ' — Prochain export à 9H.');
+                    updateTimerDisplay();
                 } else {
                     stopAutoExportTimer();
                     showNotification('⏸️ Auto-export désactivé.');
+                    updateTimerDisplay();
                 }
 
+                modal.remove();
+            });
+
+            // Bouton Tester l'export
+            document.getElementById('auto-export-btn-test').addEventListener('click', async () => {
+                showNotification('🧪 Test d\'export en cours…');
+                // Forcer l'export même si auto-export désactivé (c'est un test manuel)
+                const wasEnabled = autoExportEnabled;
+                autoExportEnabled = true;
+                await performAutoExport();
+                autoExportEnabled = wasEnabled;
                 modal.remove();
             });
 
@@ -1189,12 +1425,14 @@
             }
         });
 
-        // Démarrer le timer si activé
-        setTimeout(() => {
-            if (autoExportEnabled) {
-                startAutoExportTimer();
-            }
-        }, 2000);
+        // Restaurer le handle du dossier et démarrer le timer si activé
+        restoreDirHandle().then(() => {
+            setTimeout(() => {
+                if (autoExportEnabled) {
+                    startAutoExportTimer();
+                }
+            }, 2000);
+        });
 
         // Styles CSS pour le modal et les boutons - Interface moderne from Uiverse.io
         const styles = `
