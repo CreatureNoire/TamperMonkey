@@ -1,290 +1,302 @@
 (function() {
-        'use strict';
+    'use strict';
 
-        // Liste des boutons disponibles
-        const BOUTONS_DISPONIBLES = [
-            { key: 'RP', label: 'RP', compteur: true },
-            { key: 'RU', label: 'RU', compteur: true },
-            { key: 'CP', label: 'CP', compteur: true },
-            { key: 'RQ', label: 'RQ', compteur: true },
-            { key: 'RN', label: 'RN', compteur: true }
-        ];
+    // Liste des boutons disponibles
+    const BOUTONS_DISPONIBLES = [
+        { key: 'RP', label: 'RP', compteur: true },
+        { key: 'RU', label: 'RU', compteur: true },
+        { key: 'CP', label: 'CP', compteur: true },
+        { key: 'RQ', label: 'RQ', compteur: true },
+        { key: 'RN', label: 'RN', compteur: true }
+    ];
 
-        // Charger la config utilisateur (boutons à afficher)
-        function chargerConfigBoutons() {
-            const config = localStorage.getItem('optimum-boutons-utilisateur');
-            if (config) {
-                try {
-                    const arr = JSON.parse(config);
-                    if (Array.isArray(arr) && arr.length > 0) return arr;
-                } catch {}
-            }
-            // Par défaut : tous les boutons
-            return ['RP', 'RU', 'CP', 'RN'];
+    // Charger la config utilisateur (boutons à afficher)
+    function chargerConfigBoutons() {
+        const config = localStorage.getItem('optimum-boutons-utilisateur');
+        if (config) {
+            try {
+                const arr = JSON.parse(config);
+                if (Array.isArray(arr) && arr.length > 0) return arr;
+            } catch {}
         }
+        // Par défaut : tous les boutons
+        return ['RP', 'RU', 'CP', 'RN'];
+    }
 
-        // Sauvegarder la config utilisateur
-        function sauvegarderConfigBoutons(arr) {
-            localStorage.setItem('optimum-boutons-utilisateur', JSON.stringify(arr));
-        }
+    // Sauvegarder la config utilisateur
+    function sauvegarderConfigBoutons(arr) {
+        localStorage.setItem('optimum-boutons-utilisateur', JSON.stringify(arr));
+    }
 
-        // Menu de configuration (Ctrl+Alt+R)
-        function ouvrirMenuConfigBoutons() {
-            // Éviter doublon
-            if (document.getElementById('optimum-boutons-config-popup')) return;
+    // Menu de configuration (Ctrl+Alt+R)
+    function ouvrirMenuConfigBoutons() {
+        // Éviter doublon
+        if (document.getElementById('optimum-boutons-config-popup')) return;
 
-            const boutonsActifs = chargerConfigBoutons();
+        const boutonsActifs = chargerConfigBoutons();
 
-            const overlay = document.createElement('div');
-            overlay.id = 'optimum-boutons-config-popup';
-            overlay.style.cssText = `
-                position: fixed; inset: 0; z-index: 99999;
-                background: rgba(0,0,0,0.55);
-                display: flex; align-items: center; justify-content: center;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            `;
+        const overlay = document.createElement('div');
+        overlay.id = 'optimum-boutons-config-popup';
+        overlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 99999;
+            background: rgba(0,0,0,0.55);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        `;
 
-            let html = `<div style="background: #1e1e2e; color: #cdd6f4; border-radius: 16px; padding: 32px 36px; box-shadow: 0 8px 40px rgba(0,0,0,0.7); min-width: 340px; max-width: 420px; border: 1px solid rgba(139,92,246,0.4);">
-                <div style="font-size:1.2rem; font-weight:700; margin-bottom:8px; color:#cba6f7;">⚙️ Configuration des boutons</div>
-                <div style="font-size:0.95rem; color:#a6adc8; margin-bottom:18px;">Cochez les boutons à afficher :</div>
-                <form id='optimum-boutons-form'>`;
-            BOUTONS_DISPONIBLES.forEach(b => {
-                html += `<label style='display:flex;align-items:center;margin-bottom:8px;gap:8px;'><input type='checkbox' name='btn' value='${b.key}' ${boutonsActifs.includes(b.key) ? 'checked' : ''} style='accent-color:#b4befe;width:18px;height:18px;'> <span style='font-size:1.05rem;'>${b.label}</span></label>`;
-            });
-            html += `</form>
-                <div style='display:flex;gap:12px;justify-content:flex-end;margin-top:18px;'>
-                    <button id='optimum-boutons-cancel' style='padding:9px 20px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);background:transparent;color:#a6adc8;cursor:pointer;font-size:0.9rem;'>Annuler</button>
-                    <button id='optimum-boutons-save' style='padding:9px 22px;border-radius:8px;border:none;background:linear-gradient(135deg, hsl(260,97%,50%), hsl(280,90%,65%));color:white;cursor:pointer;font-size:0.9rem;font-weight:600;'>Enregistrer</button>
-                </div>
-            </div>`;
-            overlay.innerHTML = html;
-            document.body.appendChild(overlay);
-
-            document.getElementById('optimum-boutons-cancel').onclick = () => document.body.removeChild(overlay);
-            document.getElementById('optimum-boutons-save').onclick = () => {
-                const checked = Array.from(document.querySelectorAll('#optimum-boutons-form input[type=checkbox]:checked')).map(i => i.value);
-                if (checked.length === 0) {
-                    alert('Sélectionnez au moins un bouton !');
-                    return;
-                }
-                sauvegarderConfigBoutons(checked);
-                document.body.removeChild(overlay);
-                removeCustomButtons();
-                insertButtons();
-            };
-        }
-
-        // Raccourci clavier Ctrl+Alt+R pour ouvrir le menu
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r') {
-                ouvrirMenuConfigBoutons();
-            }
+        let html = `<div style="background: #1e1e2e; color: #cdd6f4; border-radius: 16px; padding: 32px 36px; box-shadow: 0 8px 40px rgba(0,0,0,0.7); min-width: 340px; max-width: 420px; border: 1px solid rgba(139,92,246,0.4);">
+            <div style="font-size:1.2rem; font-weight:700; margin-bottom:8px; color:#cba6f7;">⚙️ Configuration des boutons</div>
+            <div style="font-size:0.95rem; color:#a6adc8; margin-bottom:18px;">Cochez les boutons à afficher :</div>
+            <form id='optimum-boutons-form'>`;
+        BOUTONS_DISPONIBLES.forEach(b => {
+            html += `<label style='display:flex;align-items:center;margin-bottom:8px;gap:8px;'><input type='checkbox' name='btn' value='${b.key}' ${boutonsActifs.includes(b.key) ? 'checked' : ''} style='accent-color:#b4befe;width:18px;height:18px;'> <span style='font-size:1.05rem;'>${b.label}</span></label>`;
         });
+        html += `</form>
+            <div style='display:flex;gap:12px;justify-content:flex-end;margin-top:18px;'>
+                <button id='optimum-boutons-cancel' style='padding:9px 20px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);background:transparent;color:#a6adc8;cursor:pointer;font-size:0.9rem;'>Annuler</button>
+                <button id='optimum-boutons-save' style='padding:9px 22px;border-radius:8px;border:none;background:linear-gradient(135deg, hsl(260,97%,50%), hsl(280,90%,65%));color:white;cursor:pointer;font-size:0.9rem;font-weight:600;'>Enregistrer</button>
+            </div>
+        </div>`;
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
 
-        // Ajouter le CSS moderne pour les boutons
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Style moderne des boutons avec effet glow */
-            .modern-button {
-                --black-700: hsla(0 0% 12% / 1);
-                --border_radius: 9999px;
-                --transtion: 0.3s ease-in-out;
-                --offset: 2px;
-                cursor: pointer;
-                position: relative;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                transform-origin: center;
-                padding: 0.5rem 1rem;
-                background-color: transparent;
-                border: none;
-                border-radius: var(--border_radius);
-                transform: scale(calc(1 + (var(--active, 0) * 0.05)));
-                transition: transform var(--transtion);
+        document.getElementById('optimum-boutons-cancel').onclick = () => document.body.removeChild(overlay);
+        document.getElementById('optimum-boutons-save').onclick = () => {
+            const checked = Array.from(document.querySelectorAll('#optimum-boutons-form input[type=checkbox]:checked')).map(i => i.value);
+            if (checked.length === 0) {
+                alert('Sélectionnez au moins un bouton !');
+                return;
             }
+            sauvegarderConfigBoutons(checked);
+            document.body.removeChild(overlay);
+            removeCustomButtons();
+            insertButtons();
+        };
+    }
 
-            .modern-button::before {
-                content: "";
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 100%;
-                height: 100%;
-                background-color: inherit;
-                border-radius: var(--border_radius);
-                box-shadow: inset 0 0.5px hsla(255, 255%, 255%, 0.2), inset 0 -1px 2px 0 hsla(0, 0%, 0%, 0.3),
-                    0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))),
-                    0 0 0 calc(var(--active, 0) * 0.2rem) hsl(260 97% 50% / 0.5);
-                transition: all var(--transtion);
-                z-index: 0;
-            }
+    // Raccourci clavier Ctrl+Alt+R pour ouvrir le menu
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r') {
+            ouvrirMenuConfigBoutons();
+        }
+    });
 
-            .modern-button::after {
-                content: "";
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 100%;
-                height: 100%;
-                background-color: hsla(260 97% 61% / 0.4);
-                background-image: radial-gradient(at 51% 89%, hsla(266, 45%, 74%, 0.6) 0px, transparent 50%),
-                    radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 0.5) 0px, transparent 50%),
-                    radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 0.5) 0px, transparent 50%);
-                background-position: top;
-                opacity: var(--active, 0);
-                border-radius: var(--border_radius);
-                transition: opacity var(--transtion);
-                z-index: 2;
-            }
+    // Ajouter le CSS moderne pour les boutons
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Style moderne des boutons avec effet glow */
+        .modern-button {
+            --black-700: hsla(0 0% 12% / 1);
+            --border_radius: 9999px;
+            --transtion: 0.3s ease-in-out;
+            --offset: 2px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transform-origin: center;
+            padding: 0.5rem 1rem;
+            background-color: transparent;
+            border: none;
+            border-radius: var(--border_radius);
+            transform: scale(calc(1 + (var(--active, 0) * 0.05)));
+            transition: transform var(--transtion);
+        }
 
-            .modern-button:is(:hover, :focus-visible) {
-                --active: 1;
-            }
+        .modern-button::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background-color: inherit;
+            border-radius: var(--border_radius);
+            box-shadow: inset 0 0.5px hsla(255, 255%, 255%, 0.2), inset 0 -1px 2px 0 hsla(0, 0%, 0%, 0.3),
+                0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))),
+                0 0 0 calc(var(--active, 0) * 0.2rem) hsl(260 97% 50% / 0.5);
+            transition: all var(--transtion);
+            z-index: 0;
+        }
 
-            .modern-button:active {
+        .modern-button::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background-color: hsla(260 97% 61% / 0.4);
+            background-image: radial-gradient(at 51% 89%, hsla(266, 45%, 74%, 0.6) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 0.5) 0px, transparent 50%),
+                radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 0.5) 0px, transparent 50%);
+            background-position: top;
+            opacity: var(--active, 0);
+            border-radius: var(--border_radius);
+            transition: opacity var(--transtion);
+            z-index: 2;
+        }
+
+        .modern-button:is(:hover, :focus-visible) {
+            --active: 1;
+        }
+
+        .modern-button:active {
+            transform: scale(1);
+        }
+
+        .modern-button .dots_border {
+            --size_border: calc(100% + 2px);
+            overflow: hidden;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: var(--size_border);
+            height: var(--size_border);
+            background-color: transparent;
+            border-radius: var(--border_radius);
+            z-index: -10;
+        }
+
+        .modern-button .dots_border::before {
+            content: "";
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: left;
+            transform: rotate(0deg);
+            width: 100%;
+            height: 2rem;
+            background-color: white;
+            mask: linear-gradient(transparent 0%, white 120%);
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .modern-button .sparkle {
+            position: relative;
+            z-index: 10;
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .modern-button .sparkle .path {
+            fill: currentColor;
+            stroke: currentColor;
+            transform-origin: center;
+            color: hsl(0, 0%, 100%);
+        }
+
+        .modern-button:is(:hover, :focus) .sparkle .path {
+            animation: path 1.5s linear 0.5s infinite;
+        }
+
+        .modern-button .sparkle .path:nth-child(1) {
+            --scale_path_1: 1.2;
+        }
+        .modern-button .sparkle .path:nth-child(2) {
+            --scale_path_2: 1.2;
+        }
+        .modern-button .sparkle .path:nth-child(3) {
+            --scale_path_3: 1.2;
+        }
+
+        @keyframes path {
+            0%, 34%, 71%, 100% {
                 transform: scale(1);
             }
-
-            .modern-button .dots_border {
-                --size_border: calc(100% + 2px);
-                overflow: hidden;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: var(--size_border);
-                height: var(--size_border);
-                background-color: transparent;
-                border-radius: var(--border_radius);
-                z-index: -10;
+            17% {
+                transform: scale(var(--scale_path_1, 1));
             }
-
-            .modern-button .dots_border::before {
-                content: "";
-                position: absolute;
-                top: 30%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                transform-origin: left;
-                transform: rotate(0deg);
-                width: 100%;
-                height: 2rem;
-                background-color: white;
-                mask: linear-gradient(transparent 0%, white 120%);
-                animation: rotate 2s linear infinite;
+            49% {
+                transform: scale(var(--scale_path_2, 1));
             }
-
-            @keyframes rotate {
-                to { transform: rotate(360deg); }
+            83% {
+                transform: scale(var(--scale_path_3, 1));
             }
-
-            .modern-button .sparkle {
-                position: relative;
-                z-index: 10;
-                width: 1.5rem;
-                height: 1.5rem;
-            }
-
-            .modern-button .sparkle .path {
-                fill: currentColor;
-                stroke: currentColor;
-                transform-origin: center;
-                color: hsl(0, 0%, 100%);
-            }
-
-            .modern-button:is(:hover, :focus) .sparkle .path {
-                animation: path 1.5s linear 0.5s infinite;
-            }
-
-            .modern-button .sparkle .path:nth-child(1) {
-                --scale_path_1: 1.2;
-            }
-            .modern-button .sparkle .path:nth-child(2) {
-                --scale_path_2: 1.2;
-            }
-            .modern-button .sparkle .path:nth-child(3) {
-                --scale_path_3: 1.2;
-            }
-
-            @keyframes path {
-                0%, 34%, 71%, 100% {
-                    transform: scale(1);
-                }
-                17% {
-                    transform: scale(var(--scale_path_1, 1));
-                }
-                49% {
-                    transform: scale(var(--scale_path_2, 1));
-                }
-                83% {
-                    transform: scale(var(--scale_path_3, 1));
-                }
-            }
-
-            .modern-button .text_button {
-                position: relative;
-                z-index: 10;
-                background-image: linear-gradient(90deg, hsla(0 0% 100% / 1) 0%, hsla(0 0% 100% / var(--active, 0)) 120%);
-                background-clip: text;
-                -webkit-background-clip: text;
-                font-size: 0.85rem;
-                font-weight: 500;
-                color: white;
-            }
-
-            .modern-button-wrapper {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-                margin: 0 4px;
-            }
-
-            .modern-button-solde {
-                font-size: 11px;
-                font-weight: bold;
-                color: #333;
-                min-height: 15px;
-                text-align: center;
-                padding: 2px 8px;
-                background: transparent;
-                border-radius: 12px;
-            }
-
-            .modern-loading-spinner {
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                border: 2px solid rgba(138, 43, 226, 0.3);
-                border-radius: 50%;
-                border-top-color: hsl(260, 97%, 50%);
-                animation: spinner-rotation 0.6s linear infinite;
-            }
-
-            @keyframes spinner-rotation {
-                to { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Fonction pour attendre que l'élément soit présent dans le DOM
-        function waitForElement(selector, callback, maxAttempts = 50) {
-            let attempts = 0;
-            const checkExist = setInterval(function() {
-                const element = document.querySelector(selector);
-                if (element) {
-                    clearInterval(checkExist);
-                    callback(element);
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(checkExist);
-                    console.log('Element non trouvé après plusieurs tentatives:', selector);
-                }
-                attempts++;
-            }, 200);
         }
+
+        .modern-button .text_button {
+            position: relative;
+            z-index: 10;
+            background-image: linear-gradient(90deg, hsla(0 0% 100% / 1) 0%, hsla(0 0% 100% / var(--active, 0)) 120%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .modern-button-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin: 0 4px;
+        }
+
+        .modern-button-solde {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+            min-height: 15px;
+            text-align: center;
+            padding: 2px 8px;
+            background: transparent;
+            border-radius: 12px;
+        }
+
+        .modern-loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            border-radius: 50%;
+            border-top-color: hsl(260, 97%, 50%);
+            animation: spinner-rotation 0.6s linear infinite;
+        }
+
+        @keyframes spinner-rotation {
+            to { transform: rotate(360deg); }
+        }
+
+        .valeur-cp-calendrier {
+            color: #dc3545;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            padding: 2px 8px;
+            background: rgba(220, 53, 69, 0.1);
+            border-radius: 8px;
+            margin-top: 4px;
+            cursor: help;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Fonction pour attendre que l'élément soit présent dans le DOM
+    function waitForElement(selector, callback, maxAttempts = 50) {
+        let attempts = 0;
+        const checkExist = setInterval(function() {
+            const element = document.querySelector(selector);
+            if (element) {
+                clearInterval(checkExist);
+                callback(element);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkExist);
+                console.log('Element non trouvé après plusieurs tentatives:', selector);
+            }
+            attempts++;
+        }, 200);
+    }
 
     // Fonction pour créer un bouton avec affichage du solde
     function createButton(text, className, isAbsence = false, motifText = null) {
@@ -512,37 +524,15 @@
         }
     }
 
-    // Fonction pour calculer le nombre de week-ends restants dans l'année
-    function calculateRemainingWeekends() {
-        const today = new Date();
-        const endOfYear = new Date(today.getFullYear(), 11, 31); // 31 décembre
-
-        let weekendDays = 0;
-        let currentDate = new Date(today);
-
-        // Parcourir toutes les dates jusqu'à la fin de l'année
-        while (currentDate <= endOfYear) {
-            const dayOfWeek = currentDate.getDay();
-            // 0 = Dimanche, 6 = Samedi
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                weekendDays++;
-            }
-            // Passer au jour suivant
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        return weekendDays;
-    }
-
-    // Fonction pour convertir le format "95j00" en nombre de jours
+    // Fonction pour convertir le format "95j00" ou "95J" en nombre de jours
     function parseSoldeToJours(solde) {
-        const match = solde.match(/(\d+)j/);
+        const match = solde.match(/(\d+)[jJ]/);
         return match ? parseInt(match[1], 10) : 0;
     }
 
-    // Fonction pour convertir un nombre de jours en format "XXjYY"
+    // Fonction pour convertir un nombre de jours en format "XJ"
     function formatJoursToSolde(jours) {
-        return `${jours}j00`;
+        return `${jours}J`;
     }
 
     // Fonction pour charger les soldes depuis le localStorage
@@ -630,6 +620,15 @@
         }
     }
 
+    // Fonction pour convertir le format "95j00" en "95J"
+    function formatSoldeVersJ(solde) {
+        const match = solde.match(/(\d+)[jJ]/);
+        if (match) {
+            return `${match[1]}J`;
+        }
+        return solde;
+    }
+
     // Fonction pour mettre à jour l'affichage des soldes depuis l'API
     function updateSoldesFromAPI(dataEndOfYear, dataToday) {
         if (!Array.isArray(dataEndOfYear)) return;
@@ -647,13 +646,13 @@
 
         dataEndOfYear.forEach(item => {
             if (item.libelle === 'Solde RP') {
-                soldes.RP = item.valeur.trim();
+                soldes.RP = formatSoldeVersJ(item.valeur.trim());
             } else if (item.libelle === 'Solde RU') {
-                soldes.RU = item.valeur.trim();
+                soldes.RU = formatSoldeVersJ(item.valeur.trim());
             } else if (item.libelle === 'CR solde Actuel') {
-                soldes.CP = item.valeur.trim();
+                soldes.CP = formatSoldeVersJ(item.valeur.trim());
             } else if (item.libelle === 'Solde RQ') {
-                soldes.RQ = item.valeur.trim();
+                soldes.RQ = formatSoldeVersJ(item.valeur.trim());
             }
         });
 
@@ -661,7 +660,7 @@
         if (Array.isArray(dataToday)) {
             dataToday.forEach(item => {
                 if (item.libelle === 'Solde RN') {
-                    soldes.RN = item.valeur.trim();
+                    soldes.RN = formatSoldeVersJ(item.valeur.trim());
                 }
             });
         }
@@ -676,41 +675,57 @@
         const rqDisplay = document.querySelector('.solde-display-rq');
         const rnDisplay = document.querySelector('.solde-display-rn');
 
-        // Pour RP : afficher le solde tel quel (sans déduction)
         if (rpDisplay && soldes.RP) {
             rpDisplay.innerHTML = ''; // Supprimer le spinner
             rpDisplay.textContent = soldes.RP;
-            rpDisplay.style.color = '#28a745'; // Vert
+            rpDisplay.style.color = '#6c757d'; // Gris temporaire (sera mis à jour après vérification)
             console.log('✅ Solde RP affiché:', soldes.RP);
         }
 
         if (ruDisplay && soldes.RU) {
             ruDisplay.innerHTML = '';
             ruDisplay.textContent = soldes.RU;
-            ruDisplay.style.color = '#28a745'; // Vert
+            ruDisplay.style.color = '#6c757d'; // Gris temporaire
             console.log('✅ Solde RU affiché:', soldes.RU);
         }
 
         if (cpDisplay && soldes.CP) {
             cpDisplay.innerHTML = '';
             cpDisplay.textContent = soldes.CP;
-            cpDisplay.style.color = '#28a745'; // Vert
+            cpDisplay.style.color = '#6c757d'; // Gris temporaire
             console.log('✅ Solde CP affiché:', soldes.CP);
         }
 
         if (rqDisplay && soldes.RQ) {
             rqDisplay.innerHTML = '';
             rqDisplay.textContent = soldes.RQ;
-            rqDisplay.style.color = '#28a745'; // Vert
+            rqDisplay.style.color = '#6c757d'; // Gris temporaire
             console.log('✅ Solde RQ affiché:', soldes.RQ);
         }
 
         if (rnDisplay && soldes.RN) {
             rnDisplay.innerHTML = '';
             rnDisplay.textContent = soldes.RN;
-            rnDisplay.style.color = '#28a745'; // Vert
+            rnDisplay.style.color = '#6c757d'; // Gris temporaire
             console.log('✅ Solde RN affiché:', soldes.RN);
         }
+
+        // Après avoir mis à jour les soldes, vérifier avec les compteurs en cache
+        // Utiliser setTimeout pour s'assurer que le DOM est bien mis à jour
+        setTimeout(() => {
+            const cachedCompteurs = localStorage.getItem('optimum-compteurs-regularisations');
+            if (cachedCompteurs) {
+                try {
+                    const compteurs = JSON.parse(cachedCompteurs);
+                    console.log('🔍 Vérification des soldes avec les compteurs en cache...', compteurs);
+                    verifierSoldesVsRegularisations(compteurs);
+                } catch (e) {
+                    console.error('❌ Erreur lors du chargement des compteurs:', e);
+                }
+            } else {
+                console.log('ℹ️ Aucun compteur en cache, les couleurs resteront grises jusqu\'à l\'analyse');
+            }
+        }, 100); // Petit délai pour s'assurer que le DOM est à jour
     }
 
     // Fonction pour récupérer le matricule de l'utilisateur
@@ -954,7 +969,6 @@
     // Intercepter XMLHttpRequest pour capturer le token et le matricule
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
-    const originalSend = XMLHttpRequest.prototype.send;
 
     // Stocker l'URL de la requête XHR
     let currentXhrUrl = null;
@@ -1198,6 +1212,968 @@
         }
     }
 
+    // Fonction pour scanner le calendrier et calculer les jours de CP posés
+    function calculerCPDepuisCalendrier() {
+        console.log('🔍 Scan du calendrier pour détecter les CP...');
+        
+        // Chercher toutes les cellules avec les classes spécifiques pour les absences validées
+        const cellulesAbsences = document.querySelectorAll('.phx-cell-render-text.phx-dynamicStyle-cell-absaval');
+        
+        if (cellulesAbsences.length === 0) {
+            console.log('⚠️ Aucune cellule d\'absence trouvée dans le calendrier');
+            return 0;
+        }
+        
+        console.log(`📊 ${cellulesAbsences.length} cellule(s) d'absence trouvée(s)`);
+        
+        let totalJours = 0;
+        
+        cellulesAbsences.forEach((cellule, index) => {
+            // Remonter à la cellule parente complète
+            const celluleParente = cellule.closest('.phx-cell-render');
+            
+            if (!celluleParente) return;
+            
+            // Vérifier si c'est une cellule d'absence CP (abs_COR)
+            const celluleAbs = celluleParente.querySelector('.phx-dynamicStyle-cell-abs_COR.phx-cell-abs-aval');
+            
+            if (!celluleAbs) return; // Pas une absence CP
+            
+            console.log(`  📅 Cellule ${index + 1}:`);
+            
+            // Vérifier la présence des classes pour déterminer le type de journée
+            const hasLeft = celluleParente.querySelector('.phx-cell-render-left');
+            const hasRight = celluleParente.querySelector('.phx-cell-render-right');
+            const hasWhite = celluleParente.querySelector('.ui-phx-color-blanc_5');
+            const hasDynamicAbsLeft = celluleParente.querySelector('.phx-cell-render-left.phx-dynamicStyle-cell-abs_COR');
+            const hasDynamicAbsRight = celluleParente.querySelector('.phx-cell-render-right.phx-dynamicStyle-cell-abs_COR');
+            
+            // Cas 1: Demi-journée - présence d'un blanc ET d'un CP dynamique (left ou right)
+            if (hasWhite && (hasDynamicAbsLeft || hasDynamicAbsRight)) {
+                totalJours += 0.5;
+                console.log(`    ➡️ Demi-journée détectée (blanc + CP dynamique) (+0.5J)`);
+            }
+            // Cas 2: Journée complète - pas de left/right, ou les deux sont CP
+            else if (!hasLeft && !hasRight) {
+                totalJours += 1;
+                console.log(`    ➡️ Journée complète détectée (pas de left/right) (+1J)`);
+            }
+            // Cas 3: Journée complète - left et right sont tous les deux CP (pas de blanc)
+            else if (hasDynamicAbsLeft && hasDynamicAbsRight && !hasWhite) {
+                totalJours += 1;
+                console.log(`    ➡️ Journée complète détectée (left + right CP, pas de blanc) (+1J)`);
+            }
+            // Cas 4: Autre configuration
+            else {
+                console.log(`    ⚠️ Configuration non reconnue (hasLeft: ${!!hasLeft}, hasRight: ${!!hasRight}, hasWhite: ${!!hasWhite}, hasDynamicAbsLeft: ${!!hasDynamicAbsLeft}, hasDynamicAbsRight: ${!!hasDynamicAbsRight})`);
+            }
+        });
+        
+        console.log(`✅ Total CP calculé depuis le calendrier: ${totalJours}J`);
+        return totalJours;
+    }
+
+    // Fonction pour afficher les CP calculés automatiquement sous le bouton
+    function afficherCPCalendrierSousBouton() {
+        const cpCalendrier = calculerCPDepuisCalendrier();
+        const cpDisplay = document.querySelector('.solde-display-cp');
+        
+        if (!cpDisplay) return;
+        
+        const wrapper = cpDisplay.parentElement;
+        let existingCalc = wrapper.querySelector('.valeur-cp-calendrier');
+        
+        if (cpCalendrier > 0) {
+            if (existingCalc) {
+                existingCalc.textContent = `-${cpCalendrier}J`;
+            } else {
+                const valeurCalculee = document.createElement('div');
+                valeurCalculee.className = 'valeur-cp-calendrier';
+                valeurCalculee.textContent = `-${cpCalendrier}J`;
+                valeurCalculee.title = 'CP posés (calculé depuis le calendrier)';
+                
+                if (wrapper && wrapper.classList.contains('modern-button-wrapper')) {
+                    wrapper.appendChild(valeurCalculee);
+                }
+            }
+            
+            // Calculer et afficher le résultat après CP
+            afficherResultatApresCP();
+        } else if (existingCalc) {
+            existingCalc.remove();
+            // Retirer aussi le résultat s'il existe
+            const resultatElement = wrapper.querySelector('.resultat-apres-regul-cp');
+            if (resultatElement) {
+                resultatElement.remove();
+            }
+        }
+    }
+
+    // Fonction pour calculer et afficher le résultat après CP
+    function afficherResultatApresCP() {
+        const cpDisplay = document.querySelector('.solde-display-cp');
+        const cpCalendrierElement = cpDisplay ? cpDisplay.parentElement.querySelector('.valeur-cp-calendrier') : null;
+        
+        if (cpDisplay && cpCalendrierElement) {
+            const soldeText = cpDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            const cpText = cpCalendrierElement.textContent.trim().replace('-', '').replace('J', '');
+            const cpCalendrierJours = parseFloat(cpText) || 0;
+            
+            if (cpCalendrierJours > 0 && soldeJours > 0) {
+                const resultat = soldeJours - cpCalendrierJours;
+
+                // Ajouter le résultat
+                let resultatElement = cpDisplay.parentElement.querySelector('.resultat-apres-regul-cp');
+                if (!resultatElement) {
+                    resultatElement = document.createElement('div');
+                    resultatElement.className = 'resultat-apres-regul-cp';
+                    resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                    resultatElement.title = 'Solde après CP posés';
+                    cpDisplay.parentElement.appendChild(resultatElement);
+                }
+                
+                resultatElement.textContent = `${resultat}J`;
+                console.log(`✅ CP: ${soldeJours}J - ${cpCalendrierJours}J = ${resultat}J`);
+                
+                // Sauvegarder dans le localStorage
+                const cachedResultats = localStorage.getItem('optimum-resultats-regularisations');
+                let resultats = cachedResultats ? JSON.parse(cachedResultats) : { RP: 0, RU: 0, RQ: 0, CP: 0 };
+                resultats.CP = resultat;
+                localStorage.setItem('optimum-resultats-regularisations', JSON.stringify(resultats));
+            }
+        }
+    }
+
+    // Fonction pour récupérer toutes les cellules clignotantes avec leurs dates
+    function recupererCellulesClignotantes() {
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('      🔍 RÉCUPÉRATION DES CELLULES CLIGNOTANTES           ');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('');
+
+        // Chercher toutes les cellules clignotantes (avec la classe cellule-30-clignotante ou similaire)
+        const cellulesClignotantes = document.querySelectorAll('[class*="cellule-"][class*="-clignotante"]');
+        
+        if (cellulesClignotantes.length === 0) {
+            console.log('⚠️ Aucune cellule clignotante trouvée dans le calendrier');
+            console.log('');
+            return [];
+        }
+
+        console.log(`📊 ${cellulesClignotantes.length} cellule(s) clignotante(s) trouvée(s)`);
+        console.log('');
+
+        const resultats = [];
+
+        cellulesClignotantes.forEach((cellule, index) => {
+            // Récupérer l'attribut data-date
+            const dataDate = cellule.getAttribute('data-date');
+            
+            // Récupérer le titre (tooltip) qui contient les informations
+            const titre = cellule.getAttribute('title');
+            
+            // Récupérer la couleur de fond
+            const bgColor = cellule.style.backgroundColor || 
+                           window.getComputedStyle(cellule).backgroundColor;
+            
+            // Récupérer le texte affiché dans la cellule (ex: "30")
+            const texteElement = cellule.querySelector('.phx-cell-render-text');
+            const texte = texteElement ? texteElement.textContent.trim() : '';
+
+            // Formater la date YYYYMMDD en DD/MM/YYYY
+            let dateFormatee = dataDate;
+            if (dataDate && /^\d{8}$/.test(dataDate)) {
+                const annee = dataDate.substring(0, 4);
+                const mois = dataDate.substring(4, 6);
+                const jour = dataDate.substring(6, 8);
+                dateFormatee = `${jour}/${mois}/${annee}`;
+            }
+
+            // Extraire les informations du titre (HTML dans l'attribut title)
+            let infoExtraites = '';
+            if (titre) {
+                // Supprimer les balises HTML pour avoir le texte brut
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(titre, 'text/html');
+                infoExtraites = doc.body.textContent || titre;
+            }
+
+            const resultat = {
+                index: index + 1,
+                dataDate: dataDate,
+                dateFormatee: dateFormatee,
+                texte: texte,
+                couleur: bgColor,
+                titre: infoExtraites,
+                element: cellule
+            };
+
+            resultats.push(resultat);
+
+            // Affichage dans la console
+            console.log(`📅 Cellule ${index + 1}:`);
+            console.log(`   └─ Date (data-date): ${dataDate}`);
+            console.log(`   └─ Date formatée: ${dateFormatee}`);
+            console.log(`   └─ Texte: "${texte}"`);
+            console.log(`   └─ Couleur: ${bgColor}`);
+            if (infoExtraites) {
+                console.log(`   └─ Info: ${infoExtraites}`);
+            }
+            console.log('');
+        });
+
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log(`          ✅ TOTAL: ${resultats.length} cellule(s)                 `);
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('');
+        console.log('📋 Détails complets:', resultats);
+        console.log('');
+
+        return resultats;
+    }
+
+    // Exposer la fonction globalement pour pouvoir l'appeler depuis la console
+    window.recupererCellulesClignotantes = recupererCellulesClignotantes;
+
+    // Fonction pour simuler l'analyse des régularisations pour chaque date clignotante
+    async function analyserRegularisationsParDate() {
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('   🔄 ANALYSE DES RÉGULARISATIONS PAR DATE CLIGNOTANTE    ');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('');
+
+        // Afficher les spinners sur les compteurs existants pendant le chargement
+        ajouterSpinnersAuxCompteurs();
+
+        // Fermer le panel "Journée du XX/XX/XXXX" s'il est ouvert
+        const panelJournee = document.querySelector('.phx-agenda-zoomtbl.c-collapsePanel__header');
+        if (panelJournee) {
+            console.log('🔽 Fermeture du panel "Journée du..." pour libérer l\'interface...');
+            panelJournee.click();
+            // Attendre que le panel se ferme
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Récupérer toutes les cellules clignotantes SANS afficher dans la console
+        const cellulesClignotantes = document.querySelectorAll('[class*="cellule-"][class*="-clignotante"]');
+        
+        if (cellulesClignotantes.length === 0) {
+            console.log('❌ Aucune cellule clignotante trouvée dans le calendrier');
+            console.log('');
+            return [];
+        }
+
+        // Préparer les cellules
+        const cellules = [];
+        cellulesClignotantes.forEach((cellule, index) => {
+            const dataDate = cellule.getAttribute('data-date');
+            let dateFormatee = dataDate;
+            if (dataDate && /^\d{8}$/.test(dataDate)) {
+                const annee = dataDate.substring(0, 4);
+                const mois = dataDate.substring(4, 6);
+                const jour = dataDate.substring(6, 8);
+                dateFormatee = `${jour}/${mois}/${annee}`;
+            }
+            cellules.push({
+                index: index + 1,
+                dataDate: dataDate,
+                dateFormatee: dateFormatee,
+                element: cellule
+            });
+        });
+
+        console.log(`📊 ${cellules.length} date(s) à analyser`);
+        console.log('');
+
+        const resultats = [];
+
+        // Pour chaque cellule clignotante
+        for (let i = 0; i < cellules.length; i++) {
+            const cellule = cellules[i];
+            const { dataDate, dateFormatee, element } = cellule;
+
+            console.log(`⏳ [${i + 1}/${cellules.length}] Analyse de la date: ${dateFormatee} (${dataDate})`);
+
+            try {
+                // Cliquer sur la cellule clignotante pour ouvrir le panel de détails
+                console.log('   🖱️ Clic sur la cellule...');
+                element.click();
+
+                // Attendre que le panel se charge (réduit à 1 seconde)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Chercher le panel de régularisation
+                const panelRegularisation = document.querySelector('.cw-regularisation, [class*="regularisation"]');
+                
+                if (panelRegularisation) {
+                    console.log('   📦 Contenu complet du panel de régularisation:');
+                    console.log('   ────────────────────────────────────────────────');
+                    console.log(panelRegularisation.textContent.trim());
+                    console.log('   ────────────────────────────────────────────────');
+                } else {
+                    console.log('   ⚠️ Panel de régularisation non trouvé');
+                }
+
+                // Chercher le libellé de régularisation dans le panel
+                const libelleElements = document.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal.cw-regularisation__libelle');
+                
+                console.log(`   🔍 ${libelleElements.length} élément(s) de régularisation trouvé(s)`);
+
+                let typeRegularisation = 'AUCUNE';
+                let details = '';
+                const typesTrouves = [];
+
+                if (libelleElements.length > 0) {
+                    // Analyser chaque libellé trouvé
+                    libelleElements.forEach((libelle, idx) => {
+                        const texte = libelle.textContent.trim();
+                        console.log(`   📋 Libellé ${idx + 1}: "${texte}"`);
+                        
+                        // Détecter le type de régularisation
+                        if (texte.includes('RP') || texte.toLowerCase().includes('repos périodique') || texte.toLowerCase().includes('demande de rp')) {
+                            typesTrouves.push('RP');
+                        } else if (texte.includes('RU') || texte.toLowerCase().includes('repos unique') || texte.toLowerCase().includes('demande de ru')) {
+                            typesTrouves.push('RU');
+                        } else if (texte.includes('RQ') || texte.toLowerCase().includes('repos qualifié') || texte.toLowerCase().includes('demande de rq')) {
+                            typesTrouves.push('RQ');
+                        }
+                    });
+
+                    if (typesTrouves.length > 0) {
+                        // Supprimer les doublons
+                        const typesUniques = [...new Set(typesTrouves)];
+                        typeRegularisation = typesUniques.join(' + ');
+                        details = `${typesUniques.length} régularisation(s) trouvée(s)`;
+                    } else {
+                        details = 'Régularisation trouvée mais type non reconnu';
+                    }
+                } else {
+                    details = 'Aucun élément de régularisation trouvé dans le panel';
+                }
+
+                const resultat = {
+                    date: dateFormatee,
+                    dataDate: dataDate,
+                    type: typeRegularisation,
+                    details: details
+                };
+
+                resultats.push(resultat);
+
+                // Afficher le résultat dans la console
+                console.log(`   ✅ Type détecté: ${typeRegularisation}`);
+                if (details) {
+                    console.log(`   📝 Détails: ${details}`);
+                }
+                console.log('');
+
+            } catch (error) {
+                console.log(`   ❌ Erreur lors de l'analyse: ${error.message}`);
+                resultats.push({
+                    date: dateFormatee,
+                    dataDate: dataDate,
+                    type: 'ERREUR',
+                    details: error.message
+                });
+                console.log('');
+            }
+
+            // Pas de pause entre chaque analyse (test sans délai)
+            // await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        // Résumé final
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('                    📊 RÉSUMÉ FINAL                        ');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('');
+
+        // Compter les types
+        const compteur = {
+            'RP': 0,
+            'RU': 0,
+            'RQ': 0,
+            'AUCUNE': 0,
+            'ERREUR': 0,
+            'AUTRE': 0
+        };
+
+        resultats.forEach(r => {
+            if (r.type === 'RP') compteur.RP++;
+            else if (r.type === 'RU') compteur.RU++;
+            else if (r.type === 'RQ') compteur.RQ++;
+            else if (r.type === 'ERREUR') compteur.ERREUR++;
+            else if (r.type === 'AUCUNE') compteur.AUCUNE++;
+            else compteur.AUTRE++;
+        });
+
+        console.log(`📅 Total de dates analysées: ${resultats.length}`);
+        console.log(`🟢 RP (Repos Périodique): ${compteur.RP}`);
+        console.log(`🔵 RU (Repos Unique): ${compteur.RU}`);
+        console.log(`🟡 RQ (Repos Qualifié): ${compteur.RQ}`);
+        console.log(`⚪ Aucune régularisation: ${compteur.AUCUNE}`);
+        if (compteur.ERREUR > 0) {
+            console.log(`🔴 Erreurs: ${compteur.ERREUR}`);
+        }
+        if (compteur.AUTRE > 0) {
+            console.log(`🟣 Autres types: ${compteur.AUTRE}`);
+        }
+        console.log('');
+
+        // Afficher le tableau détaillé
+        console.table(resultats);
+
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('');
+
+        // Afficher les compteurs sous les boutons RP, RU, RQ
+        afficherCompteursRegularisations(compteur);
+
+        return resultats;
+    }
+
+    // Fonction pour ajouter les spinners aux compteurs existants pendant le chargement
+    function ajouterSpinnersAuxCompteurs() {
+        const compteurs = [
+            '.compteur-regularisation-rp',
+            '.compteur-regularisation-ru',
+            '.compteur-regularisation-rq'
+        ];
+
+        compteurs.forEach(selecteur => {
+            const compteurElement = document.querySelector(selecteur);
+            if (compteurElement) {
+                // Vérifier si un spinner n'existe pas déjà
+                if (!compteurElement.querySelector('.modern-loading-spinner')) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'modern-loading-spinner';
+                    spinner.style.marginLeft = '4px';
+                    compteurElement.appendChild(spinner);
+                    console.log(`⏳ Spinner ajouté au compteur ${selecteur}`);
+                }
+            }
+        });
+    }
+
+    // Fonction pour afficher les compteurs de régularisations sous les boutons
+    function afficherCompteursRegularisations(compteur) {
+        console.log('📊 Mise à jour de l\'affichage des compteurs de régularisations...');
+
+        // Afficher RP
+        const rpDisplay = document.querySelector('.solde-display-rp');
+        if (rpDisplay) {
+            // Vérifier si un compteur existe déjà
+            let compteurElement = rpDisplay.parentElement.querySelector('.compteur-regularisation-rp');
+            if (!compteurElement && compteur.RP > 0) {
+                // Créer le compteur seulement s'il y a des régularisations
+                compteurElement = document.createElement('div');
+                compteurElement.className = 'compteur-regularisation-rp valeur-cp-calendrier';
+                compteurElement.title = 'Régularisations RP détectées';
+                rpDisplay.parentElement.appendChild(compteurElement);
+            }
+            if (compteurElement) {
+                // Retirer le spinner s'il existe
+                const spinner = compteurElement.querySelector('.modern-loading-spinner');
+                if (spinner) {
+                    spinner.remove();
+                }
+                // Mettre à jour le texte
+                compteurElement.textContent = compteur.RP > 0 ? `-${compteur.RP}J` : '';
+                // Masquer si 0
+                compteurElement.style.display = compteur.RP > 0 ? 'block' : 'none';
+                console.log(`✅ Compteur RP affiché: -${compteur.RP}J`);
+            }
+        }
+
+        // Afficher RU
+        const ruDisplay = document.querySelector('.solde-display-ru');
+        if (ruDisplay) {
+            let compteurElement = ruDisplay.parentElement.querySelector('.compteur-regularisation-ru');
+            if (!compteurElement && compteur.RU > 0) {
+                compteurElement = document.createElement('div');
+                compteurElement.className = 'compteur-regularisation-ru valeur-cp-calendrier';
+                compteurElement.title = 'Régularisations RU détectées';
+                ruDisplay.parentElement.appendChild(compteurElement);
+            }
+            if (compteurElement) {
+                const spinner = compteurElement.querySelector('.modern-loading-spinner');
+                if (spinner) {
+                    spinner.remove();
+                }
+                compteurElement.textContent = compteur.RU > 0 ? `-${compteur.RU}J` : '';
+                compteurElement.style.display = compteur.RU > 0 ? 'block' : 'none';
+                console.log(`✅ Compteur RU affiché: -${compteur.RU}J`);
+            }
+        }
+
+        // Afficher RQ
+        const rqDisplay = document.querySelector('.solde-display-rq');
+        if (rqDisplay) {
+            let compteurElement = rqDisplay.parentElement.querySelector('.compteur-regularisation-rq');
+            if (!compteurElement && compteur.RQ > 0) {
+                compteurElement = document.createElement('div');
+                compteurElement.className = 'compteur-regularisation-rq valeur-cp-calendrier';
+                compteurElement.title = 'Régularisations RQ détectées';
+                rqDisplay.parentElement.appendChild(compteurElement);
+            }
+            if (compteurElement) {
+                const spinner = compteurElement.querySelector('.modern-loading-spinner');
+                if (spinner) {
+                    spinner.remove();
+                }
+                compteurElement.textContent = compteur.RQ > 0 ? `-${compteur.RQ}J` : '';
+                compteurElement.style.display = compteur.RQ > 0 ? 'block' : 'none';
+                console.log(`✅ Compteur RQ affiché: -${compteur.RQ}J`);
+            }
+        }
+
+        // Sauvegarder les compteurs dans le localStorage
+        const compteursRegul = {
+            RP: compteur.RP,
+            RU: compteur.RU,
+            RQ: compteur.RQ
+        };
+        localStorage.setItem('optimum-compteurs-regularisations', JSON.stringify(compteursRegul));
+        console.log('💾 Compteurs de régularisations sauvegardés dans le cache');
+
+        // Afficher le calcul Solde - Régularisations
+        afficherCalculSoldeApresRegularisations(compteur);
+
+        // Vérifier les soldes et mettre en orange si insuffisant
+        verifierSoldesVsRegularisations(compteur);
+    }
+
+    // Fonction pour afficher le calcul Solde - Régularisations
+    function afficherCalculSoldeApresRegularisations(compteur) {
+        console.log('🧮 Calcul du solde après régularisations...');
+
+        // Calculer et afficher pour RP
+        const rpDisplay = document.querySelector('.solde-display-rp');
+        if (rpDisplay) {
+            const soldeText = rpDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (compteur.RP > 0) {
+                const resultat = soldeJours - compteur.RP;
+
+                // Ajouter le résultat
+                let resultatElement = rpDisplay.parentElement.querySelector('.resultat-apres-regul-rp');
+                if (!resultatElement) {
+                    resultatElement = document.createElement('div');
+                    resultatElement.className = 'resultat-apres-regul-rp';
+                    resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                    resultatElement.title = 'Solde après régularisations';
+                    rpDisplay.parentElement.appendChild(resultatElement);
+                }
+                
+                resultatElement.textContent = `${resultat}J`;
+                console.log(`✅ RP: ${soldeJours}J - ${compteur.RP}J = ${resultat}J`);
+            }
+        }
+
+        // Calculer et afficher pour RU
+        const ruDisplay = document.querySelector('.solde-display-ru');
+        if (ruDisplay) {
+            const soldeText = ruDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (compteur.RU > 0) {
+                const resultat = soldeJours - compteur.RU;
+
+                // Ajouter le résultat
+                let resultatElement = ruDisplay.parentElement.querySelector('.resultat-apres-regul-ru');
+                if (!resultatElement) {
+                    resultatElement = document.createElement('div');
+                    resultatElement.className = 'resultat-apres-regul-ru';
+                    resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                    resultatElement.title = 'Solde après régularisations';
+                    ruDisplay.parentElement.appendChild(resultatElement);
+                }
+                
+                resultatElement.textContent = `${resultat}J`;
+                console.log(`✅ RU: ${soldeJours}J - ${compteur.RU}J = ${resultat}J`);
+            }
+        }
+
+        // Calculer et afficher pour RQ
+        const rqDisplay = document.querySelector('.solde-display-rq');
+        if (rqDisplay) {
+            const soldeText = rqDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (compteur.RQ > 0) {
+                const resultat = soldeJours - compteur.RQ;
+
+                // Ajouter le résultat
+                let resultatElement = rqDisplay.parentElement.querySelector('.resultat-apres-regul-rq');
+                if (!resultatElement) {
+                    resultatElement = document.createElement('div');
+                    resultatElement.className = 'resultat-apres-regul-rq';
+                    resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                    resultatElement.title = 'Solde après régularisations';
+                    rqDisplay.parentElement.appendChild(resultatElement);
+                }
+                
+                resultatElement.textContent = `${resultat}J`;
+                console.log(`✅ RQ: ${soldeJours}J - ${compteur.RQ}J = ${resultat}J`);
+            }
+        }
+
+        // Calculer et afficher pour CP
+        const cpDisplay = document.querySelector('.solde-display-cp');
+        const cpCalendrierElement = cpDisplay ? cpDisplay.parentElement.querySelector('.valeur-cp-calendrier') : null;
+        if (cpDisplay) {
+            const soldeText = cpDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (cpCalendrierElement) {
+                const cpText = cpCalendrierElement.textContent.trim().replace('-', '').replace('J', '');
+                const cpCalendrierJours = parseFloat(cpText) || 0;
+                
+                if (cpCalendrierJours > 0) {
+                    const resultat = soldeJours - cpCalendrierJours;
+
+                    // Ajouter le résultat
+                    let resultatElement = cpDisplay.parentElement.querySelector('.resultat-apres-regul-cp');
+                    if (!resultatElement) {
+                        resultatElement = document.createElement('div');
+                        resultatElement.className = 'resultat-apres-regul-cp';
+                        resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                        resultatElement.title = 'Solde après CP posés';
+                        cpDisplay.parentElement.appendChild(resultatElement);
+                    }
+                    
+                    resultatElement.textContent = `${resultat}J`;
+                    console.log(`✅ CP: ${soldeJours}J - ${cpCalendrierJours}J = ${resultat}J`);
+                }
+            }
+        }
+
+        // Sauvegarder les résultats dans le localStorage
+        const cpCalendrier = cpDisplay && cpCalendrierElement ? parseFloat(cpCalendrierElement.textContent.trim().replace('-', '').replace('J', '')) || 0 : 0;
+        const resultats = {
+            RP: rpDisplay && compteur.RP > 0 ? parseSoldeToJours(rpDisplay.textContent.trim()) - compteur.RP : 0,
+            RU: ruDisplay && compteur.RU > 0 ? parseSoldeToJours(ruDisplay.textContent.trim()) - compteur.RU : 0,
+            RQ: rqDisplay && compteur.RQ > 0 ? parseSoldeToJours(rqDisplay.textContent.trim()) - compteur.RQ : 0,
+            CP: cpDisplay && cpCalendrier > 0 ? parseSoldeToJours(cpDisplay.textContent.trim()) - cpCalendrier : 0
+        };
+        localStorage.setItem('optimum-resultats-regularisations', JSON.stringify(resultats));
+        console.log('💾 Résultats sauvegardés dans le cache:', resultats);
+    }
+
+    // Fonction pour vérifier les soldes et changer la couleur si insuffisant
+    function verifierSoldesVsRegularisations(compteur) {
+        console.log('🔍 Vérification des soldes vs régularisations...', compteur);
+
+        // Vérifier RP
+        const rpDisplay = document.querySelector('.solde-display-rp');
+        if (rpDisplay) {
+            const soldeText = rpDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (soldeJours === 0 || !soldeText) {
+                console.log('⚠️ RP: Solde non disponible, reste en gris');
+                // Ne pas return, continuer pour les autres soldes
+            } else {
+                // Chercher le compteur de régularisations RP
+                let regulJours = compteur.RP || 0;
+                
+                console.log(`📊 RP: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
+                
+                if (regulJours > 0) {
+                    // Si des régularisations détectées → ORANGE
+                    rpDisplay.style.color = '#ff8c00';
+                    console.log(`🟠 RP: Régularisations détectées (${regulJours}J) → Orange`);
+                } else {
+                    // Si aucune régularisation → VERT
+                    rpDisplay.style.color = '#28a745';
+                    console.log(`🟢 RP: Aucune régularisation détectée → Vert`);
+                }
+            }
+        }
+
+        // Vérifier RU
+        const ruDisplay = document.querySelector('.solde-display-ru');
+        if (ruDisplay) {
+            const soldeText = ruDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (soldeJours === 0 || !soldeText) {
+                console.log('⚠️ RU: Solde non disponible, reste en gris');
+                // Ne pas return, continuer pour les autres soldes
+            } else {
+                let regulJours = compteur.RU || 0;
+                
+                console.log(`📊 RU: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
+                
+                if (regulJours > 0) {
+                    // Si des régularisations détectées → ORANGE
+                    ruDisplay.style.color = '#ff8c00';
+                    console.log(`🟠 RU: Régularisations détectées (${regulJours}J) → Orange`);
+                } else {
+                    // Si aucune régularisation → VERT
+                    ruDisplay.style.color = '#28a745';
+                    console.log(`🟢 RU: Aucune régularisation détectée → Vert`);
+                }
+            }
+        }
+
+        // Vérifier RQ
+        const rqDisplay = document.querySelector('.solde-display-rq');
+        if (rqDisplay) {
+            const soldeText = rqDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (soldeJours === 0 || !soldeText) {
+                console.log('⚠️ RQ: Solde non disponible, reste en gris');
+                // Ne pas return, continuer pour les autres soldes
+            } else {
+                let regulJours = compteur.RQ || 0;
+                
+                console.log(`📊 RQ: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
+                
+                if (regulJours > 0) {
+                    // Si des régularisations détectées → ORANGE
+                    rqDisplay.style.color = '#ff8c00';
+                    console.log(`🟠 RQ: Régularisations détectées (${regulJours}J) → Orange`);
+                } else {
+                    // Si aucune régularisation → VERT
+                    rqDisplay.style.color = '#28a745';
+                    console.log(`🟢 RQ: Aucune régularisation détectée → Vert`);
+                }
+            }
+        }
+
+        // Vérifier CP (si applicable)
+        const cpDisplay = document.querySelector('.solde-display-cp');
+        if (cpDisplay) {
+            const soldeText = cpDisplay.textContent.trim();
+            const soldeJours = parseSoldeToJours(soldeText);
+            
+            if (soldeJours === 0 || !soldeText) {
+                console.log('⚠️ CP: Solde non disponible, reste en gris');
+                // Ne pas return, fin de la fonction
+            } else {
+                const cpCalendrierCP = cpDisplay.parentElement.querySelector('.valeur-cp-calendrier');
+                if (cpCalendrierCP) {
+                    const cpText = cpCalendrierCP.textContent.trim().replace('-', '').replace('J', '');
+                    const cpCalendrierJours = parseFloat(cpText) || 0;
+                    
+                    console.log(`📊 CP: Solde=${soldeJours}J, CP Calendrier=${cpCalendrierJours}J`);
+                    
+                    if (cpCalendrierJours > 0) {
+                        // Si des CP posés → ORANGE
+                        cpDisplay.style.color = '#ff8c00';
+                        console.log(`🟠 CP: CP posés détectés (${cpCalendrierJours}J) → Orange`);
+                    } else {
+                        // Si aucun CP posé → VERT
+                        cpDisplay.style.color = '#28a745';
+                        console.log(`🟢 CP: Aucun CP posé → Vert`);
+                    }
+                } else {
+                    // Pas de compteur CP → VERT
+                    cpDisplay.style.color = '#28a745';
+                    console.log(`🟢 CP: Aucun CP posé → Vert`);
+                }
+            }
+        }
+    }
+
+    // Fonction pour charger et afficher les compteurs depuis le cache au démarrage
+    function chargerCompteursRegularisationsDepuisCache() {
+        const cachedCompteurs = localStorage.getItem('optimum-compteurs-regularisations');
+        if (cachedCompteurs) {
+            try {
+                const compteurs = JSON.parse(cachedCompteurs);
+                console.log('📦 Chargement des compteurs de régularisations depuis le cache:', compteurs);
+
+                // Afficher RP
+                const rpDisplay = document.querySelector('.solde-display-rp');
+                if (rpDisplay && compteurs.RP > 0) {
+                    let compteurElement = rpDisplay.parentElement.querySelector('.compteur-regularisation-rp');
+                    if (!compteurElement) {
+                        compteurElement = document.createElement('div');
+                        compteurElement.className = 'compteur-regularisation-rp valeur-cp-calendrier';
+                        compteurElement.title = 'Régularisations RP détectées (cache)';
+                        rpDisplay.parentElement.appendChild(compteurElement);
+                    }
+                    compteurElement.innerHTML = ''; // Vider d'abord
+                    compteurElement.textContent = `-${compteurs.RP}J `;
+                    compteurElement.style.display = 'block';
+                    // Ajouter le spinner à droite
+                    const spinner = document.createElement('span');
+                    spinner.className = 'modern-loading-spinner';
+                    spinner.style.marginLeft = '4px';
+                    compteurElement.appendChild(spinner);
+                }
+
+                // Afficher RU
+                const ruDisplay = document.querySelector('.solde-display-ru');
+                if (ruDisplay && compteurs.RU > 0) {
+                    let compteurElement = ruDisplay.parentElement.querySelector('.compteur-regularisation-ru');
+                    if (!compteurElement) {
+                        compteurElement = document.createElement('div');
+                        compteurElement.className = 'compteur-regularisation-ru valeur-cp-calendrier';
+                        compteurElement.title = 'Régularisations RU détectées (cache)';
+                        ruDisplay.parentElement.appendChild(compteurElement);
+                    }
+                    compteurElement.innerHTML = '';
+                    compteurElement.textContent = `-${compteurs.RU}J `;
+                    compteurElement.style.display = 'block';
+                    const spinner = document.createElement('span');
+                    spinner.className = 'modern-loading-spinner';
+                    spinner.style.marginLeft = '4px';
+                    compteurElement.appendChild(spinner);
+                }
+
+                // Afficher RQ
+                const rqDisplay = document.querySelector('.solde-display-rq');
+                if (rqDisplay && compteurs.RQ > 0) {
+                    let compteurElement = rqDisplay.parentElement.querySelector('.compteur-regularisation-rq');
+                    if (!compteurElement) {
+                        compteurElement = document.createElement('div');
+                        compteurElement.className = 'compteur-regularisation-rq valeur-cp-calendrier';
+                        compteurElement.title = 'Régularisations RQ détectées (cache)';
+                        rqDisplay.parentElement.appendChild(compteurElement);
+                    }
+                    compteurElement.innerHTML = '';
+                    compteurElement.textContent = `-${compteurs.RQ}J `;
+                    compteurElement.style.display = 'block';
+                    const spinner = document.createElement('span');
+                    spinner.className = 'modern-loading-spinner';
+                    spinner.style.marginLeft = '4px';
+                    compteurElement.appendChild(spinner);
+                }
+
+                return true;
+            } catch (error) {
+                console.error('❌ Erreur lors du chargement des compteurs depuis le cache:', error);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // Fonction pour charger et afficher les résultats depuis le cache au démarrage
+    function chargerResultatsRegularisationsDepuisCache() {
+        const cachedResultats = localStorage.getItem('optimum-resultats-regularisations');
+        const cachedCompteurs = localStorage.getItem('optimum-compteurs-regularisations');
+        
+        if (cachedResultats) {
+            try {
+                const resultats = JSON.parse(cachedResultats);
+                const compteurs = cachedCompteurs ? JSON.parse(cachedCompteurs) : { RP: 0, RU: 0, RQ: 0 };
+                console.log('📦 Chargement des résultats de régularisations depuis le cache:', resultats);
+
+                // Afficher résultat RP
+                const rpDisplay = document.querySelector('.solde-display-rp');
+                if (rpDisplay && compteurs.RP > 0 && resultats.RP !== undefined) {
+                    let resultatElement = rpDisplay.parentElement.querySelector('.resultat-apres-regul-rp');
+                    if (!resultatElement) {
+                        resultatElement = document.createElement('div');
+                        resultatElement.className = 'resultat-apres-regul-rp';
+                        resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                        resultatElement.title = 'Solde après régularisations (cache)';
+                        rpDisplay.parentElement.appendChild(resultatElement);
+                    }
+                    resultatElement.textContent = `${resultats.RP}J`;
+                }
+
+                // Afficher résultat RU
+                const ruDisplay = document.querySelector('.solde-display-ru');
+                if (ruDisplay && compteurs.RU > 0 && resultats.RU !== undefined) {
+                    let resultatElement = ruDisplay.parentElement.querySelector('.resultat-apres-regul-ru');
+                    if (!resultatElement) {
+                        resultatElement = document.createElement('div');
+                        resultatElement.className = 'resultat-apres-regul-ru';
+                        resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                        resultatElement.title = 'Solde après régularisations (cache)';
+                        ruDisplay.parentElement.appendChild(resultatElement);
+                    }
+                    resultatElement.textContent = `${resultats.RU}J`;
+                }
+
+                // Afficher résultat RQ
+                const rqDisplay = document.querySelector('.solde-display-rq');
+                if (rqDisplay && compteurs.RQ > 0 && resultats.RQ !== undefined) {
+                    let resultatElement = rqDisplay.parentElement.querySelector('.resultat-apres-regul-rq');
+                    if (!resultatElement) {
+                        resultatElement = document.createElement('div');
+                        resultatElement.className = 'resultat-apres-regul-rq';
+                        resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                        resultatElement.title = 'Solde après régularisations (cache)';
+                        rqDisplay.parentElement.appendChild(resultatElement);
+                    }
+                    resultatElement.textContent = `${resultats.RQ}J`;
+                }
+
+                // Afficher résultat CP
+                const cpDisplay = document.querySelector('.solde-display-cp');
+                const cpCalendrierElement = cpDisplay ? cpDisplay.parentElement.querySelector('.valeur-cp-calendrier') : null;
+                if (cpDisplay && cpCalendrierElement && resultats.CP !== undefined && resultats.CP !== 0) {
+                    let resultatElement = cpDisplay.parentElement.querySelector('.resultat-apres-regul-cp');
+                    if (!resultatElement) {
+                        resultatElement = document.createElement('div');
+                        resultatElement.className = 'resultat-apres-regul-cp';
+                        resultatElement.style.cssText = 'font-size: 11px; color: #28a745; font-weight: bold; margin-top: 2px;';
+                        resultatElement.title = 'Solde après CP posés (cache)';
+                        cpDisplay.parentElement.appendChild(resultatElement);
+                    }
+                    resultatElement.textContent = `${resultats.CP}J`;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('❌ Erreur lors du chargement des résultats depuis le cache:', error);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // Exposer la fonction globalement
+    window.analyserRegularisationsParDate = analyserRegularisationsParDate;
+
+    // Observer les changements dans le calendrier pour recalculer les CP automatiquement
+    const calendrierObserver = new MutationObserver(function(mutations) {
+        // Vérifier si des cellules d'absence ont changé
+        const hasAbsenceChanges = mutations.some(mutation => {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                const target = mutation.target;
+                if (target.classList && 
+                    (target.classList.contains('phx-cell-render-text') || 
+                     target.classList.contains('phx-cell-render') ||
+                     target.classList.contains('phx-dynamicStyle-cell-absaval'))) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        
+        if (hasAbsenceChanges) {
+            console.log('🔄 Changement détecté dans le calendrier, recalcul des CP...');
+            // Attendre un peu pour que le DOM soit stabilisé
+            setTimeout(afficherCPCalendrierSousBouton, 500);
+        }
+    });
+
+    // Démarrer l'observation du calendrier (chercher la zone du calendrier)
+    const startCalendrierObserver = function() {
+        const calendrierZone = document.querySelector('.phx-agenda-calendrier, .phx-calendar, .phx-agenda-accesrapides');
+        if (calendrierZone) {
+            calendrierObserver.observe(calendrierZone, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class']
+            });
+            console.log('👁️ Observation du calendrier activée pour le calcul automatique des CP');
+        }
+    };
+
     // Fonction pour supprimer les boutons personnalisés (avant réinsertion)
     function removeCustomButtons() {
         const group = document.querySelector('.phx-custom-buttons-group');
@@ -1248,11 +2224,29 @@
                 if (hasCachedData) {
                     console.log('✅ Soldes du cache affichés, requête API en cours...');
                 }
+                // Charger immédiatement les compteurs de régularisations depuis le cache
+                chargerCompteursRegularisationsDepuisCache();
+                // Charger immédiatement les résultats depuis le cache
+                chargerResultatsRegularisationsDepuisCache();
+                
                 // Lancer la requête API après un court délai
                 setTimeout(function() {
                     console.log('🔄 Chargement des soldes depuis l\'API...');
                     executeApiRequests();
                 }, 500);
+                
+                // Calculer et afficher les CP depuis le calendrier après un délai
+                setTimeout(function() {
+                    console.log('🔄 Calcul des CP depuis le calendrier...');
+                    afficherCPCalendrierSousBouton();
+                    startCalendrierObserver();
+                    
+                    // Récupérer et afficher les cellules clignotantes
+                    setTimeout(function() {
+                        recupererCellulesClignotantes();
+                    }, 1000);
+                }, 1500);
+                
                 // Actualiser automatiquement toutes les 15 minutes (900000 ms)
                 setInterval(function() {
                     console.log('🔄 Actualisation automatique des soldes (toutes les 15 min)...');
@@ -1290,6 +2284,28 @@
 
         if (nouveauPresent && containeurPresent && boutonsAbsents) {
             insertButtons();
+            // Calculer et afficher les CP depuis le calendrier
+            setTimeout(afficherCPCalendrierSousBouton, 1000);
+        }
+    });
+
+    // Observer pour détecter l'apparition du titre "Agenda" et lancer l'analyse automatiquement
+    let analyseLancee = false;
+    const agendaObserver = new MutationObserver(function(mutations) {
+        if (analyseLancee) return; // Ne lancer qu'une seule fois
+        
+        const titreAgenda = document.querySelector('.cw-header-usecase-title.d-flex');
+        if (titreAgenda && titreAgenda.textContent.trim() === 'Agenda') {
+            console.log('📅 Titre "Agenda" détecté, lancement de l\'analyse dans 3 secondes...');
+            analyseLancee = true;
+            
+            setTimeout(function() {
+                console.log('🚀 Lancement automatique de l\'analyse des régularisations...');
+                analyserRegularisationsParDate();
+            }, 3000);
+            
+            // Arrêter l'observation une fois l'analyse lancée
+            agendaObserver.disconnect();
         }
     });
 
@@ -1299,11 +2315,21 @@
         subtree: true
     });
 
+    // Démarrer l'observation pour le titre Agenda
+    agendaObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
     // Tenter d'insérer les boutons immédiatement
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', insertButtons);
+        document.addEventListener('DOMContentLoaded', function() {
+            insertButtons();
+            setTimeout(afficherCPCalendrierSousBouton, 1500);
+        });
     } else {
         insertButtons();
+        setTimeout(afficherCPCalendrierSousBouton, 1500);
     }
 
-    })();
+})();
