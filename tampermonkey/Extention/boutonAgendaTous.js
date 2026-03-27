@@ -1215,39 +1215,39 @@
     // Fonction pour scanner le calendrier et calculer les jours de CP posés
     function calculerCPDepuisCalendrier() {
         console.log('🔍 Scan du calendrier pour détecter les CP...');
-        
+
         // Chercher toutes les cellules avec les classes spécifiques pour les absences validées
         const cellulesAbsences = document.querySelectorAll('.phx-cell-render-text.phx-dynamicStyle-cell-absaval');
-        
+
         if (cellulesAbsences.length === 0) {
             console.log('⚠️ Aucune cellule d\'absence trouvée dans le calendrier');
             return 0;
         }
-        
+
         console.log(`📊 ${cellulesAbsences.length} cellule(s) d'absence trouvée(s)`);
-        
+
         let totalJours = 0;
-        
+
         cellulesAbsences.forEach((cellule, index) => {
             // Remonter à la cellule parente complète
             const celluleParente = cellule.closest('.phx-cell-render');
-            
+
             if (!celluleParente) return;
-            
+
             // Vérifier si c'est une cellule d'absence CP (abs_COR)
             const celluleAbs = celluleParente.querySelector('.phx-dynamicStyle-cell-abs_COR.phx-cell-abs-aval');
-            
+
             if (!celluleAbs) return; // Pas une absence CP
-            
+
             console.log(`  📅 Cellule ${index + 1}:`);
-            
+
             // Vérifier la présence des classes pour déterminer le type de journée
             const hasLeft = celluleParente.querySelector('.phx-cell-render-left');
             const hasRight = celluleParente.querySelector('.phx-cell-render-right');
             const hasWhite = celluleParente.querySelector('.ui-phx-color-blanc_5');
             const hasDynamicAbsLeft = celluleParente.querySelector('.phx-cell-render-left.phx-dynamicStyle-cell-abs_COR');
             const hasDynamicAbsRight = celluleParente.querySelector('.phx-cell-render-right.phx-dynamicStyle-cell-abs_COR');
-            
+
             // Cas 1: Demi-journée - présence d'un blanc ET d'un CP dynamique (left ou right)
             if (hasWhite && (hasDynamicAbsLeft || hasDynamicAbsRight)) {
                 totalJours += 0.5;
@@ -1268,7 +1268,7 @@
                 console.log(`    ⚠️ Configuration non reconnue (hasLeft: ${!!hasLeft}, hasRight: ${!!hasRight}, hasWhite: ${!!hasWhite}, hasDynamicAbsLeft: ${!!hasDynamicAbsLeft}, hasDynamicAbsRight: ${!!hasDynamicAbsRight})`);
             }
         });
-        
+
         console.log(`✅ Total CP calculé depuis le calendrier: ${totalJours}J`);
         return totalJours;
     }
@@ -1277,12 +1277,12 @@
     function afficherCPCalendrierSousBouton() {
         const cpCalendrier = calculerCPDepuisCalendrier();
         const cpDisplay = document.querySelector('.solde-display-cp');
-        
+
         if (!cpDisplay) return;
-        
+
         const wrapper = cpDisplay.parentElement;
         let existingCalc = wrapper.querySelector('.valeur-cp-calendrier');
-        
+
         if (cpCalendrier > 0) {
             if (existingCalc) {
                 existingCalc.textContent = `-${cpCalendrier}J`;
@@ -1291,12 +1291,12 @@
                 valeurCalculee.className = 'valeur-cp-calendrier';
                 valeurCalculee.textContent = `-${cpCalendrier}J`;
                 valeurCalculee.title = 'CP posés (calculé depuis le calendrier)';
-                
+
                 if (wrapper && wrapper.classList.contains('modern-button-wrapper')) {
                     wrapper.appendChild(valeurCalculee);
                 }
             }
-            
+
             // Calculer et afficher le résultat après CP
             afficherResultatApresCP();
         } else if (existingCalc) {
@@ -1313,13 +1313,13 @@
     function afficherResultatApresCP() {
         const cpDisplay = document.querySelector('.solde-display-cp');
         const cpCalendrierElement = cpDisplay ? cpDisplay.parentElement.querySelector('.valeur-cp-calendrier') : null;
-        
+
         if (cpDisplay && cpCalendrierElement) {
             const soldeText = cpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
             const cpText = cpCalendrierElement.textContent.trim().replace('-', '').replace('J', '');
             const cpCalendrierJours = parseFloat(cpText) || 0;
-            
+
             if (cpCalendrierJours > 0 && soldeJours > 0) {
                 const resultat = soldeJours - cpCalendrierJours;
 
@@ -1332,10 +1332,10 @@
                     resultatElement.title = 'Solde après CP posés';
                     cpDisplay.parentElement.appendChild(resultatElement);
                 }
-                
+
                 resultatElement.textContent = `${resultat}J`;
                 console.log(`✅ CP: ${soldeJours}J - ${cpCalendrierJours}J = ${resultat}J`);
-                
+
                 // Sauvegarder dans le localStorage
                 const cachedResultats = localStorage.getItem('optimum-resultats-regularisations');
                 let resultats = cachedResultats ? JSON.parse(cachedResultats) : { RP: 0, RU: 0, RQ: 0, CP: 0 };
@@ -1355,7 +1355,7 @@
 
         // Chercher toutes les cellules clignotantes (avec la classe cellule-30-clignotante ou similaire)
         const cellulesClignotantes = document.querySelectorAll('[class*="cellule-"][class*="-clignotante"]');
-        
+
         if (cellulesClignotantes.length === 0) {
             console.log('⚠️ Aucune cellule clignotante trouvée dans le calendrier');
             console.log('');
@@ -1370,14 +1370,14 @@
         cellulesClignotantes.forEach((cellule, index) => {
             // Récupérer l'attribut data-date
             const dataDate = cellule.getAttribute('data-date');
-            
+
             // Récupérer le titre (tooltip) qui contient les informations
             const titre = cellule.getAttribute('title');
-            
+
             // Récupérer la couleur de fond
-            const bgColor = cellule.style.backgroundColor || 
+            const bgColor = cellule.style.backgroundColor ||
                            window.getComputedStyle(cellule).backgroundColor;
-            
+
             // Récupérer le texte affiché dans la cellule (ex: "30")
             const texteElement = cellule.querySelector('.phx-cell-render-text');
             const texte = texteElement ? texteElement.textContent.trim() : '';
@@ -1459,7 +1459,7 @@
 
         // Récupérer toutes les cellules clignotantes SANS afficher dans la console
         const cellulesClignotantes = document.querySelectorAll('[class*="cellule-"][class*="-clignotante"]');
-        
+
         if (cellulesClignotantes.length === 0) {
             console.log('❌ Aucune cellule clignotante trouvée dans le calendrier');
             console.log('');
@@ -1507,7 +1507,7 @@
 
                 // Chercher le panel de régularisation
                 const panelRegularisation = document.querySelector('.cw-regularisation, [class*="regularisation"]');
-                
+
                 if (panelRegularisation) {
                     console.log('   📦 Contenu complet du panel de régularisation:');
                     console.log('   ────────────────────────────────────────────────');
@@ -1519,7 +1519,7 @@
 
                 // Chercher le libellé de régularisation dans le panel
                 const libelleElements = document.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal.cw-regularisation__libelle');
-                
+
                 console.log(`   🔍 ${libelleElements.length} élément(s) de régularisation trouvé(s)`);
 
                 let typeRegularisation = 'AUCUNE';
@@ -1531,7 +1531,7 @@
                     libelleElements.forEach((libelle, idx) => {
                         const texte = libelle.textContent.trim();
                         console.log(`   📋 Libellé ${idx + 1}: "${texte}"`);
-                        
+
                         // Détecter le type de régularisation
                         if (texte.includes('RP') || texte.toLowerCase().includes('repos périodique') || texte.toLowerCase().includes('demande de rp')) {
                             typesTrouves.push('RP');
@@ -1755,7 +1755,7 @@
         if (rpDisplay) {
             const soldeText = rpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (compteur.RP > 0) {
                 const resultat = soldeJours - compteur.RP;
 
@@ -1768,7 +1768,7 @@
                     resultatElement.title = 'Solde après régularisations';
                     rpDisplay.parentElement.appendChild(resultatElement);
                 }
-                
+
                 resultatElement.textContent = `${resultat}J`;
                 console.log(`✅ RP: ${soldeJours}J - ${compteur.RP}J = ${resultat}J`);
             }
@@ -1779,7 +1779,7 @@
         if (ruDisplay) {
             const soldeText = ruDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (compteur.RU > 0) {
                 const resultat = soldeJours - compteur.RU;
 
@@ -1792,7 +1792,7 @@
                     resultatElement.title = 'Solde après régularisations';
                     ruDisplay.parentElement.appendChild(resultatElement);
                 }
-                
+
                 resultatElement.textContent = `${resultat}J`;
                 console.log(`✅ RU: ${soldeJours}J - ${compteur.RU}J = ${resultat}J`);
             }
@@ -1803,7 +1803,7 @@
         if (rqDisplay) {
             const soldeText = rqDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (compteur.RQ > 0) {
                 const resultat = soldeJours - compteur.RQ;
 
@@ -1816,7 +1816,7 @@
                     resultatElement.title = 'Solde après régularisations';
                     rqDisplay.parentElement.appendChild(resultatElement);
                 }
-                
+
                 resultatElement.textContent = `${resultat}J`;
                 console.log(`✅ RQ: ${soldeJours}J - ${compteur.RQ}J = ${resultat}J`);
             }
@@ -1828,11 +1828,11 @@
         if (cpDisplay) {
             const soldeText = cpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (cpCalendrierElement) {
                 const cpText = cpCalendrierElement.textContent.trim().replace('-', '').replace('J', '');
                 const cpCalendrierJours = parseFloat(cpText) || 0;
-                
+
                 if (cpCalendrierJours > 0) {
                     const resultat = soldeJours - cpCalendrierJours;
 
@@ -1845,7 +1845,7 @@
                         resultatElement.title = 'Solde après CP posés';
                         cpDisplay.parentElement.appendChild(resultatElement);
                     }
-                    
+
                     resultatElement.textContent = `${resultat}J`;
                     console.log(`✅ CP: ${soldeJours}J - ${cpCalendrierJours}J = ${resultat}J`);
                 }
@@ -1873,16 +1873,16 @@
         if (rpDisplay) {
             const soldeText = rpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RP: Solde non disponible, reste en gris');
                 // Ne pas return, continuer pour les autres soldes
             } else {
                 // Chercher le compteur de régularisations RP
                 let regulJours = compteur.RP || 0;
-                
+
                 console.log(`📊 RP: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
-                
+
                 if (regulJours > 0) {
                     // Si des régularisations détectées → ORANGE
                     rpDisplay.style.color = '#ff8c00';
@@ -1900,15 +1900,15 @@
         if (ruDisplay) {
             const soldeText = ruDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RU: Solde non disponible, reste en gris');
                 // Ne pas return, continuer pour les autres soldes
             } else {
                 let regulJours = compteur.RU || 0;
-                
+
                 console.log(`📊 RU: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
-                
+
                 if (regulJours > 0) {
                     // Si des régularisations détectées → ORANGE
                     ruDisplay.style.color = '#ff8c00';
@@ -1926,15 +1926,15 @@
         if (rqDisplay) {
             const soldeText = rqDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RQ: Solde non disponible, reste en gris');
                 // Ne pas return, continuer pour les autres soldes
             } else {
                 let regulJours = compteur.RQ || 0;
-                
+
                 console.log(`📊 RQ: Solde=${soldeJours}J, Régularisations=${regulJours}J`);
-                
+
                 if (regulJours > 0) {
                     // Si des régularisations détectées → ORANGE
                     rqDisplay.style.color = '#ff8c00';
@@ -1952,7 +1952,7 @@
         if (cpDisplay) {
             const soldeText = cpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
-            
+
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ CP: Solde non disponible, reste en gris');
                 // Ne pas return, fin de la fonction
@@ -1961,9 +1961,9 @@
                 if (cpCalendrierCP) {
                     const cpText = cpCalendrierCP.textContent.trim().replace('-', '').replace('J', '');
                     const cpCalendrierJours = parseFloat(cpText) || 0;
-                    
+
                     console.log(`📊 CP: Solde=${soldeJours}J, CP Calendrier=${cpCalendrierJours}J`);
-                    
+
                     if (cpCalendrierJours > 0) {
                         // Si des CP posés → ORANGE
                         cpDisplay.style.color = '#ff8c00';
@@ -2061,7 +2061,7 @@
     function chargerResultatsRegularisationsDepuisCache() {
         const cachedResultats = localStorage.getItem('optimum-resultats-regularisations');
         const cachedCompteurs = localStorage.getItem('optimum-compteurs-regularisations');
-        
+
         if (cachedResultats) {
             try {
                 const resultats = JSON.parse(cachedResultats);
@@ -2143,8 +2143,8 @@
         const hasAbsenceChanges = mutations.some(mutation => {
             if (mutation.type === 'childList' || mutation.type === 'attributes') {
                 const target = mutation.target;
-                if (target.classList && 
-                    (target.classList.contains('phx-cell-render-text') || 
+                if (target.classList &&
+                    (target.classList.contains('phx-cell-render-text') ||
                      target.classList.contains('phx-cell-render') ||
                      target.classList.contains('phx-dynamicStyle-cell-absaval'))) {
                     return true;
@@ -2152,7 +2152,7 @@
             }
             return false;
         });
-        
+
         if (hasAbsenceChanges) {
             console.log('🔄 Changement détecté dans le calendrier, recalcul des CP...');
             // Attendre un peu pour que le DOM soit stabilisé
@@ -2228,25 +2228,25 @@
                 chargerCompteursRegularisationsDepuisCache();
                 // Charger immédiatement les résultats depuis le cache
                 chargerResultatsRegularisationsDepuisCache();
-                
+
                 // Lancer la requête API après un court délai
                 setTimeout(function() {
                     console.log('🔄 Chargement des soldes depuis l\'API...');
                     executeApiRequests();
                 }, 500);
-                
+
                 // Calculer et afficher les CP depuis le calendrier après un délai
                 setTimeout(function() {
                     console.log('🔄 Calcul des CP depuis le calendrier...');
                     afficherCPCalendrierSousBouton();
                     startCalendrierObserver();
-                    
+
                     // Récupérer et afficher les cellules clignotantes
                     setTimeout(function() {
                         recupererCellulesClignotantes();
                     }, 1000);
                 }, 1500);
-                
+
                 // Actualiser automatiquement toutes les 15 minutes (900000 ms)
                 setInterval(function() {
                     console.log('🔄 Actualisation automatique des soldes (toutes les 15 min)...');
@@ -2293,17 +2293,17 @@
     let analyseLancee = false;
     const agendaObserver = new MutationObserver(function(mutations) {
         if (analyseLancee) return; // Ne lancer qu'une seule fois
-        
+
         const titreAgenda = document.querySelector('.cw-header-usecase-title.d-flex');
         if (titreAgenda && titreAgenda.textContent.trim() === 'Agenda') {
             console.log('📅 Titre "Agenda" détecté, lancement de l\'analyse dans 3 secondes...');
             analyseLancee = true;
-            
+
             setTimeout(function() {
                 console.log('🚀 Lancement automatique de l\'analyse des régularisations...');
                 analyserRegularisationsParDate();
             }, 3000);
-            
+
             // Arrêter l'observation une fois l'analyse lancée
             agendaObserver.disconnect();
         }
