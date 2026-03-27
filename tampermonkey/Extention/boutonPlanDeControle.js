@@ -372,7 +372,7 @@
             span.textContent.includes("PLAN DE CONTROLE") ||
             span.textContent.includes("PLAN DE CONTRÔLE") ||
             span.textContent.includes("Tiroir EMC 846") ||
-            span.textContent.includes("PLATINE DE CMDE DE PORTE")
+            span.textContent.includes("PLATINE")
         );
     }
 
