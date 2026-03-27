@@ -460,12 +460,20 @@
     }
 
     // ── Intercepter le clic sur le bouton "En attente Rebut" ──
+    let isProcessingRebutClick = false; // Flag pour éviter la double interception
+
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('button.button-next_etat');
         if (!btn) return;
 
         const label = btn.getAttribute('collector-next-state-name') || '';
         if (!label.includes('ATTENTE REBUT')) return;
+
+        // Si on est en train de traiter un clic automatique, ne pas intercepter
+        if (isProcessingRebutClick) {
+            console.log('[RebutCause] ⏭️ Clic automatique détecté, laissé passer');
+            return;
+        }
 
         // Bloquer le clic d'origine
         e.preventDefault();
@@ -481,8 +489,14 @@
 
             // 2. Ensuite cliquer sur le vrai bouton rebut (après que l'info agent soit enregistrée)
             setTimeout(() => {
+                isProcessingRebutClick = true; // Activer le flag
                 btn.click();
                 console.log('[RebutCause] ✅ Bouton "En attente Rebut" cliqué automatiquement');
+
+                // Réinitialiser le flag après un court délai
+                setTimeout(() => {
+                    isProcessingRebutClick = false;
+                }, 500);
             }, 2500);
         });
 
