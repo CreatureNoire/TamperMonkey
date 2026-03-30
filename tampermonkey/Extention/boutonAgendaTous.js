@@ -718,14 +718,26 @@
                 try {
                     const compteurs = JSON.parse(cachedCompteurs);
                     console.log('🔍 Vérification des soldes avec les compteurs en cache...', compteurs);
-                    verifierSoldesVsRegularisations(compteurs);
+
+                    // Vérifier que les éléments existent avant de vérifier
+                    const rpExists = !!document.querySelector('.solde-display-rp');
+                    const ruExists = !!document.querySelector('.solde-display-ru');
+                    const rqExists = !!document.querySelector('.solde-display-rq');
+                    console.log('🔍 Éléments présents dans le DOM:', { rpExists, ruExists, rqExists });
+
+                    if (rpExists || ruExists || rqExists) {
+                        verifierSoldesVsRegularisations(compteurs);
+                    } else {
+                        console.warn('⚠️ Les éléments de solde ne sont pas encore dans le DOM, nouvelle tentative dans 500ms...');
+                        setTimeout(() => verifierSoldesVsRegularisations(compteurs), 500);
+                    }
                 } catch (e) {
                     console.error('❌ Erreur lors du chargement des compteurs:', e);
                 }
             } else {
                 console.log('ℹ️ Aucun compteur en cache, les couleurs resteront grises jusqu\'à l\'analyse');
             }
-        }, 100); // Petit délai pour s'assurer que le DOM est à jour
+        }, 800); // Délai augmenté de 100ms à 800ms pour s'assurer que le DOM est à jour
     }
 
     // Fonction pour récupérer le matricule de l'utilisateur
@@ -1743,7 +1755,11 @@
         afficherCalculSoldeApresRegularisations(compteur);
 
         // Vérifier les soldes et mettre en orange si insuffisant
-        verifierSoldesVsRegularisations(compteur);
+        // Ajout d'un délai pour s'assurer que tous les compteurs sont bien affichés dans le DOM
+        setTimeout(() => {
+            console.log('🔍 Vérification des soldes après affichage des compteurs...');
+            verifierSoldesVsRegularisations(compteur);
+        }, 500); // Délai de 500ms pour laisser le DOM se mettre à jour
     }
 
     // Fonction pour afficher le calcul Solde - Régularisations
@@ -1866,13 +1882,17 @@
 
     // Fonction pour vérifier les soldes et changer la couleur si insuffisant
     function verifierSoldesVsRegularisations(compteur) {
-        console.log('🔍 Vérification des soldes vs régularisations...', compteur);
+        console.log('🔍 === Début de la vérification des soldes vs régularisations ===');
+        console.log('📊 Compteurs reçus:', compteur);
+        console.log('📍 Timestamp:', new Date().toISOString());
 
         // Vérifier RP
         const rpDisplay = document.querySelector('.solde-display-rp');
+        console.log('🔍 Élément RP trouvé:', !!rpDisplay);
         if (rpDisplay) {
             const soldeText = rpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
+            console.log('📊 RP - Texte brut:', soldeText, '| Jours parsés:', soldeJours);
 
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RP: Solde non disponible, reste en gris');
@@ -1897,9 +1917,11 @@
 
         // Vérifier RU
         const ruDisplay = document.querySelector('.solde-display-ru');
+        console.log('🔍 Élément RU trouvé:', !!ruDisplay);
         if (ruDisplay) {
             const soldeText = ruDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
+            console.log('📊 RU - Texte brut:', soldeText, '| Jours parsés:', soldeJours);
 
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RU: Solde non disponible, reste en gris');
@@ -1923,9 +1945,11 @@
 
         // Vérifier RQ
         const rqDisplay = document.querySelector('.solde-display-rq');
+        console.log('🔍 Élément RQ trouvé:', !!rqDisplay);
         if (rqDisplay) {
             const soldeText = rqDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
+            console.log('📊 RQ - Texte brut:', soldeText, '| Jours parsés:', soldeJours);
 
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ RQ: Solde non disponible, reste en gris');
@@ -1949,9 +1973,11 @@
 
         // Vérifier CP (si applicable)
         const cpDisplay = document.querySelector('.solde-display-cp');
+        console.log('🔍 Élément CP trouvé:', !!cpDisplay);
         if (cpDisplay) {
             const soldeText = cpDisplay.textContent.trim();
             const soldeJours = parseSoldeToJours(soldeText);
+            console.log('📊 CP - Texte brut:', soldeText, '| Jours parsés:', soldeJours);
 
             if (soldeJours === 0 || !soldeText) {
                 console.log('⚠️ CP: Solde non disponible, reste en gris');
