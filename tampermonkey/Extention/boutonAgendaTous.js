@@ -1450,6 +1450,35 @@
     window.recupererCellulesClignotantes = recupererCellulesClignotantes;
 
     // Fonction pour simuler l'analyse des régularisations pour chaque date clignotante
+    // Fonction helper pour attendre qu'un élément apparaisse dans le DOM
+    async function attendreElement(selecteur, timeout = 5000, checkInterval = 100) {
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeout) {
+            const element = document.querySelector(selecteur);
+            if (element) {
+                console.log(`✅ Élément trouvé: ${selecteur}`);
+                return element;
+            }
+            await new Promise(resolve => setTimeout(resolve, checkInterval));
+        }
+        console.warn(`⏱️ Timeout: Élément non trouvé après ${timeout}ms: ${selecteur}`);
+        return null;
+    }
+
+    // Fonction helper pour attendre que le contenu d'un élément change
+    async function attendreChangementContenu(element, timeout = 3000) {
+        const contenuInitial = element.textContent;
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeout) {
+            if (element.textContent !== contenuInitial) {
+                console.log(`✅ Contenu changé détecté`);
+                return true;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        return false;
+    }
+
     async function analyserRegularisationsParDate() {
         console.log('');
         console.log('═══════════════════════════════════════════════════════════');
@@ -1465,9 +1494,13 @@
         if (panelJournee) {
             console.log('🔽 Fermeture du panel "Journée du..." pour libérer l\'interface...');
             panelJournee.click();
-            // Attendre que le panel se ferme
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Attendre que le panel se ferme (délai augmenté)
+            await new Promise(resolve => setTimeout(resolve, 800));
         }
+
+        // Attendre que le calendrier soit complètement chargé
+        console.log('⏳ Vérification que le calendrier est chargé...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Récupérer toutes les cellules clignotantes SANS afficher dans la console
         const cellulesClignotantes = document.querySelectorAll('[class*="cellule-"][class*="-clignotante"]');
@@ -1514,23 +1547,111 @@
                 console.log('   🖱️ Clic sur la cellule...');
                 element.click();
 
-                // Attendre que le panel se charge (réduit à 1 seconde)
+                // Attendre que le panel se charge
+                console.log('   ⏳ Attente du chargement initial (1000ms)');
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Chercher le panel de régularisation
-                const panelRegularisation = document.querySelector('.cw-regularisation, [class*="regularisation"]');
+                // Vérifier si le panel "Journée du" est déjà ouvert en cherchant l'élément "Horaire"
+                console.log('   🔍 Vérification si le panel est déjà ouvert...');
+                const horaireElement = document.querySelector('span.col.cw-titre');
+                const isPanelOuvert = horaireElement && horaireElement.textContent.includes('Horaire');
+
+                if (isPanelOuvert) {
+                    console.log('   ✅ Panel "Journée du..." déjà ouvert (élément "Horaire" détecté)');
+                    // Petite attente pour la stabilisation
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } else {
+                    console.log('   🔍 Panel fermé, recherche du bouton "Journée du..."');
+                    const panelJourneeHeader = document.querySelector('.phx-agenda-zoomtbl.c-collapsePanel__header');
+
+                    if (panelJourneeHeader) {
+                        const dateSpan = panelJourneeHeader.querySelector('.c-collapsePanel__featured');
+                        if (dateSpan) {
+                            console.log(`   📅 Bouton "Journée du ${dateSpan.textContent}" trouvé`);
+                        }
+
+                        // Cliquer sur le bouton pour ouvrir/afficher le panel
+                        console.log('   🖱️ Clic sur le bouton "Journée du..." pour afficher les détails');
+                        panelJourneeHeader.click();
+
+                        // Attendre que le panel s'ouvre et se charge COMPLÈTEMENT (délai augmenté)
+                        console.log('   ⏳ Attente du chargement complet du panel (1800ms)');
+                        await new Promise(resolve => setTimeout(resolve, 1800));
+                        console.log('   ✅ Panel "Journée du..." ouvert et chargé');
+                    } else {
+                        console.log('   ⚠️ Bouton "Journée du..." non trouvé');
+                    }
+                }
+
+                // Essayer plusieurs fois de trouver le panel de régularisation
+                let panelRegularisation = null;
+                let tentatives = 0;
+                const maxTentatives = 3;
+
+                while (!panelRegularisation && tentatives < maxTentatives) {
+                    tentatives++;
+                    console.log(`   🔍 Tentative ${tentatives}/${maxTentatives} de détection du panel de régularisation...`);
+
+                    // Chercher d'abord dans le contexte du panel "Journée du" s'il existe
+                    const panelJourneeContainer = document.querySelector('.phx-agenda-zoomheader.c-collapsePanel');
+
+                    if (panelJourneeContainer) {
+                        // Chercher les régularisations dans le panel "Journée du"
+                        panelRegularisation = panelJourneeContainer.querySelector('.cw-regularisation') ||
+                                            panelJourneeContainer.querySelector('[class*="regularisation"]');
+
+                        if (panelRegularisation) {
+                            console.log('   ✅ Panel de régularisation trouvé dans le panel "Journée du"');
+                        }
+                    }
+
+                    // Si toujours pas trouvé, chercher dans tout le document
+                    if (!panelRegularisation) {
+                        panelRegularisation = document.querySelector('.cw-regularisation') ||
+                                            document.querySelector('[class*="regularisation"]') ||
+                                            document.querySelector('.phx-agenda-zoomtbl');
+                    }
+
+                    if (!panelRegularisation && tentatives < maxTentatives) {
+                        console.log('   ⏳ Panel non trouvé, attente de 500ms...');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
 
                 if (panelRegularisation) {
+                    console.log('   ✅ Panel trouvé après ' + tentatives + ' tentative(s)');
                     console.log('   📦 Contenu complet du panel de régularisation:');
                     console.log('   ────────────────────────────────────────────────');
                     console.log(panelRegularisation.textContent.trim());
                     console.log('   ────────────────────────────────────────────────');
                 } else {
-                    console.log('   ⚠️ Panel de régularisation non trouvé');
+                    console.log('   ⚠️ Panel de régularisation non trouvé après ' + maxTentatives + ' tentatives');
                 }
 
-                // Chercher le libellé de régularisation dans le panel
-                const libelleElements = document.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal.cw-regularisation__libelle');
+                // Chercher le libellé avec plusieurs sélecteurs possibles
+                // D'abord chercher dans le panel de régularisation s'il existe
+                let libelleElements = [];
+
+                if (panelRegularisation) {
+                    libelleElements = panelRegularisation.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal.cw-regularisation__libelle, .cw-texteNormal');
+                    console.log(`   🔍 ${libelleElements.length} libellé(s) trouvé(s) dans le panel de régularisation`);
+                }
+
+                // Si aucun élément trouvé, chercher dans le panel "Journée du"
+                if (libelleElements.length === 0) {
+                    console.log('   🔍 Recherche dans le panel "Journée du"...');
+                    const panelJourneeContainer = document.querySelector('.phx-agenda-zoomheader.c-collapsePanel');
+                    if (panelJourneeContainer) {
+                        libelleElements = panelJourneeContainer.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal, [class*="libelle"]');
+                        console.log(`   🔍 ${libelleElements.length} libellé(s) trouvé(s) dans le panel "Journée du"`);
+                    }
+                }
+
+                // Si toujours aucun élément, chercher dans tout le document
+                if (libelleElements.length === 0) {
+                    console.log('   🔍 Recherche alternative dans tout le document...');
+                    libelleElements = document.querySelectorAll('.cw-regularisation__libelle, .cw-texteNormal.cw-regularisation__libelle, [class*="regularisation"][class*="libelle"]');
+                }
 
                 console.log(`   🔍 ${libelleElements.length} élément(s) de régularisation trouvé(s)`);
 
@@ -1544,13 +1665,41 @@
                         const texte = libelle.textContent.trim();
                         console.log(`   📋 Libellé ${idx + 1}: "${texte}"`);
 
-                        // Détecter le type de régularisation
-                        if (texte.includes('RP') || texte.toLowerCase().includes('repos périodique') || texte.toLowerCase().includes('demande de rp')) {
+                        // Détecter le type de régularisation avec plus de patterns
+                        const texteLower = texte.toLowerCase();
+                        const texteUpper = texte.toUpperCase();
+
+                        // Patterns pour RP (Repos Périodique)
+                        if (texte.includes('RP') || texteUpper.includes('RP') ||
+                            texteLower.includes('repos périodique') ||
+                            texteLower.includes('repos periodique') ||
+                            texteLower.includes('demande de rp') ||
+                            texteLower.includes('régularisation rp') ||
+                            texteLower.includes('regularisation rp') ||
+                            /\bRP\b/i.test(texte)) {
                             typesTrouves.push('RP');
-                        } else if (texte.includes('RU') || texte.toLowerCase().includes('repos unique') || texte.toLowerCase().includes('demande de ru')) {
+                            console.log('   ✅ RP détecté dans:', texte.substring(0, 50));
+                        }
+                        // Patterns pour RU (Repos Unique)
+                        else if (texte.includes('RU') || texteUpper.includes('RU') ||
+                                texteLower.includes('repos unique') ||
+                                texteLower.includes('demande de ru') ||
+                                texteLower.includes('régularisation ru') ||
+                                texteLower.includes('regularisation ru') ||
+                                /\bRU\b/i.test(texte)) {
                             typesTrouves.push('RU');
-                        } else if (texte.includes('RQ') || texte.toLowerCase().includes('repos qualifié') || texte.toLowerCase().includes('demande de rq')) {
+                            console.log('   ✅ RU détecté dans:', texte.substring(0, 50));
+                        }
+                        // Patterns pour RQ (Repos Qualifié)
+                        else if (texte.includes('RQ') || texteUpper.includes('RQ') ||
+                                texteLower.includes('repos qualifié') ||
+                                texteLower.includes('repos qualifie') ||
+                                texteLower.includes('demande de rq') ||
+                                texteLower.includes('régularisation rq') ||
+                                texteLower.includes('regularisation rq') ||
+                                /\bRQ\b/i.test(texte)) {
                             typesTrouves.push('RQ');
+                            console.log('   ✅ RQ détecté dans:', texte.substring(0, 50));
                         }
                     });
 
@@ -1563,7 +1712,47 @@
                         details = 'Régularisation trouvée mais type non reconnu';
                     }
                 } else {
-                    details = 'Aucun élément de régularisation trouvé dans le panel';
+                    // DÉTECTION DE SECOURS : Si aucun libellé n'est trouvé, analyser le contenu textuel complet du panel
+                    console.log('   🔍 Détection de secours : analyse du contenu textuel complet du panel');
+
+                    let contenuPanel = '';
+                    if (panelRegularisation) {
+                        contenuPanel = panelRegularisation.textContent;
+                    } else {
+                        const panelJournee = document.querySelector('.phx-agenda-zoomheader.c-collapsePanel');
+                        if (panelJournee) {
+                            contenuPanel = panelJournee.textContent;
+                        }
+                    }
+
+                    if (contenuPanel) {
+                        const contenuLower = contenuPanel.toLowerCase();
+                        console.log(`   📝 Analyse de ${contenuPanel.length} caractères...`);
+
+                        // Détecter dans le contenu brut
+                        if (/\bRP\b/i.test(contenuPanel) || contenuLower.includes('repos périodique') || contenuLower.includes('repos periodique')) {
+                            typesTrouves.push('RP');
+                            console.log('   ✅ RP détecté dans le contenu textuel');
+                        }
+                        if (/\bRU\b/i.test(contenuPanel) || contenuLower.includes('repos unique')) {
+                            typesTrouves.push('RU');
+                            console.log('   ✅ RU détecté dans le contenu textuel');
+                        }
+                        if (/\bRQ\b/i.test(contenuPanel) || contenuLower.includes('repos qualifié') || contenuLower.includes('repos qualifie')) {
+                            typesTrouves.push('RQ');
+                            console.log('   ✅ RQ détecté dans le contenu textuel');
+                        }
+
+                        if (typesTrouves.length > 0) {
+                            const typesUniques = [...new Set(typesTrouves)];
+                            typeRegularisation = typesUniques.join(' + ');
+                            details = `${typesUniques.length} régularisation(s) trouvée(s) (détection de secours)`;
+                        } else {
+                            details = 'Aucun élément de régularisation trouvé dans le panel';
+                        }
+                    } else {
+                        details = 'Contenu du panel non accessible';
+                    }
                 }
 
                 const resultat = {
@@ -1584,6 +1773,7 @@
 
             } catch (error) {
                 console.log(`   ❌ Erreur lors de l'analyse: ${error.message}`);
+                console.log(`   📋 Stack trace:`, error.stack);
                 resultats.push({
                     date: dateFormatee,
                     dataDate: dataDate,
@@ -1593,8 +1783,10 @@
                 console.log('');
             }
 
-            // Pas de pause entre chaque analyse (test sans délai)
-            // await new Promise(resolve => setTimeout(resolve, 300));
+            // Petit délai entre chaque analyse pour stabiliser (augmenté à 400ms)
+            if (i < cellules.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+            }
         }
 
         // Résumé final
@@ -1639,6 +1831,27 @@
         console.table(resultats);
 
         console.log('═══════════════════════════════════════════════════════════');
+
+        // Message de diagnostic final
+        const tauxReussite = resultats.length > 0 ?
+            ((resultats.length - compteur.ERREUR) / resultats.length * 100).toFixed(1) : 0;
+
+        console.log('');
+        console.log('📊 DIAGNOSTIC:');
+        console.log(`   ✅ Taux de réussite: ${tauxReussite}%`);
+        console.log(`   🔍 Dates avec régularisations détectées: ${compteur.RP + compteur.RU + compteur.RQ}`);
+        console.log(`   ⚠️ Dates sans régularisation: ${compteur.AUCUNE}`);
+
+        if (compteur.ERREUR > 0) {
+            console.log(`   ❌ ATTENTION: ${compteur.ERREUR} erreur(s) détectée(s)`);
+            console.log('   💡 Conseil: Relancez l\'analyse ou vérifiez votre connexion');
+        } else {
+            console.log('   ✨ Analyse complétée sans erreur !');
+        }
+
+        console.log('');
+        console.log('💾 Sauvegarde dans le cache en cours...');
+        console.log('═══════════════════════════════════════════════════════════');
         console.log('');
 
         // Afficher les compteurs sous les boutons RP, RU, RQ
@@ -1649,38 +1862,76 @@
 
     // Fonction pour ajouter les spinners aux compteurs existants pendant le chargement
     function ajouterSpinnersAuxCompteurs() {
-        const compteurs = [
-            '.compteur-regularisation-rp',
-            '.compteur-regularisation-ru',
-            '.compteur-regularisation-rq'
+        console.log('⏳ Ajout des spinners aux compteurs...');
+
+        const compteurConfigs = [
+            { selecteur: '.compteur-regularisation-rp', parent: '.solde-display-rp', classe: 'compteur-regularisation-rp', titre: 'Régularisations RP' },
+            { selecteur: '.compteur-regularisation-ru', parent: '.solde-display-ru', classe: 'compteur-regularisation-ru', titre: 'Régularisations RU' },
+            { selecteur: '.compteur-regularisation-rq', parent: '.solde-display-rq', classe: 'compteur-regularisation-rq', titre: 'Régularisations RQ' }
         ];
 
-        compteurs.forEach(selecteur => {
-            const compteurElement = document.querySelector(selecteur);
+        compteurConfigs.forEach(config => {
+            let compteurElement = document.querySelector(config.selecteur);
+
+            // Si le compteur n'existe pas, le créer
+            if (!compteurElement) {
+                console.log(`🆕 Création du compteur ${config.classe}`);
+                const parentElement = document.querySelector(config.parent);
+                if (parentElement && parentElement.parentElement) {
+                    compteurElement = document.createElement('div');
+                    compteurElement.className = config.classe + ' valeur-cp-calendrier';
+                    compteurElement.title = config.titre;
+                    compteurElement.style.display = 'block';
+                    parentElement.parentElement.appendChild(compteurElement);
+                    console.log(`✅ Compteur ${config.classe} créé avec succès`);
+                } else {
+                    console.warn(`⚠️ Élément parent ${config.parent} non trouvé pour créer le compteur`);
+                    return;
+                }
+            }
+
             if (compteurElement) {
                 // Vérifier si un spinner n'existe pas déjà
                 if (!compteurElement.querySelector('.modern-loading-spinner')) {
                     const spinner = document.createElement('span');
                     spinner.className = 'modern-loading-spinner';
                     spinner.style.marginLeft = '4px';
+                    compteurElement.textContent = ''; // Vider avant d'ajouter le spinner
                     compteurElement.appendChild(spinner);
-                    console.log(`⏳ Spinner ajouté au compteur ${selecteur}`);
+                    console.log(`⏳ Spinner ajouté au compteur ${config.selecteur}`);
+                } else {
+                    console.log(`ℹ️ Spinner déjà présent dans ${config.selecteur}`);
                 }
             }
         });
+
+        console.log('✅ Ajout des spinners terminé');
     }
 
     // Fonction pour afficher les compteurs de régularisations sous les boutons
     function afficherCompteursRegularisations(compteur) {
         console.log('📊 Mise à jour de l\'affichage des compteurs de régularisations...');
+        console.log('📋 Compteurs reçus:', compteur);
 
-        // Afficher RP
+        // Vérifier que les éléments existent avant d'afficher
         const rpDisplay = document.querySelector('.solde-display-rp');
+        const ruDisplay = document.querySelector('.solde-display-ru');
+        const rqDisplay = document.querySelector('.solde-display-rq');
+
+        console.log('🔍 Éléments trouvés:', {
+            RP: !!rpDisplay,
+            RU: !!ruDisplay,
+            RQ: !!rqDisplay
+        });
+
+        // Afficher RP avec vérifications
         if (rpDisplay) {
+            console.log('📌 Traitement de RP...');
             // Vérifier si un compteur existe déjà
             let compteurElement = rpDisplay.parentElement.querySelector('.compteur-regularisation-rp');
-            if (!compteurElement && compteur.RP > 0) {
-                // Créer le compteur seulement s'il y a des régularisations
+            if (!compteurElement) {
+                console.log('🆕 Création du compteur RP');
+                // Créer le compteur même s'il est à 0 (pour le spinner)
                 compteurElement = document.createElement('div');
                 compteurElement.className = 'compteur-regularisation-rp valeur-cp-calendrier';
                 compteurElement.title = 'Régularisations RP détectées';
@@ -1690,21 +1941,25 @@
                 // Retirer le spinner s'il existe
                 const spinner = compteurElement.querySelector('.modern-loading-spinner');
                 if (spinner) {
+                    console.log('🔄 Suppression du spinner RP');
                     spinner.remove();
                 }
                 // Mettre à jour le texte
                 compteurElement.textContent = compteur.RP > 0 ? `-${compteur.RP}J` : '';
                 // Masquer si 0
                 compteurElement.style.display = compteur.RP > 0 ? 'block' : 'none';
-                console.log(`✅ Compteur RP affiché: -${compteur.RP}J`);
+                console.log(`✅ Compteur RP affiché: ${compteur.RP > 0 ? '-' + compteur.RP + 'J' : '(masqué)'}`);
             }
+        } else {
+            console.warn('⚠️ Élément .solde-display-rp non trouvé dans le DOM');
         }
 
-        // Afficher RU
-        const ruDisplay = document.querySelector('.solde-display-ru');
+        // Afficher RU avec vérifications
         if (ruDisplay) {
+            console.log('📌 Traitement de RU...');
             let compteurElement = ruDisplay.parentElement.querySelector('.compteur-regularisation-ru');
-            if (!compteurElement && compteur.RU > 0) {
+            if (!compteurElement) {
+                console.log('🆕 Création du compteur RU');
                 compteurElement = document.createElement('div');
                 compteurElement.className = 'compteur-regularisation-ru valeur-cp-calendrier';
                 compteurElement.title = 'Régularisations RU détectées';
@@ -1713,19 +1968,23 @@
             if (compteurElement) {
                 const spinner = compteurElement.querySelector('.modern-loading-spinner');
                 if (spinner) {
+                    console.log('🔄 Suppression du spinner RU');
                     spinner.remove();
                 }
                 compteurElement.textContent = compteur.RU > 0 ? `-${compteur.RU}J` : '';
                 compteurElement.style.display = compteur.RU > 0 ? 'block' : 'none';
-                console.log(`✅ Compteur RU affiché: -${compteur.RU}J`);
+                console.log(`✅ Compteur RU affiché: ${compteur.RU > 0 ? '-' + compteur.RU + 'J' : '(masqué)'}`);
             }
+        } else {
+            console.warn('⚠️ Élément .solde-display-ru non trouvé dans le DOM');
         }
 
-        // Afficher RQ
-        const rqDisplay = document.querySelector('.solde-display-rq');
+        // Afficher RQ avec vérifications
         if (rqDisplay) {
+            console.log('📌 Traitement de RQ...');
             let compteurElement = rqDisplay.parentElement.querySelector('.compteur-regularisation-rq');
-            if (!compteurElement && compteur.RQ > 0) {
+            if (!compteurElement) {
+                console.log('🆕 Création du compteur RQ');
                 compteurElement = document.createElement('div');
                 compteurElement.className = 'compteur-regularisation-rq valeur-cp-calendrier';
                 compteurElement.title = 'Régularisations RQ détectées';
@@ -1734,12 +1993,15 @@
             if (compteurElement) {
                 const spinner = compteurElement.querySelector('.modern-loading-spinner');
                 if (spinner) {
+                    console.log('🔄 Suppression du spinner RQ');
                     spinner.remove();
                 }
                 compteurElement.textContent = compteur.RQ > 0 ? `-${compteur.RQ}J` : '';
                 compteurElement.style.display = compteur.RQ > 0 ? 'block' : 'none';
-                console.log(`✅ Compteur RQ affiché: -${compteur.RQ}J`);
+                console.log(`✅ Compteur RQ affiché: ${compteur.RQ > 0 ? '-' + compteur.RQ + 'J' : '(masqué)'}`);
             }
+        } else {
+            console.warn('⚠️ Élément .solde-display-rq non trouvé dans le DOM');
         }
 
         // Sauvegarder les compteurs dans le localStorage
