@@ -288,6 +288,28 @@
                 margin-top: 4px;
                 cursor: help;
             }
+
+            /* Animation de clignotement pour les régularisations RP */
+            @keyframes blink-rp {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+
+            /* Animation de clignotement pour les régularisations RU */
+            @keyframes blink-ru {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+
+            .regularisation-rp-highlight {
+                animation: blink-rp 1.5s ease-in-out infinite;
+                box-shadow: 0 0 10px rgba(var(--rp-color-rgb, 138, 43, 226), 0.6) !important;
+            }
+
+            .regularisation-ru-highlight {
+                animation: blink-ru 1.5s ease-in-out infinite;
+                box-shadow: 0 0 10px rgba(var(--ru-color-rgb, 138, 43, 226), 0.6) !important;
+            }
         `;
         document.head.appendChild(style);
 
@@ -572,8 +594,17 @@
             }
             console.log('═══════════════════════════════════════════════════');
 
+            // Extraire les dates pour le highlight
+            const datesRP = detailsRegularisations.RP.map(reg => reg.date).filter(d => d);
+            const datesRU = detailsRegularisations.RU.map(reg => reg.date).filter(d => d);
+
             // Afficher les compteurs sous les boutons RP et RU
             afficherCompteursRegularisations(detailsRegularisations.RP.length, detailsRegularisations.RU.length);
+
+            // Appliquer le clignotement sur les cases du calendrier
+            setTimeout(() => {
+                highlightRegularisationsCalendrier(datesRP, datesRU);
+            }, 500);
 
             // Afficher résumé des régularisations trouvées
             if (detailsRegularisations.RP.length > 0) {
@@ -1235,6 +1266,72 @@
                 // Remettre la couleur en vert s'il n'y a plus de CP
                 cpDisplay.style.color = '#28a745';
             }
+        }
+
+        // Fonction pour faire clignoter les cases du calendrier avec les régularisations
+        function highlightRegularisationsCalendrier(datesRP, datesRU) {
+            console.log(`🎨 Application du clignotement sur ${datesRP.length} RP et ${datesRU.length} RU`);
+
+            // Récupérer les couleurs des boutons RP et RU
+            const rpButton = document.querySelector('.btn-rp-custom');
+            const ruButton = document.querySelector('.btn-ru-custom');
+
+            const rpColor = rpButton ? window.getComputedStyle(rpButton).backgroundColor : 'rgb(138, 43, 226)';
+            const ruColor = ruButton ? window.getComputedStyle(ruButton).backgroundColor : 'rgb(138, 43, 226)';
+
+            // Extraire les valeurs RGB
+            const rpRgbMatch = rpColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            const ruRgbMatch = ruColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+
+            // Fonction pour trouver et highlighter une cellule par date
+            function highlightCelluleParDate(dateStr, type, color, rgbValues) {
+                // Format attendu: YYYYMMDD -> convertir en format lisible
+                if (!dateStr || dateStr.length !== 8) return;
+
+                const jour = dateStr.substring(6, 8);
+                const mois = dateStr.substring(4, 6);
+                const annee = dateStr.substring(0, 4);
+                const dateFormatted = `${jour}/${mois}/${annee}`;
+
+                // Chercher toutes les cellules du calendrier
+                const cellules = document.querySelectorAll('.phx-cell-render');
+
+                cellules.forEach(cellule => {
+                    // Chercher la date dans la cellule (peut être dans différents attributs)
+                    const celluleText = cellule.textContent;
+                    const dataDate = cellule.getAttribute('data-date');
+
+                    // Vérifier si cette cellule correspond à la date recherchée
+                    if (dataDate === dateStr || celluleText.includes(jour)) {
+                        // Appliquer le style de clignotement
+                        cellule.classList.add(`regularisation-${type}-highlight`);
+
+                        // Définir les variables CSS pour la couleur
+                        if (rgbValues) {
+                            cellule.style.setProperty(`--${type}-color-rgb`, rgbValues.join(', '));
+                        }
+
+                        // Appliquer la couleur de fond avec transparence
+                        cellule.style.backgroundColor = color.replace('rgb', 'rgba').replace(')', ', 0.3)');
+                        cellule.style.border = `2px solid ${color}`;
+                        cellule.title = `Régularisation ${type.toUpperCase()} le ${dateFormatted}`;
+
+                        console.log(`✅ Cellule ${dateFormatted} marquée en ${type.toUpperCase()}`);
+                    }
+                });
+            }
+
+            // Appliquer le highlight pour chaque date RP
+            datesRP.forEach(dateStr => {
+                const rgbValues = rpRgbMatch ? [rpRgbMatch[1], rpRgbMatch[2], rpRgbMatch[3]] : null;
+                highlightCelluleParDate(dateStr, 'rp', rpColor, rgbValues);
+            });
+
+            // Appliquer le highlight pour chaque date RU
+            datesRU.forEach(dateStr => {
+                const rgbValues = ruRgbMatch ? [ruRgbMatch[1], ruRgbMatch[2], ruRgbMatch[3]] : null;
+                highlightCelluleParDate(dateStr, 'ru', ruColor, rgbValues);
+            });
         }
 
         // Fonction pour afficher les compteurs de régularisations sous les boutons RP et RU
