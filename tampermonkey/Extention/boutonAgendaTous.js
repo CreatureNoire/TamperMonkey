@@ -641,10 +641,18 @@
             }
         }
 
-        // Fonction pour convertir le format "95j00" ou "95J" en nombre de jours
+        // Fonction pour convertir le format "95j00" ou "95J" ou "95J05" en nombre de jours
         function parseSoldeToJours(solde) {
-            const match = solde.match(/(\d+)[jJ]/);
-            return match ? parseInt(match[1], 10) : 0;
+            // Format: XXJ ou XXJYY où YY est la fraction (05 = 0.5)
+            const match = solde.match(/(\d+)[jJ](\d{2})?/);
+            if (!match) return 0;
+
+            const jours = parseInt(match[1], 10);
+            const fraction = match[2] ? parseInt(match[2], 10) / 100 : 0;
+            const total = jours + fraction;
+
+            console.log(`📊 Parse solde: "${solde}" → ${total}J (${jours}J + ${fraction}J)`);
+            return total;
         }
 
         // Fonction pour charger les soldes depuis le localStorage
@@ -730,11 +738,21 @@
             }
         }
 
-        // Fonction pour convertir le format "95j00" en "95J"
+        // Fonction pour convertir le format "95j00" ou "95j05" en "95J" ou "95.5J"
         function formatSoldeVersJ(solde) {
-            const match = solde.match(/(\d+)[jJ]/);
+            // Format: XXJ ou XXJYY où YY est la fraction (05 = 0.5)
+            const match = solde.match(/(\d+)[jJ](\d{2})?/);
             if (match) {
-                return `${match[1]}J`;
+                const jours = parseInt(match[1], 10);
+                const fraction = match[2] ? parseInt(match[2], 10) / 100 : 0;
+                const total = jours + fraction;
+
+                // Si c'est un nombre entier, afficher sans décimale
+                if (fraction === 0) {
+                    return `${jours}J`;
+                }
+                // Sinon afficher avec décimale
+                return `${total}J`;
             }
             return solde;
         }
