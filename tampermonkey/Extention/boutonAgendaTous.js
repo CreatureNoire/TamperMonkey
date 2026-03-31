@@ -461,7 +461,7 @@
                 const data4 = await response4.json();
 
                 console.log('✅ Requêtes API terminées avec succès');
-                
+
                 // Mettre à jour l'affichage des soldes
                 updateSoldesFromAPI(data3, data4);
 
@@ -475,7 +475,7 @@
             try {
                 const xTokenKey = getTokenKey();
                 const matricule = getMatricule();
-                
+
                 if (!xTokenKey || !matricule) {
                     console.error('❌ Token ou matricule manquant');
                     return;
@@ -490,7 +490,7 @@
 
                 console.log('📡 Récupération des données agenda...');
                 console.log(`URL: ${url}`);
-                
+
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -510,19 +510,19 @@
                 console.log('📊 Données agenda récupérées');
                 console.log('📊 Type de données:', Array.isArray(data) ? 'Array' : typeof data);
                 console.log('📊 Nombre d\'éléments:', Array.isArray(data) ? data.length : Object.keys(data).length);
-                
+
                 // ANALYSE CIBLÉE sur data.evt["4"]
                 const simplePattern = `${matricule}REGCALDEM`;
                 console.log('🔍 ═══ ANALYSE DES RÉGULARISATIONS ═══');
                 console.log(`🎯 Recherche de: "${simplePattern}"`);
-                
+
                 let trouvailles = [];
-                
+
                 // Accès direct à la zone identifiée : data.evt["4"]
                 if (data.evt && data.evt["4"] && Array.isArray(data.evt["4"])) {
                     const joursAvecEvents = data.evt["4"];
                     console.log(`📅 ${joursAvecEvents.length} jour(s) avec événements trouvés`);
-                    
+
                     joursAvecEvents.forEach((jour, jourIndex) => {
                         if (jour.evt && Array.isArray(jour.evt)) {
                             jour.evt.forEach((event, eventIndex) => {
@@ -539,7 +539,7 @@
                         }
                     });
                 }
-                
+
                 console.log(`\n🎯 RÉSULTAT: ${trouvailles.length} régularisation(s) trouvée(s)`);
                 console.log('═══════════════════════════════════════════════════\n');
 
@@ -556,11 +556,11 @@
                 if (match) {
                     const numeroID = match[1];
                     const obj = t.objetComplet;
-                    
+
                     // Extraire le code et la date
                     const code = obj.cod || obj.code;
                     const date = obj.dts?.deb || obj.dts?.fin || obj.dat;
-                    
+
                     const itemDetails = {
                         uid: t.valeur,
                         numeroID: numeroID,
@@ -593,19 +593,19 @@
                 console.log(`   ⚠️ Autres: ${detailsRegularisations.autres.length}`);
             }
             console.log('═══════════════════════════════════════════════════');
-            
+
             // Extraire les dates pour le highlight
             const datesRP = detailsRegularisations.RP.map(reg => reg.date).filter(d => d);
             const datesRU = detailsRegularisations.RU.map(reg => reg.date).filter(d => d);
-            
+
             // Afficher les compteurs sous les boutons RP et RU
             afficherCompteursRegularisations(detailsRegularisations.RP.length, detailsRegularisations.RU.length);
-            
+
             // Appliquer le clignotement sur les cases du calendrier
             setTimeout(() => {
                 highlightRegularisationsCalendrier(datesRP, datesRU);
             }, 500);
-            
+
             // Afficher résumé des régularisations trouvées
             if (detailsRegularisations.RP.length > 0) {
                 console.log(`\n📋 Régularisations Positives (RP):`);
@@ -614,7 +614,7 @@
                     console.log(`   ${i+1}. ${dateFormatted} - ${reg.val || '1'}J (ID: ${reg.numeroID})`);
                 });
             }
-            
+
             if (detailsRegularisations.RU.length > 0) {
                 console.log(`\n📋 Régularisations Usuelles (RU):`);
                 detailsRegularisations.RU.forEach((reg, i) => {
@@ -622,11 +622,11 @@
                     console.log(`   ${i+1}. ${dateFormatted} - ${reg.val || '1'}J (ID: ${reg.numeroID})`);
                 });
             }
-            
+
             if (detailsRegularisations.autres.length > 0) {
                 console.log(`\n⚠️ Autres régularisations trouvées: ${detailsRegularisations.autres.length}`);
             }
-                
+
                 console.log('═══════════════════════════════════════════════════');
                 console.log('💡 Appuyez sur Ctrl+Alt+A pour relancer cette analyse');
 
@@ -973,21 +973,25 @@
         let cachedToken = null;
         let cachedMatricule = null;
 
-        // Fonction pour normaliser le matricule (retirer le 0 initial si présent)
+        // Fonction pour normaliser le matricule (retirer tous les 0 initiaux)
         function normaliserMatricule(matricule) {
             if (!matricule) return null;
             const trimmed = matricule.trim();
-            // Si le matricule commence par 0 et a 7 chiffres, retirer le 0
-            if (/^0\d{6}$/.test(trimmed)) {
-                const normalized = trimmed.substring(1);
+
+            // Vérifier que c'est bien un matricule (6 ou 7 chiffres)
+            if (!/^\d{6,7}$/.test(trimmed)) {
+                return null;
+            }
+
+            // Retirer tous les 0 du début en convertissant en nombre puis en string
+            const normalized = parseInt(trimmed, 10).toString();
+
+            // Si le matricule a été modifié, afficher le log
+            if (trimmed !== normalized) {
                 console.log(`🔄 Matricule normalisé: ${trimmed} → ${normalized}`);
-                return normalized;
             }
-            // Sinon, retourner tel quel s'il a 6 ou 7 chiffres
-            if (/^\d{6,7}$/.test(trimmed)) {
-                return trimmed;
-            }
-            return null;
+
+            return normalized;
         }
 
         // Intercepter les requêtes fetch pour capturer le token ET le matricule
@@ -1313,62 +1317,62 @@
         // Fonction pour faire clignoter les cases du calendrier avec les régularisations
         function highlightRegularisationsCalendrier(datesRP, datesRU) {
             console.log(`🎨 Application du clignotement sur ${datesRP.length} RP et ${datesRU.length} RU`);
-            
+
             // Récupérer les couleurs des boutons RP et RU
             const rpButton = document.querySelector('.btn-rp-custom');
             const ruButton = document.querySelector('.btn-ru-custom');
-            
+
             const rpColor = rpButton ? window.getComputedStyle(rpButton).backgroundColor : 'rgb(138, 43, 226)';
             const ruColor = ruButton ? window.getComputedStyle(ruButton).backgroundColor : 'rgb(138, 43, 226)';
-            
+
             // Extraire les valeurs RGB
             const rpRgbMatch = rpColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
             const ruRgbMatch = ruColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-            
+
             // Fonction pour trouver et highlighter une cellule par date
             function highlightCelluleParDate(dateStr, type, color, rgbValues) {
                 // Format attendu: YYYYMMDD -> convertir en format lisible
                 if (!dateStr || dateStr.length !== 8) return;
-                
+
                 const jour = dateStr.substring(6, 8);
                 const mois = dateStr.substring(4, 6);
                 const annee = dateStr.substring(0, 4);
                 const dateFormatted = `${jour}/${mois}/${annee}`;
-                
+
                 // Chercher toutes les cellules du calendrier
                 const cellules = document.querySelectorAll('.phx-cell-render');
-                
+
                 cellules.forEach(cellule => {
                     // Chercher la date dans la cellule (peut être dans différents attributs)
                     const celluleText = cellule.textContent;
                     const dataDate = cellule.getAttribute('data-date');
-                    
+
                     // Vérifier si cette cellule correspond à la date recherchée
                     if (dataDate === dateStr || celluleText.includes(jour)) {
                         // Appliquer le style de clignotement
                         cellule.classList.add(`regularisation-${type}-highlight`);
-                        
+
                         // Définir les variables CSS pour la couleur
                         if (rgbValues) {
                             cellule.style.setProperty(`--${type}-color-rgb`, rgbValues.join(', '));
                         }
-                        
+
                         // Appliquer la couleur de fond avec transparence
                         cellule.style.backgroundColor = color.replace('rgb', 'rgba').replace(')', ', 0.3)');
                         cellule.style.border = `2px solid ${color}`;
                         cellule.title = `Régularisation ${type.toUpperCase()} le ${dateFormatted}`;
-                        
+
                         console.log(`✅ Cellule ${dateFormatted} marquée en ${type.toUpperCase()}`);
                     }
                 });
             }
-            
+
             // Appliquer le highlight pour chaque date RP
             datesRP.forEach(dateStr => {
                 const rgbValues = rpRgbMatch ? [rpRgbMatch[1], rpRgbMatch[2], rpRgbMatch[3]] : null;
                 highlightCelluleParDate(dateStr, 'rp', rpColor, rgbValues);
             });
-            
+
             // Appliquer le highlight pour chaque date RU
             datesRU.forEach(dateStr => {
                 const rgbValues = ruRgbMatch ? [ruRgbMatch[1], ruRgbMatch[2], ruRgbMatch[3]] : null;
@@ -1379,13 +1383,13 @@
         // Fonction pour afficher les compteurs de régularisations sous les boutons RP et RU
         function afficherCompteursRegularisations(nbRP, nbRU) {
             console.log(`📊 Affichage des compteurs: ${nbRP} RP, ${nbRU} RU`);
-            
+
             // Afficher le compteur RP
             const rpDisplay = document.querySelector('.solde-display-rp');
             if (rpDisplay) {
                 const wrapper = rpDisplay.parentElement;
                 let existingRPCount = wrapper.querySelector('.valeur-reg-rp');
-                
+
                 if (nbRP > 0) {
                     if (existingRPCount) {
                         existingRPCount.textContent = `${nbRP}J`;
@@ -1405,7 +1409,7 @@
                             margin-top: 4px;
                             cursor: help;
                         `;
-                        
+
                         if (wrapper && wrapper.classList.contains('modern-button-wrapper')) {
                             wrapper.appendChild(compteurRP);
                         }
@@ -1414,13 +1418,13 @@
                     existingRPCount.remove();
                 }
             }
-            
+
             // Afficher le compteur RU
             const ruDisplay = document.querySelector('.solde-display-ru');
             if (ruDisplay) {
                 const wrapper = ruDisplay.parentElement;
                 let existingRUCount = wrapper.querySelector('.valeur-reg-ru');
-                
+
                 if (nbRU > 0) {
                     if (existingRUCount) {
                         existingRUCount.textContent = `${nbRU}J`;
@@ -1440,7 +1444,7 @@
                             margin-top: 4px;
                             cursor: help;
                         `;
-                        
+
                         if (wrapper && wrapper.classList.contains('modern-button-wrapper')) {
                             wrapper.appendChild(compteurRU);
                         }
@@ -1502,12 +1506,12 @@
             console.log('Bouton "Nouveau" détecté, vérification du conteneur...');
             waitForElement('.phx-agenda-accesrapides', function(container) {
                 console.log('Zone phx-agenda-accesrapides trouvée, ajout des boutons personnalisés...');
-                
+
                 if (document.querySelector('.phx-custom-buttons-group')) {
                     console.log('Les boutons personnalisés existent déjà');
                     return;
                 }
-                
+
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'btn-group phx-custom-buttons-group order-4';
                 buttonContainer.setAttribute('role', 'group');
@@ -1527,7 +1531,7 @@
                 if (accesRapides) {
                     accesRapides.appendChild(buttonContainer);
                     console.log('Boutons personnalisés ajoutés avec succès');
-                    
+
                     // Charger les soldes depuis le cache
                     const hasCachedData = loadSoldesFromCache();
                     if (hasCachedData) {
