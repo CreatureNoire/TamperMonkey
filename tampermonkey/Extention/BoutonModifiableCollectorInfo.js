@@ -27,13 +27,14 @@
         localStorage.setItem(COLORS_KEY, JSON.stringify(colors));
     }
 
-    // Récupérer le symbole de la pièce (8 chiffres)
+    // Récupérer le symbole de la pièce (alphanumérique, 8 caractères minimum)
     function getCurrentSymbol() {
         const panelTitle = document.querySelector('.col-xs-7.text-center.panel-title .row');
         if (panelTitle) {
             const text = panelTitle.textContent.trim();
             console.log('🔍 Texte du panel-title:', text);
-            const match = text.match(/\d{8}/);
+            // Chercher une séquence alphanumérique d'au moins 8 caractères (lettres majuscules et chiffres)
+            const match = text.match(/\b[A-Z0-9]{8,}\b/);
             if (match) {
                 console.log('✅ Symbole trouvé:', match[0]);
                 return match[0];
@@ -1039,7 +1040,7 @@
 
                         // Réactiver le mode édition
                         disableEditMode();
-                        setTimeout(() => enableEditMode(onSelect), 100);
+                        setTimeout(() => enableEditMode(onSelect), 50);
                     }
                 }
 
@@ -1398,6 +1399,11 @@
             </div>
 
             <div class="custom-modal-field-checkbox">
+                <input type="checkbox" id="btn-append" ${existingConfig && existingConfig.appendMode ? 'checked' : ''}>
+                <label for="btn-append">Ajouter au texte existant (au lieu d'écraser)</label>
+            </div>
+
+            <div class="custom-modal-field-checkbox">
                 <input type="checkbox" id="btn-auto-validate" ${existingConfig && existingConfig.autoValidate !== false ? 'checked' : ''}>
                 <label for="btn-auto-validate">Valider automatiquement après avoir rempli le champ</label>
             </div>
@@ -1416,13 +1422,14 @@
         const fieldSelect = modal.querySelector('#btn-field');
         const descriptionInput = modal.querySelector('#btn-description');
         const linkedCheckbox = modal.querySelector('#btn-linked');
+        const appendCheckbox = modal.querySelector('#btn-append');
         const autoValidateCheckbox = modal.querySelector('#btn-auto-validate');
         const insertDateBtn = modal.querySelector('#btn-insert-date');
         const cancelBtn = modal.querySelector('#btn-cancel');
         const saveBtn = modal.querySelector('#btn-save');
 
         // Focus sur le premier champ
-        setTimeout(() => nameInput.focus(), 100);
+        setTimeout(() => nameInput.focus(), 50);
 
         // Insérer [DATE] dans la description
         insertDateBtn.addEventListener('click', (e) => {
@@ -1455,6 +1462,7 @@
             const field = fieldSelect.value;
             const description = descriptionInput.value.trim();
             const isLinked = linkedCheckbox.checked;
+            const appendMode = appendCheckbox.checked;
             const autoValidate = autoValidateCheckbox.checked;
 
             if (!name || !description) {
@@ -1470,6 +1478,7 @@
                 symbol: buttonSymbol,
                 isLinked,
                 currentSymbol,
+                appendMode,
                 autoValidate
             });
 
@@ -1479,6 +1488,7 @@
                 field,
                 description,
                 symbol: buttonSymbol,
+                appendMode: appendMode,
                 autoValidate: autoValidate
             });
 
@@ -1524,14 +1534,32 @@
                 const formattedDate = today.toLocaleDateString('fr-FR'); // Format JJ/MM/AAAA
                 const textWithDate = config.description.replace(/\[DATE\]/g, formattedDate);
 
-                // Remplir le champ avec la description (avec date remplacée)
-                targetField.value = textWithDate;
+                // Gérer le mode ajout ou écrasement
+                if (config.appendMode) {
+                    // Mode ajout : ajouter au texte existant
+                    const existingText = targetField.value || '';
+
+                    // Gérer les espaces intelligemment
+                    let separator = '';
+                    if (existingText.length > 0) {
+                        // Si le texte existant ne se termine pas par un espace
+                        if (!existingText.endsWith(' ') && !existingText.endsWith('\n')) {
+                            separator = ' ';
+                        }
+                    }
+
+                    targetField.value = existingText + separator + textWithDate;
+                    console.log('✅ Texte ajouté au contenu existant:', textWithDate);
+                } else {
+                    // Mode écrasement : remplacer complètement
+                    targetField.value = textWithDate;
+                    console.log('✅ Champ rempli avec:', textWithDate);
+                }
 
                 // Déclencher les événements nécessaires
                 targetField.dispatchEvent(new Event('input', { bubbles: true }));
                 targetField.dispatchEvent(new Event('change', { bubbles: true }));
 
-                console.log('✅ Champ rempli avec:', textWithDate);
                 if (config.description.includes('[DATE]')) {
                     console.log('📅 Date insérée:', formattedDate);
                 }
@@ -1553,7 +1581,7 @@
                                 okButton.click();
                             }
                         }
-                    }, 500);
+                    }, 250);
                 } else {
                     console.log('ℹ️ Validation automatique désactivée pour ce bouton');
                 }
@@ -1562,7 +1590,7 @@
                 console.log('❌ Champ non trouvé:', config.field);
                 alert('❌ Impossible de trouver le champ ' + config.field);
             }
-        }, 1500);
+        }, 750);
     }
 
     // Créer un bouton personnalisé
@@ -1809,10 +1837,10 @@
     });
 
     // Vérification initiale
-    setTimeout(checkAndAddButtons, 1000);
+    setTimeout(checkAndAddButtons, 500);
 
     // Vérification périodique (fallback)
-    setInterval(checkAndAddButtons, 3000);
+    setInterval(checkAndAddButtons, 1500);
 
     console.log('✅ Script Boutons Modifiables chargé !');
 
