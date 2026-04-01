@@ -319,7 +319,7 @@
                     .map(id => actions.find(a => a.id === id))
                     .filter(Boolean);
                 selectedActions.forEach((action, i) => {
-                    setTimeout(() => action.fn(), i * 500);
+                    action.fn();
                 });
             };
             wrapper.appendChild(btnCombo);
@@ -352,10 +352,9 @@
             };
             wrapper.appendChild(btnClose);
 
-            // Afficher/masquer la croix au survol du wrapper (délai 1s)
-            let hoverTimer = null;
-            wrapper.onmouseenter = () => { hoverTimer = setTimeout(() => { btnClose.style.display = 'block'; }, 1000); };
-            wrapper.onmouseleave = () => { clearTimeout(hoverTimer); btnClose.style.display = 'none'; };
+            // Afficher/masquer la croix au survol du wrapper
+            wrapper.onmouseenter = () => { btnClose.style.display = 'block'; };
+            wrapper.onmouseleave = () => { btnClose.style.display = 'none'; };
 
             if (btnPlus) {
                 rightGroup.insertBefore(wrapper, btnPlus);
@@ -365,15 +364,550 @@
         });
     }
 
+    // --- Gestion des titres personnalisés pour le Plan de Contrôle ---
+    function getSavedTitresPC() {
+        try {
+            const titres = localStorage.getItem('pc_titres_custom');
+            return titres ? JSON.parse(titres) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveTitresPC(titres) {
+        localStorage.setItem('pc_titres_custom', JSON.stringify(titres));
+    }
+
+    // Récupérer les boutons configurés pour le titre actuel
+    function getBoutonsForTitre() {
+        const span = document.querySelector('.TitrePC');
+        if (!span) return null;
+
+        const titresCustom = getSavedTitresPC();
+
+        // Chercher parmi les titres personnalisés
+        for (const config of titresCustom) {
+            if (span.textContent.includes(config.titre)) {
+                return config.boutons || null;
+            }
+        }
+
+        // Si c'est un titre par défaut, retourner null (afficher tous les boutons)
+        return null;
+    }
+
     function verifierTitrePC() {
         const span = document.querySelector('.TitrePC');
-        return span && (
-            span.textContent.includes("Plan de contrôle") ||
-            span.textContent.includes("PLAN DE CONTROLE") ||
-            span.textContent.includes("PLAN DE CONTRÔLE") ||
-            span.textContent.includes("Tiroir EMC 846") ||
-            span.textContent.includes("PLATINE")
-        );
+        if (!span) return false;
+
+        // Titres par défaut
+        const titresDefaut = [
+            "Plan de contrôle",
+            "PLAN DE CONTROLE",
+            "PLAN DE CONTRÔLE",
+            "Tiroir EMC 846",
+            "PLATINE DE CMDE DE PORTE"
+        ];
+
+        // Titres personnalisés
+        const titresCustom = getSavedTitresPC();
+
+        // Vérifier titres par défaut
+        if (titresDefaut.some(titre => span.textContent.includes(titre))) {
+            return true;
+        }
+
+        // Vérifier titres personnalisés
+        return titresCustom.some(config => span.textContent.includes(config.titre));
+    }
+
+    // --- Modale de gestion des titres personnalisés ---
+    function ouvrirModaleGestionTitres() {
+        const old = document.getElementById('titres_modal_overlay');
+        if (old) old.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'titres_modal_overlay';
+        Object.assign(overlay.style, {
+            position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+            background: 'rgba(0,0,0,0.6)', zIndex: '99999', display: 'flex',
+            justifyContent: 'center', alignItems: 'center'
+        });
+
+        const modal = document.createElement('div');
+        Object.assign(modal.style, {
+            background: '#fff', borderRadius: '12px', padding: '25px',
+            minWidth: '500px', maxWidth: '600px', maxHeight: '80vh',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)', fontFamily: 'Arial, sans-serif',
+            overflow: 'auto'
+        });
+
+        const title = document.createElement('h3');
+        Object.assign(title.style, { marginTop: '0', marginBottom: '15px', color: '#333' });
+        title.textContent = '🎯 Gestion des titres du Plan de Contrôle';
+        modal.appendChild(title);
+
+        // Liste des titres existants
+        const listContainer = document.createElement('div');
+        Object.assign(listContainer.style, {
+            marginBottom: '20px', padding: '15px', background: '#f8f9fa',
+            borderRadius: '8px', maxHeight: '300px', overflow: 'auto'
+        });
+
+        const listTitle = document.createElement('h4');
+        Object.assign(listTitle.style, { marginTop: '0', marginBottom: '12px', fontSize: '15px' });
+        listTitle.textContent = 'Titres configurés :';
+        listContainer.appendChild(listTitle);
+
+        const renderList = () => {
+            const existingList = listContainer.querySelector('#titres_list');
+            if (existingList) existingList.remove();
+
+            const titres = getSavedTitresPC();
+            const titresDefaut = [
+                "Plan de contrôle",
+                "PLAN DE CONTROLE",
+                "PLAN DE CONTRÔLE",
+                "Tiroir EMC 846",
+                "PLATINE DE CMDE DE PORTE"
+            ];
+
+            const ul = document.createElement('div');
+            ul.id = 'titres_list';
+
+            // Combiner tous les titres dans une seule liste
+            const tousTitres = [];
+
+            // Ajouter les titres par défaut
+            titresDefaut.forEach(titreDefaut => {
+                const config = titres.find(c => c.titre === titreDefaut);
+                tousTitres.push({
+                    titre: titreDefaut,
+                    boutons: config ? config.boutons : null,
+                    isDefault: true
+                });
+            });
+
+            // Ajouter les titres personnalisés
+            titres.forEach(config => {
+                const titreName = config.titre || config;
+                if (!titresDefaut.includes(titreName)) {
+                    tousTitres.push({
+                        titre: titreName,
+                        boutons: config.boutons || null,
+                        isDefault: false
+                    });
+                }
+            });
+
+            if (tousTitres.length === 0) {
+                const empty = document.createElement('p');
+                Object.assign(empty.style, { color: '#999', fontStyle: 'italic', margin: '0' });
+                empty.textContent = 'Aucun titre configuré';
+                ul.appendChild(empty);
+            } else {
+                tousTitres.forEach((item) => {
+                    const row = document.createElement('div');
+                    Object.assign(row.style, {
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '10px', marginBottom: '8px', background: '#fff',
+                        borderRadius: '6px', border: '1px solid #dee2e6'
+                    });
+
+                    const infoDiv = document.createElement('div');
+                    Object.assign(infoDiv.style, { flex: '1' });
+
+                    const titreText = document.createElement('div');
+                    Object.assign(titreText.style, {
+                        wordBreak: 'break-word',
+                        fontFamily: 'monospace',
+                        fontWeight: 'bold',
+                        marginBottom: '4px'
+                    });
+                    titreText.textContent = item.titre;
+                    infoDiv.appendChild(titreText);
+
+                    // Afficher la config des boutons
+                    const boutonsText = document.createElement('div');
+                    Object.assign(boutonsText.style, { fontSize: '11px', color: '#666' });
+                    if (item.boutons && item.boutons.length > 0) {
+                        boutonsText.textContent = '🔘 Boutons: ' + item.boutons.join(', ');
+                    } else {
+                        Object.assign(boutonsText.style, { color: '#999' });
+                        boutonsText.textContent = '🔘 Tous les boutons';
+                    }
+                    infoDiv.appendChild(boutonsText);
+
+                    row.appendChild(infoDiv);
+
+                    const btnGroup = document.createElement('div');
+                    Object.assign(btnGroup.style, { display: 'flex', gap: '5px' });
+
+                    // Bouton Modifier
+                    const btnModif = document.createElement('button');
+                    btnModif.textContent = '✏️';
+                    btnModif.title = 'Modifier les boutons';
+                    Object.assign(btnModif.style, {
+                        background: '#ffc107', color: '#000', border: 'none',
+                        borderRadius: '4px', padding: '4px 10px', cursor: 'pointer',
+                        fontSize: '14px'
+                    });
+                    btnModif.onclick = () => {
+                        ouvrirModaleBoutonsSelection(item.titre, (nouveauxBoutons) => {
+                            let allTitres = getSavedTitresPC();
+                            const existingIndex = allTitres.findIndex(c => c.titre === item.titre);
+
+                            if (existingIndex >= 0) {
+                                if (typeof allTitres[existingIndex] === 'string') {
+                                    allTitres[existingIndex] = { titre: item.titre, boutons: nouveauxBoutons };
+                                } else {
+                                    allTitres[existingIndex].boutons = nouveauxBoutons;
+                                }
+                            } else {
+                                allTitres.push({ titre: item.titre, boutons: nouveauxBoutons });
+                            }
+
+                            saveTitresPC(allTitres);
+                            renderList();
+                        }, item.boutons);
+                    };
+                    btnGroup.appendChild(btnModif);
+
+                    // Bouton Supprimer
+                    const btnDelete = document.createElement('button');
+                    btnDelete.textContent = '❌';
+                    btnDelete.title = item.isDefault ? 'Réinitialiser ce titre' : 'Supprimer ce titre';
+                    Object.assign(btnDelete.style, {
+                        background: '#dc3545', color: '#fff', border: 'none',
+                        borderRadius: '4px', padding: '4px 10px', cursor: 'pointer',
+                        fontSize: '14px'
+                    });
+                    btnDelete.onclick = () => {
+                        const message = item.isDefault
+                            ? `Réinitialiser "${item.titre}" (afficher tous les boutons) ?`
+                            : `Supprimer le titre "${item.titre}" ?`;
+
+                        if (confirm(message)) {
+                            let allTitres = getSavedTitresPC();
+                            allTitres = allTitres.filter(t => (t.titre || t) !== item.titre);
+                            saveTitresPC(allTitres);
+                            renderList();
+                        }
+                    };
+                    btnGroup.appendChild(btnDelete);
+
+                    row.appendChild(btnGroup);
+                    ul.appendChild(row);
+                });
+            }
+
+            listContainer.appendChild(ul);
+        };
+
+        renderList();
+        modal.appendChild(listContainer);
+
+        // Formulaire d'ajout
+        const addSection = document.createElement('div');
+        Object.assign(addSection.style, { marginTop: '20px' });
+
+        const addTitle = document.createElement('h4');
+        Object.assign(addTitle.style, { marginTop: '0', marginBottom: '10px', fontSize: '15px' });
+        addTitle.textContent = 'Ajouter un nouveau titre :';
+        addSection.appendChild(addTitle);
+
+        const inputRow = document.createElement('div');
+        Object.assign(inputRow.style, { display: 'flex', gap: '10px', marginBottom: '15px' });
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Ex: PLATINE TEST 2024';
+        Object.assign(input.style, {
+            flex: '1', padding: '8px 12px', borderRadius: '6px',
+            border: '1px solid #ced4da', fontSize: '14px'
+        });
+        inputRow.appendChild(input);
+
+        const btnAdd = document.createElement('button');
+        btnAdd.textContent = '✅ Ajouter';
+        Object.assign(btnAdd.style, {
+            background: '#28a745', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '8px 16px', cursor: 'pointer',
+            fontSize: '14px', fontWeight: 'bold'
+        });
+        btnAdd.onclick = () => {
+            const newTitre = input.value.trim();
+            if (!newTitre) {
+                alert('⚠️ Veuillez entrer un titre');
+                return;
+            }
+
+            const titres = getSavedTitresPC();
+            if (titres.some(config => (config.titre || config) === newTitre)) {
+                alert('⚠️ Ce titre existe déjà');
+                return;
+            }
+
+            // Ouvrir la modale de sélection des boutons
+            ouvrirModaleBoutonsSelection(newTitre, (boutons) => {
+                titres.push({ titre: newTitre, boutons: boutons });
+                saveTitresPC(titres);
+                input.value = '';
+                renderList();
+            });
+        };
+        inputRow.appendChild(btnAdd);
+
+        addSection.appendChild(inputRow);
+        modal.appendChild(addSection);
+
+        // Bouton fermer
+        const btnClose = document.createElement('button');
+        btnClose.textContent = 'Fermer';
+        Object.assign(btnClose.style, {
+            background: '#6c757d', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '10px 20px', cursor: 'pointer',
+            fontSize: '14px', marginTop: '20px', width: '100%'
+        });
+        btnClose.onclick = () => overlay.remove();
+        modal.appendChild(btnClose);
+
+        overlay.appendChild(modal);
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+    }
+
+    // --- Modale de sélection des boutons pour un nouveau titre ---
+    function ouvrirModaleBoutonsSelection(titre, callback, boutonsActuels = null) {
+        const old = document.getElementById('boutons_selection_overlay');
+        if (old) old.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'boutons_selection_overlay';
+        Object.assign(overlay.style, {
+            position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+            background: 'rgba(0,0,0,0.6)', zIndex: '100000', display: 'flex',
+            justifyContent: 'center', alignItems: 'center'
+        });
+
+        const modal = document.createElement('div');
+        Object.assign(modal.style, {
+            background: '#fff', borderRadius: '12px', padding: '25px',
+            minWidth: '400px', maxWidth: '500px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)', fontFamily: 'Arial, sans-serif'
+        });
+
+        const title = document.createElement('h3');
+        Object.assign(title.style, { marginTop: '0', marginBottom: '15px', color: '#333' });
+        title.innerHTML = `🔘 Boutons pour "${titre}"`;
+        modal.appendChild(title);
+
+        const info = document.createElement('p');
+        Object.assign(info.style, { color: '#666', fontSize: '13px', marginBottom: '20px' });
+        info.textContent = 'Sélectionnez les boutons à afficher pour ce plan de contrôle :';
+        modal.appendChild(info);
+
+        // Liste des boutons disponibles
+        const boutonsDisponibles = [
+            { id: 'oui', label: 'Oui' },
+            { id: 'non', label: 'Non' },
+            { id: 'conforme', label: 'Conforme' },
+            { id: 'valeur', label: 'Valeur' },
+            { id: 'signer', label: 'Signer' },
+            { id: 'valider', label: 'Valider' }
+        ];
+
+        const checkboxes = [];
+        boutonsDisponibles.forEach(btn => {
+            const row = document.createElement('div');
+            Object.assign(row.style, {
+                marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '8px', background: '#f8f9fa', borderRadius: '6px'
+            });
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = btn.id;
+            cb.id = 'btn_select_' + btn.id;
+            // Cocher en fonction de la config actuelle, ou tous par défaut
+            cb.checked = boutonsActuels ? boutonsActuels.includes(btn.id) : true;
+            Object.assign(cb.style, { width: '20px', height: '20px', cursor: 'pointer' });
+            checkboxes.push(cb);
+
+            const lbl = document.createElement('label');
+            lbl.htmlFor = cb.id;
+            lbl.textContent = btn.label;
+            Object.assign(lbl.style, { cursor: 'pointer', fontSize: '14px', fontWeight: '500' });
+
+            row.appendChild(cb);
+            row.appendChild(lbl);
+            modal.appendChild(row);
+        });
+
+        // Boutons d'action
+        const btnRow = document.createElement('div');
+        Object.assign(btnRow.style, {
+            display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'
+        });
+
+        const btnAnnuler = document.createElement('button');
+        btnAnnuler.textContent = 'Annuler';
+        Object.assign(btnAnnuler.style, {
+            background: '#6c757d', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '14px'
+        });
+        btnAnnuler.onclick = () => overlay.remove();
+        btnRow.appendChild(btnAnnuler);
+
+        const btnValider = document.createElement('button');
+        btnValider.textContent = '✅ Valider';
+        Object.assign(btnValider.style, {
+            background: '#28a745', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '8px 16px', cursor: 'pointer',
+            fontSize: '14px', fontWeight: 'bold'
+        });
+        btnValider.onclick = () => {
+            const selected = checkboxes.filter(cb => cb.checked).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('⚠️ Veuillez sélectionner au moins un bouton');
+                return;
+            }
+            overlay.remove();
+            callback(selected);
+        };
+        btnRow.appendChild(btnValider);
+
+        modal.appendChild(btnRow);
+        overlay.appendChild(modal);
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+    }
+
+    // --- Modale d'ajout rapide d'un titre ---
+    function ouvrirModaleAjoutTitre() {
+        const old = document.getElementById('ajout_titre_overlay');
+        if (old) old.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'ajout_titre_overlay';
+        Object.assign(overlay.style, {
+            position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+            background: 'rgba(0,0,0,0.6)', zIndex: '99999', display: 'flex',
+            justifyContent: 'center', alignItems: 'center'
+        });
+
+        const modal = document.createElement('div');
+        Object.assign(modal.style, {
+            background: '#fff', borderRadius: '12px', padding: '25px',
+            minWidth: '450px', maxWidth: '500px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)', fontFamily: 'Arial, sans-serif'
+        });
+
+        const title = document.createElement('h3');
+        Object.assign(title.style, { marginTop: '0', marginBottom: '15px', color: '#333' });
+        title.textContent = '🎯 Ajouter un titre Plan de Contrôle';
+        modal.appendChild(title);
+
+        // Champ de saisie
+        const labelTitre = document.createElement('label');
+        labelTitre.textContent = 'Nom du titre :';
+        Object.assign(labelTitre.style, { fontWeight: 'bold', display: 'block', marginBottom: '8px' });
+        modal.appendChild(labelTitre);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Ex: PLATINE TEST 2024';
+        Object.assign(input.style, {
+            width: '100%', padding: '10px 12px', borderRadius: '6px',
+            border: '1px solid #ced4da', fontSize: '14px', marginBottom: '20px',
+            boxSizing: 'border-box'
+        });
+        modal.appendChild(input);
+
+        // Boutons d'action
+        const btnRow = document.createElement('div');
+        Object.assign(btnRow.style, {
+            display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '20px'
+        });
+
+        // Bouton Gérer (à gauche)
+        const btnGerer = document.createElement('button');
+        btnGerer.textContent = '📋 Gérer les titres';
+        Object.assign(btnGerer.style, {
+            background: '#17a2b8', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '10px 16px', cursor: 'pointer',
+            fontSize: '14px', fontWeight: 'bold'
+        });
+        btnGerer.onclick = () => {
+            overlay.remove();
+            ouvrirModaleGestionTitres();
+        };
+        btnRow.appendChild(btnGerer);
+
+        const rightButtons = document.createElement('div');
+        Object.assign(rightButtons.style, { display: 'flex', gap: '10px' });
+
+        // Bouton Annuler
+        const btnAnnuler = document.createElement('button');
+        btnAnnuler.textContent = 'Annuler';
+        Object.assign(btnAnnuler.style, {
+            background: '#6c757d', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '10px 16px', cursor: 'pointer', fontSize: '14px'
+        });
+        btnAnnuler.onclick = () => overlay.remove();
+        rightButtons.appendChild(btnAnnuler);
+
+        // Bouton Ajouter
+        const btnAdd = document.createElement('button');
+        btnAdd.textContent = '✅ Ajouter';
+        Object.assign(btnAdd.style, {
+            background: '#28a745', color: '#fff', border: 'none',
+            borderRadius: '6px', padding: '10px 16px', cursor: 'pointer',
+            fontSize: '14px', fontWeight: 'bold'
+        });
+        btnAdd.onclick = () => {
+            const newTitre = input.value.trim();
+            if (!newTitre) {
+                alert('⚠️ Veuillez entrer un titre');
+                return;
+            }
+
+            const titres = getSavedTitresPC();
+            if (titres.some(config => (config.titre || config) === newTitre)) {
+                alert('⚠️ Ce titre existe déjà');
+                return;
+            }
+
+            // Ouvrir la modale de sélection des boutons
+            ouvrirModaleBoutonsSelection(newTitre, (boutons) => {
+                titres.push({ titre: newTitre, boutons: boutons });
+                saveTitresPC(titres);
+                overlay.remove();
+                alert(`✅ Titre "${newTitre}" ajouté avec succès !`);
+            });
+        };
+        rightButtons.appendChild(btnAdd);
+
+        btnRow.appendChild(rightButtons);
+        modal.appendChild(btnRow);
+
+        overlay.appendChild(modal);
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+
+        // Focus sur l'input
+        setTimeout(() => input.focus(), 100);
+    }
+
+    // Ajouter le menu GM si disponible
+    try {
+        if (typeof GM_registerMenuCommand !== 'undefined') {
+            GM_registerMenuCommand('🎯 Ajouter un titre Plan de Contrôle', ouvrirModaleAjoutTitre);
+        } else if (typeof unsafeWindow !== 'undefined' && unsafeWindow.GM_registerMenuCommand) {
+            unsafeWindow.GM_registerMenuCommand('🎯 Ajouter un titre Plan de Contrôle', ouvrirModaleAjoutTitre);
+        }
+    } catch (e) {
+        console.log('GM_registerMenuCommand non disponible:', e);
     }
 
     function afficherBoutons(contenant) {
@@ -403,82 +937,102 @@
             display: 'inline-flex', gap: '5px', position: 'absolute', right: '0', alignItems: 'center'
         });
 
+        // Récupérer les boutons configurés pour ce titre
+        const boutonsConfig = getBoutonsForTitre();
+        const afficherBouton = (id) => {
+            // Si pas de config spécifique, afficher tous les boutons
+            if (!boutonsConfig) return true;
+            return boutonsConfig.includes(id);
+        };
+
         // === Boutons principaux (centre) ===
 
-        const btnOui = document.createElement('button');
-        btnOui.innerText = 'Oui';
-        btnOui.className = 'btn btn-info';
-        Object.assign(btnOui.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnOui.onclick = () => {
-            document.querySelectorAll('button[collector-value="1"]').forEach(btn => {
-                if (!btn.title.toLowerCase().includes('conforme')) btn.click();
-            });
-        };
-        centerGroup.appendChild(btnOui);
+        if (afficherBouton('oui')) {
+            const btnOui = document.createElement('button');
+            btnOui.innerText = 'Oui';
+            btnOui.className = 'btn btn-info';
+            Object.assign(btnOui.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnOui.onclick = () => {
+                document.querySelectorAll('button[collector-value="1"]').forEach(btn => {
+                    if (!btn.title.toLowerCase().includes('conforme')) btn.click();
+                });
+            };
+            centerGroup.appendChild(btnOui);
+        }
 
-        const btnNon = document.createElement('button');
-        btnNon.innerText = 'Non';
-        btnNon.className = 'btn btn-danger';
-        Object.assign(btnNon.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnNon.onclick = () => {
-            document.querySelectorAll('button[collector-value="0"]').forEach(btn => {
-                if (!btn.title.toLowerCase().includes('conforme')) btn.click();
-            });
-        };
-        centerGroup.appendChild(btnNon);
+        if (afficherBouton('non')) {
+            const btnNon = document.createElement('button');
+            btnNon.innerText = 'Non';
+            btnNon.className = 'btn btn-danger';
+            Object.assign(btnNon.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnNon.onclick = () => {
+                document.querySelectorAll('button[collector-value="0"]').forEach(btn => {
+                    if (!btn.title.toLowerCase().includes('conforme')) btn.click();
+                });
+            };
+            centerGroup.appendChild(btnNon);
+        }
 
-        const btnConforme = document.createElement('button');
-        btnConforme.innerText = 'Conforme';
-        btnConforme.className = 'btn btn-primary';
-        Object.assign(btnConforme.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnConforme.onclick = () => {
-            document.querySelectorAll('button[title="Conforme"]').forEach(btn => btn.click());
-        };
-        centerGroup.appendChild(btnConforme);
+        if (afficherBouton('conforme')) {
+            const btnConforme = document.createElement('button');
+            btnConforme.innerText = 'Conforme';
+            btnConforme.className = 'btn btn-primary';
+            Object.assign(btnConforme.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnConforme.onclick = () => {
+                document.querySelectorAll('button[title="Conforme"]').forEach(btn => btn.click());
+            };
+            centerGroup.appendChild(btnConforme);
+        }
 
-        const btnRemplir = document.createElement('button');
-        btnRemplir.innerText = 'Valeur';
-        btnRemplir.className = 'btn btn-secondary';
-        Object.assign(btnRemplir.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnRemplir.onclick = () => {
-            document.querySelectorAll('input[type="tel"][data-min][data-max]').forEach(input => {
-                const min = parseFloat(input.getAttribute('data-min'));
-                const max = parseFloat(input.getAttribute('data-max'));
-                if (!isNaN(min) && !isNaN(max)) {
-                    const valeur = Math.round((min + Math.random() * (max - min)) * 100) / 100;
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                        window.HTMLInputElement.prototype, 'value'
-                    ).set;
-                    nativeInputValueSetter.call(input, valeur);
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            });
-        };
-        centerGroup.appendChild(btnRemplir);
+        if (afficherBouton('valeur')) {
+            const btnRemplir = document.createElement('button');
+            btnRemplir.innerText = 'Valeur';
+            btnRemplir.className = 'btn btn-secondary';
+            Object.assign(btnRemplir.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnRemplir.onclick = () => {
+                document.querySelectorAll('input[type="tel"][data-min][data-max]').forEach(input => {
+                    const min = parseFloat(input.getAttribute('data-min'));
+                    const max = parseFloat(input.getAttribute('data-max'));
+                    if (!isNaN(min) && !isNaN(max)) {
+                        const valeur = Math.round((min + Math.random() * (max - min)) * 100) / 100;
+                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                            window.HTMLInputElement.prototype, 'value'
+                        ).set;
+                        nativeInputValueSetter.call(input, valeur);
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            };
+            centerGroup.appendChild(btnRemplir);
+        }
 
-        const btnSigner = document.createElement('button');
-        btnSigner.id = 'custom_sign_button';
-        btnSigner.innerText = 'Signer';
-        btnSigner.className = 'btn btn-warning';
-        Object.assign(btnSigner.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnSigner.onclick = () => {
-            document.querySelectorAll(`button[cp="${cpPersoValue}"]`).forEach(btn => btn.click());
-        };
-        centerGroup.appendChild(btnSigner);
+        if (afficherBouton('signer')) {
+            const btnSigner = document.createElement('button');
+            btnSigner.id = 'custom_sign_button';
+            btnSigner.innerText = 'Signer';
+            btnSigner.className = 'btn btn-warning';
+            Object.assign(btnSigner.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnSigner.onclick = () => {
+                document.querySelectorAll(`button[cp="${cpPersoValue}"]`).forEach(btn => btn.click());
+            };
+            centerGroup.appendChild(btnSigner);
+        }
 
-        const btnValider = document.createElement('button');
-        btnValider.id = 'custom_validate_button';
-        btnValider.innerText = 'Valider';
-        btnValider.className = 'btn btn-success';
-        Object.assign(btnValider.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
-        btnValider.onclick = () => {
-            const validerBtn = document.getElementById('fonctionnel_validateAndNext_form') ||
-                               document.getElementById('fonctionnel_validate_form');
-            if (validerBtn) validerBtn.click();
-            else alert("Bouton 'Valider' introuvable.");
-        };
-        centerGroup.appendChild(btnValider);
+        if (afficherBouton('valider')) {
+            const btnValider = document.createElement('button');
+            btnValider.id = 'custom_validate_button';
+            btnValider.innerText = 'Valider';
+            btnValider.className = 'btn btn-success';
+            Object.assign(btnValider.style, { padding: '2px 10px', borderRadius: '5px', cursor: 'pointer' });
+            btnValider.onclick = () => {
+                const validerBtn = document.getElementById('fonctionnel_validateAndNext_form') ||
+                                   document.getElementById('fonctionnel_validate_form');
+                if (validerBtn) validerBtn.click();
+                else alert("Bouton 'Valider' introuvable.");
+            };
+            centerGroup.appendChild(btnValider);
+        }
 
         // === Groupe droit : bouton Ajouter ===
 
@@ -521,5 +1075,5 @@
         }
     }
 
-    setInterval(verifierEtAjouter, 1000);
+    setInterval(verifierEtAjouter, 100);
 })();
