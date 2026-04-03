@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         CopieFCA
-// @namespace    https://github.com/Syfrost
-// @version      1.27
-// @description  Auto fill input
-// @author       Cedric G
-// @match        runtime-app.powerplatform.com/*
-// @grant        unsafeWindow
-// @grant        GM_xmlhttpRequest
-
-// ==/UserScript==
-
-
 (function() {
     'use strict';
 
@@ -31,29 +18,48 @@
         }
     }
 
+    // Check if we're on the correct FCA form by verifying the exact HTML structure
+    function checkFormulaireFCAStructure() {
+        // Search for all divs with class "appmagic-label-text"
+        const labelTexts = unsafeWindow.document.querySelectorAll('div.appmagic-label-text');
+
+        for (const labelText of labelTexts) {
+            // Check if this div contains the exact text
+            if (labelText.textContent.trim() === 'Formulaire de réponse de FCA') {
+                // Verify that the parent has the class "appmagic-label"
+                const parent = labelText.closest('div.appmagic-label');
+                if (parent) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     function fillInput() {
         // Only fill if we're on the correct form
-        if (!document.querySelector("body") || !document.body.textContent.includes('Formulaire FCA')) {
+        if (!checkFormulaireFCAStructure()) {
             return;
         }
-        fillPowerAppsInput("input[appmagic-control='TextInput20textbox']", numREL);
-        fillPowerAppsInput("input[appmagic-control='TextInput20_2textbox']", numSer);
-        fillPowerAppsInput("input[appmagic-control='TextInput13_2textbox']", symbole);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_8textbox']", designation);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_11textbox']", originalLink);
-        fillPowerAppsInput("input[appmagic-control='TextInput2_6textbox']", commentCri);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_9textbox']", numREL);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_14textbox']", numSer);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_16textbox']", symbole);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_11textbox']", designation);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_18textbox']", originalLink);
+        fillPowerAppsInput("input[appmagic-control='TextInput1_13textbox']", commentCri);
     }
 
     // Try to fill immediately with delay
     setTimeout(() => {
-        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+        if (checkFormulaireFCAStructure()) {
             fillInput();
         }
     }, 500);
 
     // Also try after DOM changes with renamed observer
     const fcaObserver = new unsafeWindow.MutationObserver(() => {
-        if (document.body && document.body.textContent.includes('Formulaire FCA')) {
+        if (checkFormulaireFCAStructure()) {
             fillInput();
         }
     });
@@ -352,25 +358,10 @@
         });
     }
 
-    // Only create UI panel if in iframe and "Formulaire FCA" text is found
+    // Only create UI panel if in iframe and correct form structure is found
     if (unsafeWindow !== unsafeWindow.top) {
         const fcaPageObserver = new unsafeWindow.MutationObserver(() => {
-            const walker = unsafeWindow.document.createTreeWalker(
-                unsafeWindow.document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
-            let foundFormulaireFCA = false;
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
-                    foundFormulaireFCA = true;
-                    break;
-                }
-            }
-
+            const foundFormulaireFCA = checkFormulaireFCAStructure();
             const existingPanel = unsafeWindow.document.querySelector('[data-script-type="CopieFCA"]');
 
             // Only create panel if correct form is found and no existing panel
@@ -383,7 +374,7 @@
                     panel.setAttribute('data-script-type', 'CopieFCA');
                 }
             } else if (!foundFormulaireFCA && existingPanel) {
-                // Remove UI panel if "Formulaire FCA" is no longer detected
+                // Remove UI panel if form structure is no longer detected
                 existingPanel.remove();
             }
         });
@@ -395,21 +386,7 @@
 
         // Also check immediately if content is already loaded with delay
         setTimeout(() => {
-            const walker = unsafeWindow.document.createTreeWalker(
-                unsafeWindow.document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
-            let foundFormulaireFCA = false;
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.textContent.includes('Formulaire FCA')) {
-                    foundFormulaireFCA = true;
-                    break;
-                }
-            }
+            const foundFormulaireFCA = checkFormulaireFCAStructure();
 
             if (foundFormulaireFCA) {
                 createUIPanel();
