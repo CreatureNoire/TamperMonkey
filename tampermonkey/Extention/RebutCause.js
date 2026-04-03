@@ -261,7 +261,7 @@
                         <strong>Aperçu Info Agent :</strong><br>
                         <code id="rebut-preview">${initiales} -- ${dateStr} -- Rebut cause : ...</code>
                         <br><br>
-                        <span>💡 <kbd style="background:#333;padding:2px 6px;border-radius:3px;color:#00f2ea;">Ctrl + Alt + R</kbd> pour modifier vos initiales (actuellement : <strong style="color:#00f2ea;">${initiales}</strong>)</span>
+                        <span>💡 Initiales actuelles : <strong style="color:#00f2ea;">${initiales}</strong></span>
                     </div>
                 </div>
                 <div class="rebut-modal-footer">
@@ -484,32 +484,24 @@
 
         // Afficher le modal de saisie
         showRebutModal(function (texteInfoAgent) {
-            // 1. Remplir le champ Info Agent
-            remplirInfoAgent(texteInfoAgent);
+            // 1. D'abord cliquer sur le bouton "En attente Rebut"
+            isProcessingRebutClick = true; // Activer le flag
+            btn.click();
+            console.log('[RebutCause] ✅ Bouton "En attente Rebut" cliqué automatiquement');
 
-            // 2. Ensuite cliquer sur le vrai bouton rebut (après que l'info agent soit enregistrée)
+            // Réinitialiser le flag après un court délai
             setTimeout(() => {
-                isProcessingRebutClick = true; // Activer le flag
-                btn.click();
-                console.log('[RebutCause] ✅ Bouton "En attente Rebut" cliqué automatiquement');
+                isProcessingRebutClick = false;
+            }, 500);
 
-                // Réinitialiser le flag après un court délai
-                setTimeout(() => {
-                    isProcessingRebutClick = false;
-                }, 500);
-            }, 2500);
+            // 2. Ensuite remplir le champ Info Agent (après que la page ait réagi au clic)
+            setTimeout(() => {
+                remplirInfoAgent(texteInfoAgent);
+            }, 1500);
         });
 
     }, true); // ← capture phase pour intercepter avant les autres handlers
 
-    // ── Raccourci Ctrl + Alt + R pour modifier les initiales ──
-    document.addEventListener('keydown', function (e) {
-        if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'r') {
-            e.preventDefault();
-            showInitialesModal();
-        }
-    });
-
-    console.log('[RebutCause] ✅ Script chargé — Ctrl+Alt+R pour modifier les initiales');
+    console.log('[RebutCause] ✅ Script chargé');
 
 })();
