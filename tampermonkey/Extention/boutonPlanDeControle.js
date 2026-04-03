@@ -468,6 +468,13 @@
                 console.log('[BFO INTERCEPT] 🎯 Requête fetch processTransitionForm détectée');
                 console.log('[BFO INTERCEPT] Dates en attente:', bfoDatesEnAttente.length, bfoDatesEnAttente);
 
+                // ⚡ CAPTURE SYSTÉMATIQUE: Synchroniser window._bfoObservation avec le textarea AVANT traitement
+                const obsFieldPreCapture = document.getElementById('input_observation_179424');
+                if (obsFieldPreCapture && obsFieldPreCapture.value && obsFieldPreCapture.value.trim() !== '') {
+                    window._bfoObservation = obsFieldPreCapture.value.trim();
+                    console.log('[BFO INTERCEPT] 🎯 Observation PRE-capturée depuis textarea #input_observation_179424:', window._bfoObservation);
+                }
+
                 // Si on a des dates mappées, les injecter
                 if (bfoDatesEnAttente.length > 0) {
                     console.log('[BFO INTERCEPT] ⚡ Injection des dates BFO mappées dans fetch');
@@ -513,31 +520,62 @@
                 }
 
                 // Injecter l'observation BFO si elle existe
-                if (window._bfoObservation && options.body) {
-                    console.log('[BFO INTERCEPT] 📝 Injection de l\'observation BFO');
+                // On capture aussi la valeur actuelle du textarea dans le DOM
+                let observationAInjecter = window._bfoObservation;
+                if (!observationAInjecter) {
+                    // Fallback: chercher le textarea dans le DOM et capturer sa valeur
+                    const obsField = document.getElementById('input_observation_179424');
+                    if (obsField && obsField.value && obsField.value.trim() !== '') {
+                        observationAInjecter = obsField.value.trim();
+                        console.log('[BFO INTERCEPT] 📝 Observation capturée depuis le DOM #input_observation_179424:', observationAInjecter);
+                    }
+                }
+
+                if (options.body) {
+                    console.log('[BFO INTERCEPT] 📝 Traitement de l\'observation. Valeur à injecter:', observationAInjecter);
 
                     if (typeof options.body === 'string') {
                         const params = new URLSearchParams(options.body);
-                        // Chercher le champ observation
+
+                        // Debug: afficher tous les champs du payload
+                        console.log('[BFO INTERCEPT] 📋 Champs dans le payload fetch:');
                         for (const [key, value] of params.entries()) {
-                            if (key.startsWith('input_observation_') && (!value || value.trim() === '')) {
-                                params.set(key, window._bfoObservation);
-                                console.log(`[BFO INTERCEPT] ✅ Observation injectée dans fetch: ${key}`);
-                                break;
+                            if (key === 'input_observation_179424' || key.startsWith('type_data_')) {
+                                console.log(`  - ${key}: "${value}"`);
                             }
+                        }
+
+                        // Chercher le champ observation et forcer l'injection UNIQUEMENT pour input_observation_179424
+                        if (params.has('input_observation_179424')) {
+                            if (observationAInjecter) {
+                                params.set('input_observation_179424', observationAInjecter);
+                                console.log(`[BFO INTERCEPT] ✅ Observation injectée dans fetch: input_observation_179424 = "${observationAInjecter}"`);
+                            } else {
+                                console.log(`[BFO INTERCEPT] ℹ️ Champ input_observation_179424 trouvé mais pas de valeur à injecter, valeur actuelle: "${params.get('input_observation_179424')}"`);
+                            }
+                        } else {
+                            console.warn('[BFO INTERCEPT] ⚠️ Champ input_observation_179424 non trouvé dans les paramètres');
                         }
                         options.body = params.toString();
                     } else if (options.body instanceof FormData) {
-                        // Chercher le champ observation dans FormData
+                        // Debug: afficher tous les champs du FormData
+                        console.log('[BFO INTERCEPT] 📋 Champs dans FormData fetch:');
                         for (const key of options.body.keys()) {
-                            if (key.startsWith('input_observation_')) {
-                                const currentValue = options.body.get(key);
-                                if (!currentValue || currentValue.trim() === '') {
-                                    options.body.set(key, window._bfoObservation);
-                                    console.log(`[BFO INTERCEPT] ✅ Observation injectée dans fetch FormData: ${key}`);
-                                    break;
-                                }
+                            if (key === 'input_observation_179424' || key.startsWith('type_data_')) {
+                                console.log(`  - ${key}: "${options.body.get(key)}"`);
                             }
+                        }
+
+                        // Chercher le champ observation dans FormData et forcer l'injection UNIQUEMENT pour input_observation_179424
+                        if (options.body.has('input_observation_179424')) {
+                            if (observationAInjecter) {
+                                options.body.set('input_observation_179424', observationAInjecter);
+                                console.log(`[BFO INTERCEPT] ✅ Observation injectée dans fetch FormData: input_observation_179424 = "${observationAInjecter}"`);
+                            } else {
+                                console.log(`[BFO INTERCEPT] ℹ️ Champ input_observation_179424 trouvé mais pas de valeur à injecter, valeur actuelle: "${options.body.get('input_observation_179424')}"`);
+                            }
+                        } else {
+                            console.warn('[BFO INTERCEPT] ⚠️ Champ input_observation_179424 non trouvé dans FormData');
                         }
                     }
                 }
@@ -570,6 +608,13 @@
 
                 console.log('[BFO INTERCEPT] 🎯 Requête processTransitionForm détectée');
                 console.log('[BFO INTERCEPT] Dates en attente:', bfoDatesEnAttente.length, bfoDatesEnAttente);
+
+                // ⚡ CAPTURE SYSTÉMATIQUE: Synchroniser window._bfoObservation avec le textarea AVANT traitement
+                const obsFieldPreCapture = document.getElementById('input_observation_179424');
+                if (obsFieldPreCapture && obsFieldPreCapture.value && obsFieldPreCapture.value.trim() !== '') {
+                    window._bfoObservation = obsFieldPreCapture.value.trim();
+                    console.log('[BFO INTERCEPT] 🎯 Observation PRE-capturée depuis textarea #input_observation_179424 (XHR):', window._bfoObservation);
+                }
 
                 // Si on a des dates mappées, les injecter
                 if (bfoDatesEnAttente.length > 0) {
@@ -614,32 +659,61 @@
                 }
 
                 // Injecter l'observation BFO si elle existe
-                if (window._bfoObservation) {
-                    console.log('[BFO INTERCEPT] 📝 Injection de l\'observation BFO dans XHR');
+                // On capture aussi la valeur actuelle du textarea dans le DOM
+                let observationAInjecter = window._bfoObservation;
+                if (!observationAInjecter) {
+                    // Fallback: chercher le textarea dans le DOM et capturer sa valeur
+                    const obsField = document.getElementById('input_observation_179424');
+                    if (obsField && obsField.value && obsField.value.trim() !== '') {
+                        observationAInjecter = obsField.value.trim();
+                        console.log('[BFO INTERCEPT] 📝 Observation capturée depuis le DOM #input_observation_179424 (XHR):', observationAInjecter);
+                    }
+                }
 
-                    if (typeof data === 'string') {
-                        const params = new URLSearchParams(data);
-                        // Chercher le champ observation
-                        for (const [key, value] of params.entries()) {
-                            if (key.startsWith('input_observation_') && (!value || value.trim() === '')) {
-                                params.set(key, window._bfoObservation);
-                                console.log(`[BFO INTERCEPT] ✅ Observation injectée dans XHR: ${key}`);
-                                break;
-                            }
+                console.log('[BFO INTERCEPT] 📝 Traitement de l\'observation XHR. Valeur à injecter:', observationAInjecter);
+
+                if (typeof data === 'string') {
+                    const params = new URLSearchParams(data);
+
+                    // Debug: afficher tous les champs du payload
+                    console.log('[BFO INTERCEPT] 📋 Champs dans le payload XHR:');
+                    for (const [key, value] of params.entries()) {
+                        if (key === 'input_observation_179424' || key.startsWith('type_data_')) {
+                            console.log(`  - ${key}: "${value}"`);
                         }
-                        data = params.toString();
-                    } else if (data instanceof FormData) {
-                        // Chercher le champ observation dans FormData
-                        for (const key of data.keys()) {
-                            if (key.startsWith('input_observation_')) {
-                                const currentValue = data.get(key);
-                                if (!currentValue || currentValue.trim() === '') {
-                                    data.set(key, window._bfoObservation);
-                                    console.log(`[BFO INTERCEPT] ✅ Observation injectée dans XHR FormData: ${key}`);
-                                    break;
-                                }
-                            }
+                    }
+
+                    // Chercher le champ observation et forcer l'injection UNIQUEMENT pour input_observation_179424
+                    if (params.has('input_observation_179424')) {
+                        if (observationAInjecter) {
+                            params.set('input_observation_179424', observationAInjecter);
+                            console.log(`[BFO INTERCEPT] ✅ Observation injectée dans XHR: input_observation_179424 = "${observationAInjecter}"`);
+                        } else {
+                            console.log(`[BFO INTERCEPT] ℹ️ Champ input_observation_179424 trouvé mais pas de valeur à injecter, valeur actuelle: "${params.get('input_observation_179424')}"`);
                         }
+                    } else {
+                        console.warn('[BFO INTERCEPT] ⚠️ Champ input_observation_179424 non trouvé dans les paramètres XHR');
+                    }
+                    data = params.toString();
+                } else if (data instanceof FormData) {
+                    // Debug: afficher tous les champs du FormData
+                    console.log('[BFO INTERCEPT] 📋 Champs dans FormData XHR:');
+                    for (const key of data.keys()) {
+                        if (key === 'input_observation_179424' || key.startsWith('type_data_')) {
+                            console.log(`  - ${key}: "${data.get(key)}"`);
+                        }
+                    }
+
+                    // Chercher le champ observation dans FormData et forcer l'injection UNIQUEMENT pour input_observation_179424
+                    if (data.has('input_observation_179424')) {
+                        if (observationAInjecter) {
+                            data.set('input_observation_179424', observationAInjecter);
+                            console.log(`[BFO INTERCEPT] ✅ Observation injectée dans XHR FormData: input_observation_179424 = "${observationAInjecter}"`);
+                        } else {
+                            console.log(`[BFO INTERCEPT] ℹ️ Champ input_observation_179424 trouvé mais pas de valeur à injecter, valeur actuelle: "${data.get('input_observation_179424')}"`);
+                        }
+                    } else {
+                        console.warn('[BFO INTERCEPT] ⚠️ Champ input_observation_179424 non trouvé dans FormData XHR');
                     }
                 }
 
@@ -797,21 +871,62 @@
         // Fonction pour injecter l'observation
         const injecterObservation = (tentative = 0) => {
             if (window._bfoObservation) {
-                // Chercher le champ observation qui commence par input_observation_
-                const obsField = document.querySelector('textarea[id^="input_observation_"]');
+                // Chercher le champ observation avec l'ID exact input_observation_179424
+                const obsField = document.getElementById('input_observation_179424');
 
                 if (obsField) {
                     obsField.value = window._bfoObservation;
                     console.log(`[BFO DEBUG] ✅ Observation injectée dans ${obsField.id}:`, window._bfoObservation);
 
-                    // Déclencher l'événement change pour que l'application détecte la modification
-                    const event = new Event('change', { bubbles: true });
-                    obsField.dispatchEvent(event);
+                    // Déclencher les événements pour que l'application détecte la modification
+                    obsField.dispatchEvent(new Event('input', { bubbles: true }));
+                    obsField.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // Ajouter un écouteur pour synchroniser window._bfoObservation avec le textarea
+                    obsField.addEventListener('input', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation mise à jour (input):`, window._bfoObservation);
+                    });
+
+                    obsField.addEventListener('change', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation mise à jour (change):`, window._bfoObservation);
+                    });
+
+                    // Ajouter aussi un écouteur sur blur pour capturer les modifications
+                    obsField.addEventListener('blur', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation mise à jour (blur):`, window._bfoObservation);
+                    });
                 } else if (tentative < 20) {
                     // Réessayer si pas trouvé
                     setTimeout(() => injecterObservation(tentative + 1), 300);
                 } else {
                     console.warn(`[BFO DEBUG] ⚠️ Champ observation non trouvé après ${tentative + 1} tentatives`);
+                }
+            } else {
+                // Même si pas d'observation BFO initiale, surveiller le textarea pour capturer ce que l'utilisateur tape
+                const obsField = document.getElementById('input_observation_179424');
+                if (obsField) {
+                    console.log(`[BFO DEBUG] 📝 Surveillance du textarea observation activée (ID: ${obsField.id})`);
+
+                    // Ajouter des écouteurs pour capturer ce que l'utilisateur tape
+                    obsField.addEventListener('input', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation capturée (input):`, window._bfoObservation);
+                    });
+
+                    obsField.addEventListener('change', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation capturée (change):`, window._bfoObservation);
+                    });
+
+                    obsField.addEventListener('blur', function() {
+                        window._bfoObservation = this.value;
+                        console.log(`[BFO DEBUG] 🔄 Observation capturée (blur):`, window._bfoObservation);
+                    });
+                } else if (tentative < 20) {
+                    setTimeout(() => injecterObservation(tentative + 1), 300);
                 }
             }
         };
