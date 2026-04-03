@@ -1,14 +1,3 @@
-// ==UserScript==
-// @name         Copie Colle Cause Rebut
-// @namespace    https://github.com/Syfrost
-// @version      1.0
-// @description  Auto fill rebut form
-// @author       Cedric G
-// @match        runtime-app.powerplatform.com/*
-// @grant        unsafeWindow
-// @grant        GM_xmlhttpRequest
-// ==/UserScript==
-
 (function() {
     'use strict';
 
